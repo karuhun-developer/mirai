@@ -50,6 +50,22 @@ async function waitUntil(condition, timeout = 10_000) {
 }
 
 /**
+ * Menggeser posisi tonton lewat bilah kendali.
+ *
+ * Bukan `fill()` langsung: kendali pemutar menyembunyikan diri tiga detik
+ * setelah video jalan, dan `fill()` yang menunggu elemen tersembunyi akan diam
+ * sampai kendalinya muncul lagi — biasanya baru waktu episodenya sudah habis.
+ * Satu ketukan di videonya memunculkan kendali lebih dulu, persis seperti yang
+ * dilakukan orang.
+ */
+async function seekPlayer(page, seconds) {
+  const seek = page.locator('[data-testid="player-seek"]')
+  if (!(await seek.isVisible())) await page.locator('[data-testid="player-video"]').click()
+  await seek.waitFor({ state: 'visible', timeout: 15_000 })
+  await seek.fill(String(seconds))
+}
+
+/**
  * Berkas video kecil untuk menguji pemutar.
  *
  * Chromium bawaan Playwright tidak punya dekoder H.264, dan situs anime tidak
@@ -84,6 +100,62 @@ function makeFixtureVideo() {
 }
 
 const fixtureVideo = makeFixtureVideo()
+
+/**
+ * Satu episode HLS tiruan, seluruhnya di dalam satu alamat.
+ *
+ * Segmennya fMP4 berisi VP9, bukan MPEG-TS yang lazim di situs anime: Chromium
+ * bawaan Playwright tidak punya dekoder H.264, dan tanpa itu TS tidak akan
+ * pernah sampai ke layar. Sisa rantainya tetap yang sungguhan — playlist
+ * dibedah, `#EXT-X-MAP` beserta tiap segmennya diunduh satu per satu, playlist
+ * lokal ditulis, lalu hls.js memutarnya lewat loader yang membaca berkas.
+ *
+ * Playlist dan isinya jadi data URL supaya tidak butuh server berkas: alamat
+ * data lolos begitu saja dari resolver media (lihat `isLocalUrl`), jadi
+ * pengambilannya tidak melewati proxy — itu juga yang membuat blok ini tetap
+ * jujur waktu jaringannya diputus belakangan.
+ */
+function makeFixtureHls() {
+  try {
+    const dir = mkdtempSync(join(tmpdir(), 'mirai-smoke-hls-'))
+    execFileSync(
+      'ffmpeg',
+      // prettier-ignore
+      [
+        '-v', 'error', '-y',
+        '-f', 'lavfi', '-i', 'color=c=darkgreen:size=160x120:rate=5:duration=30',
+        '-c:v', 'libvpx-vp9', '-b:v', '20k', '-g', '5',
+        '-deadline', 'realtime', '-cpu-used', '8', '-an',
+        '-f', 'hls', '-hls_time', '6', '-hls_playlist_type', 'vod',
+        '-hls_segment_type', 'fmp4', '-hls_fmp4_init_filename', 'init.mp4',
+        '-hls_segment_filename', join(dir, 'seg-%d.m4s'),
+        join(dir, 'index.m3u8'),
+      ],
+      { stdio: 'pipe' },
+    )
+
+    const dataUrl = (name, mime) =>
+      `data:${mime};base64,${readFileSync(join(dir, name)).toString('base64')}`
+
+    const playlist = readFileSync(join(dir, 'index.m3u8'), 'utf8')
+      .split('\n')
+      .map((line) => {
+        const trimmed = line.trim()
+        if (trimmed === '') return line
+        if (/^#EXT-X-MAP/i.test(trimmed)) {
+          return line.replace(/URI="([^"]+)"/, (_, name) => `URI="${dataUrl(name, 'video/mp4')}"`)
+        }
+        return trimmed.startsWith('#') ? line : dataUrl(trimmed, 'video/iso.segment')
+      })
+      .join('\n')
+
+    return `data:application/vnd.apple.mpegurl;base64,${Buffer.from(playlist).toString('base64')}`
+  } catch {
+    return null
+  }
+}
+
+const fixtureHls = makeFixtureHls()
 
 /**
  * Tiga halaman manga tiruan: PNG 8×8 tiga warna sebagai data URL.
@@ -457,7 +529,7 @@ try {
       check('video benar-benar berjalan, bukan diam di detik nol', running)
 
       // Lompat ke detik 10, lalu pastikan angkanya mendarat di tabel.
-      await page.locator('[data-testid="player-seek"]').fill('10')
+      await seekPlayer(page, 10)
       const saved = await waitUntil(async () => {
         const rows = await query('SELECT last_position, total_position FROM item WHERE id = ?', [
           itemId,
@@ -503,7 +575,7 @@ try {
 
       // Lewat ambang 90%: episodenya harus bertanda selesai tanpa ditandai
       // manual, lalu lanjut sendiri ke episode berikutnya.
-      await page.locator('[data-testid="player-seek"]').fill('28')
+      await seekPlayer(page, 28)
       const watched = await waitUntil(async () => {
         const rows = await query('SELECT seen FROM item WHERE id = ?', [itemId])
         return rows[0]?.seen === 1
@@ -653,7 +725,106 @@ try {
     await page.waitForURL('**/entry/manga/komikcast/**')
     await page.unroute('http://localhost:5181/**')
 
-    // 13. Route tak dikenal jatuh ke halaman 404, bukan layar putih.
+    // 13. Fase 7 — mengunduh satu episode HLS, lalu menontonnya tanpa jaringan.
+    //
+    //     Bergantung pada anime yang sudah dipasang blok 11, jadi keduanya
+    //     dilewati bersama kalau ffmpeg tidak ada. Yang ditiru cuma daftar
+    //     videonya; unduhannya menjalankan pipa aslinya — playlist dibedah,
+    //     `#EXT-X-MAP` dan lima segmennya turun satu per satu ke OPFS, dan
+    //     playlist lokal ditulis paling akhir sebagai tanda episodenya utuh.
+    if (!fixtureVideo || !fixtureHls) {
+      console.log('  … ffmpeg tidak ada, cek unduhan episode dilewati')
+    } else {
+      const animeQuery = (sql, params = []) =>
+        page.evaluate(([text, values]) => globalThis.__db.query(text, values), [sql, params])
+
+      await page.goto(`${BASE}/library/anime`, { waitUntil: 'networkidle' })
+      const animeEntry = page.locator('[data-testid="entry-grid"] a[href*="uji-smoke"]').first()
+      await animeEntry.waitFor({ state: 'visible', timeout: 15_000 }).catch(() => {})
+      await animeEntry.click()
+      await page.waitForURL('**/entry/anime/otakudesu/**')
+
+      const episodeDownloads = page.locator('[data-testid="item-download"]')
+      await episodeDownloads
+        .first()
+        .waitFor({ state: 'visible', timeout: 20_000 })
+        .catch(() => {})
+      check('tiap episode punya tombol unduh', (await episodeDownloads.count()) === 3)
+
+      // Jembatan pemutar ikut termuat bersama antrean unduhan — antreannya yang
+      // memanggil `loadVideos()`, jadi daftar tiruan ini yang dipakainya.
+      await page.waitForFunction(() => globalThis.__player !== undefined, null, { timeout: 20_000 })
+      await page.evaluate((src) => {
+        globalThis.__player.fixture([{ url: src, quality: '720p', type: 'hls', subtitles: [] }])
+      }, fixtureHls)
+
+      // Baris teratas = episode 3, satu-satunya yang belum disentuh blok 11.
+      const episodeId = (await animeQuery("SELECT id FROM item WHERE url LIKE '%uji-smoke-3/'"))[0]
+        ?.id
+      await episodeDownloads.first().click()
+
+      const episodeDone = await waitUntil(async () => {
+        const rows = await animeQuery(
+          "SELECT state FROM download WHERE item_id = ? AND state = 'done'",
+          [episodeId],
+        )
+        return rows.length === 1
+      }, 60_000)
+      check('episode HLS selesai diunduh', episodeDone)
+      check(
+        'episode terunduh bertanda di tabel item',
+        (await animeQuery('SELECT downloaded FROM item WHERE id = ?', [episodeId]))[0]
+          ?.downloaded === 1,
+      )
+
+      // Inti verifikasi fase ini: jalur ke sumber diputus, lalu episodenya harus
+      // tetap jalan dari awal sampai ujung — segmennya dibaca dari berkas di
+      // perangkat lewat loader hls.js sendiri. Daftar video tiruan ikut hilang
+      // di muat ulang, jadi tidak ada jalan lain selain berkas itu.
+      await page.route('http://localhost:5181/**', (route) => route.abort())
+      await page.reload({ waitUntil: 'networkidle' })
+      await page.goto(`${BASE}/watch/${encodeURIComponent(episodeId)}`, {
+        waitUntil: 'networkidle',
+      })
+
+      const localVideo = page.locator('[data-testid="player-video"]')
+      await localVideo.waitFor({ state: 'visible', timeout: 20_000 }).catch(() => {})
+      const localTime = page.locator('[data-testid="player-time"]')
+      const localDuration = await waitUntil(
+        async () => /\/ 0:30$/.test(((await localTime.textContent()) ?? '').trim()),
+        30_000,
+      )
+      check('episode terunduh terbaca durasi penuhnya tanpa jaringan (0:30)', localDuration)
+      check(
+        'kualitasnya ditandai berasal dari perangkat',
+        (await page.locator('[data-testid="player-quality"]').textContent())?.includes('Terunduh'),
+      )
+
+      // Diputar dari tombol, bukan menunggu putar-sendiri: halaman ini dibuka
+      // lewat alamat langsung, dan Chromium menolak `play()` tanpa satu pun
+      // ketukan pengguna di halamannya.
+      await page.locator('[data-testid="player-toggle"]').click()
+      const localRunning = await waitUntil(
+        async () => (await localVideo.evaluate((el) => el.currentTime)) > 0,
+        20_000,
+      )
+      check('episode terunduh benar-benar diputar', localRunning)
+
+      // Melompat ke detik 26 memaksa segmen terakhir dibaca dari OPFS, bukan
+      // cuma segmen pertama yang kebetulan sudah di buffer — dan menunggunya
+      // lewat detik 27 membuktikan segmen itu benar-benar ikut terurai.
+      await seekPlayer(page, 26)
+      const localEnd = await waitUntil(
+        async () => (await localVideo.evaluate((el) => el.currentTime)) >= 27,
+        20_000,
+      )
+      check('segmen terakhir ikut terbaca dari berkas, bukan cuma yang pertama', localEnd)
+
+      await page.unroute('http://localhost:5181/**')
+      await page.keyboard.press('Escape')
+    }
+
+    // 14. Route tak dikenal jatuh ke halaman 404, bukan layar putih.
     await page.goto(`${BASE}/rute-yang-tidak-ada`, { waitUntil: 'networkidle' })
     check('404 tampil', await page.getByText('Halaman tidak ditemukan').isVisible())
 
