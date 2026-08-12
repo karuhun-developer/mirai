@@ -9,3 +9,6 @@ packages:
 allowBuilds:
   # postinstall-nya cuma memilih shim Vue 2/3; tanpa ini @vueuse/core pecah.
   vue-demi: true
+  # esbuild mengunduh binary platformnya saat install; tanpa itu build extension
+  # gagal dengan "You installed esbuild for another platform".
+  esbuild: true
