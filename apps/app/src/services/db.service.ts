@@ -65,6 +65,10 @@ function exposeForSmoke(): void {
   if (!import.meta.env.DEV) return
   const bridge = {
     query: (sql: string, params: unknown[] = []) => getDb().query(sql, params),
+    // Menulis dipakai untuk memasang keadaan awal yang tidak bisa didapat dari
+    // jaringan — mis. satu anime beserta episodenya waktu situs sumbernya tidak
+    // terjangkau dari mesin pengembangan.
+    run: (sql: string, params: unknown[] = []) => getDb().run(sql, params),
     flush: () => flushPersist(),
     native: () => isNativeDb(),
   }

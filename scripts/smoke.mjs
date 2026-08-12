@@ -8,6 +8,10 @@
  * Screenshot ditulis ke scripts/*.png (di-ignore git) supaya layout di dua
  * ekstrem lebar layar bisa diperiksa mata, bukan cuma diklaim lolos.
  */
+import { execFileSync } from 'node:child_process'
+import { mkdtempSync, readFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { chromium } from 'playwright'
 
 const BASE = process.env.SMOKE_BASE_URL ?? 'http://localhost:5180'
@@ -44,6 +48,42 @@ async function waitUntil(condition, timeout = 10_000) {
     await new Promise((resolve) => setTimeout(resolve, 150))
   }
 }
+
+/**
+ * Berkas video kecil untuk menguji pemutar.
+ *
+ * Chromium bawaan Playwright tidak punya dekoder H.264, dan situs anime tidak
+ * terjangkau dari mesin ini — dua alasan yang membuat episode sungguhan tidak
+ * bisa dipakai. VP9 selalu ada di Chromium mana pun, jadi satu klip 30 detik
+ * dibikin sendiri dengan ffmpeg dan disodorkan sebagai data URL.
+ *
+ * `-g 5` memaksa keyframe tiap detik supaya melompat ke detik tertentu benar
+ * mendarat di situ, bukan di keyframe terdekat beberapa detik sebelumnya.
+ */
+function makeFixtureVideo() {
+  try {
+    const path = join(mkdtempSync(join(tmpdir(), 'mirai-smoke-')), 'fixture.webm')
+    execFileSync(
+      'ffmpeg',
+      // prettier-ignore
+      [
+        '-v', 'error', '-y',
+        '-f', 'lavfi', '-i', 'color=c=darkblue:size=160x120:rate=5:duration=30',
+        '-c:v', 'libvpx-vp9', '-b:v', '20k', '-g', '5',
+        '-deadline', 'realtime', '-cpu-used', '8', '-an',
+        path,
+      ],
+      { stdio: 'pipe' },
+    )
+    return `data:video/webm;base64,${readFileSync(path).toString('base64')}`
+  } catch {
+    // ffmpeg tidak terpasang: seluruh blok pemutar dilewati dengan pesan, bukan
+    // dinyatakan lolos diam-diam.
+    return null
+  }
+}
+
+const fixtureVideo = makeFixtureVideo()
 
 const browser = await chromium.launch()
 
@@ -305,7 +345,163 @@ try {
       await page.unroute('http://localhost:5181/**')
     }
 
-    // 11. Route tak dikenal jatuh ke halaman 404, bukan layar putih.
+    // 11. Fase 5 — menonton satu episode.
+    //
+    //     Situs anime tidak terjangkau dari mesin ini, jadi anime beserta
+    //     episodenya dipasang langsung ke SQLite dan daftar videonya diganti
+    //     berkas tiruan lewat `window.__player`. Yang diuji tetap rantai
+    //     sungguhannya: konteks episode dari database → pemilihan kualitas →
+    //     elemen `<video>` di browser sungguhan → progres, lanjut, dan tanda
+    //     selesai yang mendarat di tabel.
+    if (!fixtureVideo) {
+      console.log('  … ffmpeg tidak ada, cek pemutar dilewati')
+    } else {
+      await page.goto(`${BASE}/extensions`, { waitUntil: 'networkidle' })
+      const otakudesu = page.locator('li', { hasText: 'Otakudesu' }).first()
+      await otakudesu.waitFor({ state: 'visible', timeout: 15_000 }).catch(() => {})
+      await otakudesu.getByRole('button', { name: 'Pasang' }).click()
+      const otakudesuInstalled = otakudesu.getByRole('button', { name: 'Copot' })
+      await otakudesuInstalled.waitFor({ state: 'visible', timeout: 20_000 }).catch(() => {})
+      check('Otakudesu terpasang', await otakudesuInstalled.isVisible())
+
+      const query = (sql, params = []) =>
+        page.evaluate(([text, values]) => globalThis.__db.query(text, values), [sql, params])
+
+      const entryId = await page.evaluate(async (now) => {
+        const url = 'https://otakudesu.blog/anime/uji-smoke/'
+        const id = `otakudesu::${url}`
+        await globalThis.__db.run(
+          `INSERT OR REPLACE INTO entry
+             (id, kind, source_id, url, title, favorite, added_at, items_at, updated_at)
+           VALUES (?, 'anime', 'otakudesu', ?, 'Anime Uji Smoke', 1, ?, ?, ?)`,
+          [id, url, now, now, now],
+        )
+        for (const number of [1, 2, 3]) {
+          const episode = `https://otakudesu.blog/episode/uji-smoke-${number}/`
+          await globalThis.__db.run(
+            `INSERT OR REPLACE INTO item
+               (id, entry_id, url, name, number, sort_index, added_at, updated_at)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+            [`${id}::${episode}`, id, episode, `Episode ${number}`, number, number, now, now],
+          )
+        }
+        // Tulisan mentah tidak melewati repository, jadi snapshot-nya tidak
+        // dijadwalkan sendiri — tanpa flush, baris ini lenyap di muat ulang.
+        await globalThis.__db.flush()
+        return id
+      }, Date.now())
+
+      // Masuk lewat jalan yang dipakai orang: library → detail → baris episode.
+      await page.goto(`${BASE}/library/anime`, { waitUntil: 'networkidle' })
+      const animeCard = page.locator('[data-testid="entry-grid"] a').first()
+      await animeCard.waitFor({ state: 'visible', timeout: 15_000 }).catch(() => {})
+      check('anime tersimpan muncul di Library', await animeCard.isVisible())
+
+      await animeCard.click()
+      await page.waitForURL('**/entry/anime/otakudesu/**')
+      const episodes = page.locator('[data-testid="item-open"]')
+      await episodes
+        .first()
+        .waitFor({ state: 'visible', timeout: 20_000 })
+        .catch(() => {})
+      check('daftar episode tampil walau sumbernya tak terjangkau', (await episodes.count()) === 3)
+
+      // Daftarnya menurun (terbaru dulu), jadi episode 1 ada di baris terakhir —
+      // dan cuma dari situ "episode berikutnya" punya arti.
+      const firstEpisode = episodes.last()
+      await firstEpisode.click()
+      await page.waitForURL('**/watch/**')
+      const itemId = decodeURIComponent(new URL(page.url()).pathname.slice('/watch/'.length))
+
+      // Jembatan pemutar baru ada setelah potongan halamannya termuat.
+      await page.waitForFunction(() => globalThis.__player !== undefined, null, { timeout: 20_000 })
+      await page.evaluate((src) => {
+        globalThis.__player.fixture([
+          { url: src, quality: '480p', type: 'mp4', subtitles: [] },
+          { url: src, quality: '720p', type: 'mp4', subtitles: [] },
+        ])
+      }, fixtureVideo)
+      await page.getByRole('button', { name: 'Coba lagi' }).click()
+
+      const video = page.locator('[data-testid="player-video"]')
+      await video.waitFor({ state: 'visible', timeout: 20_000 }).catch(() => {})
+      check('elemen video terpasang', await video.isVisible())
+
+      const timeLabel = page.locator('[data-testid="player-time"]')
+      const readTime = async () => ((await timeLabel.textContent()) ?? '').trim()
+      const started = await waitUntil(async () => /\/ 0:30$/.test(await readTime()), 20_000)
+      check('durasi episode terbaca dari berkasnya (0:30)', started)
+
+      // Video berjalan sendiri: elemen tanpa jalur audio boleh diputar tanpa
+      // gestur, dan halaman ini memang sudah dapat gestur dari tombol di atas.
+      const running = await waitUntil(
+        async () => (await video.evaluate((el) => el.currentTime)) > 0,
+        15_000,
+      )
+      check('video benar-benar berjalan, bukan diam di detik nol', running)
+
+      // Lompat ke detik 10, lalu pastikan angkanya mendarat di tabel.
+      await page.locator('[data-testid="player-seek"]').fill('10')
+      const saved = await waitUntil(async () => {
+        const rows = await query('SELECT last_position, total_position FROM item WHERE id = ?', [
+          itemId,
+        ])
+        return rows[0]?.last_position >= 10 && rows[0]?.total_position === 30
+      })
+      check('posisi tonton dan durasi tersimpan dalam detik', saved)
+      check(
+        'menonton mengisi riwayat anime',
+        await waitUntil(async () => {
+          const rows = await query('SELECT item_id FROM history WHERE entry_id = ?', [entryId])
+          return rows.length === 1
+        }),
+      )
+
+      // Keluar di tengah episode, lalu masuk lagi — inti verifikasi fase ini.
+      await page.keyboard.press('Escape')
+      await page.waitForURL('**/entry/anime/otakudesu/**')
+      await firstEpisode.click()
+      await page.waitForURL('**/watch/**')
+      const resumed = await waitUntil(
+        async () => (await video.evaluate((el) => el.currentTime)) >= 10,
+        20_000,
+      )
+      check('masuk lagi melanjutkan dari detik yang sama', resumed)
+
+      // Ganti kualitas: sumbernya berganti, posisinya tidak boleh ikut hilang.
+      // Dijeda dulu supaya kendalinya menetap — selama video berjalan bilahnya
+      // menyembunyikan diri sendiri setelah tiga detik.
+      await page.keyboard.press('k')
+      await page.locator('[data-testid="player-settings-open"]').click()
+      await page.locator('[data-testid="player-video-1"]').click()
+      await page.locator('[data-testid="player-settings-close"]').click()
+      const kept = await waitUntil(
+        async () => (await video.evaluate((el) => el.currentTime)) >= 10,
+        20_000,
+      )
+      check('berganti kualitas tidak mengulang dari awal', kept)
+      check(
+        'kualitas yang dipilih tampil di kendali',
+        (await page.locator('[data-testid="player-quality"]').textContent())?.includes('720p'),
+      )
+
+      // Lewat ambang 90%: episodenya harus bertanda selesai tanpa ditandai
+      // manual, lalu lanjut sendiri ke episode berikutnya.
+      await page.locator('[data-testid="player-seek"]').fill('28')
+      const watched = await waitUntil(async () => {
+        const rows = await query('SELECT seen FROM item WHERE id = ?', [itemId])
+        return rows[0]?.seen === 1
+      })
+      check('lewat 90% durasi menandai episode sudah ditonton', watched)
+
+      const advanced = await waitUntil(async () => page.url().includes('uji-smoke-2'), 20_000)
+      check('episode habis lanjut sendiri ke episode berikutnya', advanced)
+
+      await page.keyboard.press('Escape')
+      await page.waitForURL('**/entry/anime/otakudesu/**')
+    }
+
+    // 12. Route tak dikenal jatuh ke halaman 404, bukan layar putih.
     await page.goto(`${BASE}/rute-yang-tidak-ada`, { waitUntil: 'networkidle' })
     check('404 tampil', await page.getByText('Halaman tidak ditemukan').isVisible())
 
