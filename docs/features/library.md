@@ -135,12 +135,8 @@ membuat `%2F` ter-encode dua kali dan judulnya tidak pernah ketemu.
 
 ## Yang sengaja belum ada
 
-- **Saringan "sudah diunduh"** sudah jalan sampai ke SQL, tapi kolom `downloaded`
-  baru akan terisi di Fase 6.
 - **Penyegaran latar belakang terjadwal** belum ada; penyegaran selalu dimulai
   pengguna.
-- Tabel `download` sudah ada di skema tapi belum punya repository — dibuka di
-  Fase 6, bukan sekarang.
 
 ## Kode
 

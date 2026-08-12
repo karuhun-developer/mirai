@@ -12,7 +12,7 @@ hasilnya dicatat di [CHANGELOG.md](../CHANGELOG.md).
 | 3    | 0.4.0 | DB & Library offline-first | ✅     |
 | 4    | 0.5.0 | Reader manga               | ✅     |
 | 5    | 0.6.0 | Player anime               | ✅     |
-| 6    | 0.7.0 | Unduh manga                | ⬜     |
+| 6    | 0.7.0 | Unduh manga                | ✅     |
 | 7    | 0.8.0 | Unduh anime                | ⬜     |
 | 8    | 0.9.0 | Build Android              | ⬜     |
 | 9    | 1.0.0 | Backup, tracker, polish    | ⬜     |
@@ -106,8 +106,7 @@ jadi 1 tanpa ditandai manual, dan halaman detail menampilkannya sebagai sudah
 dibaca.
 
 **Sisa utang:** kunci orientasi ditulis penuh tapi cuma nyata di APK, jadi
-buktinya menunggu Fase 8 — sama dengan driver SQLite native. Halaman selalu
-diambil dari jaringan sampai unduhan hadir di Fase 6. Mode halaman belum punya
+buktinya menunggu Fase 8 — sama dengan driver SQLite native. Mode halaman belum punya
 tata letak dua halaman berdampingan di layar lebar, dan penanda masih setingkat
 chapter, bukan per halaman.
 
@@ -139,7 +138,7 @@ memungkinkan, playback native menunggu Fase 8. Host `embed` masih dilempar ke
 peramban luar, belum WebView in-app. Trek audio ganda dan gestur usap ala pemutar
 Android juga belum ada.
 
-## Fase 6 — Unduh manga
+## Fase 6 — Unduh manga ✅
 
 Antrean persist (concurrency, jeda/lanjut/ulang, bertahan setelah app ditutup),
 penyimpanan Filesystem/OPFS, reader membaca dari lokal, indikator terunduh,
@@ -147,6 +146,22 @@ hapus manual dan otomatis.
 
 **Selesai kalau:** tiga chapter terunduh tetap terbaca penuh dengan jaringan
 mati, dan yang belum terunduh memberi pesan yang jelas.
+→ [features/downloads.md](features/downloads.md)
+
+**Terverifikasi:** `scripts/smoke.mjs` mengunduh tiga chapter lewat tombol di
+daftar chapter, menunggu `download.state = 'done'` dan `item.downloaded = 1`
+mendarat di tabel, memutus jalur ke proxy, lalu membuka ketiganya lagi — tiap
+halaman datang dari alamat `blob:`, bukti berkasnya benar-benar dibaca dari
+OPFS. Chapter keempat yang sengaja tidak diunduh menampilkan penjelasan beserta
+tombol coba lagi, bukan layar kosong. Aturan penamaan berkasnya (sidik jari id,
+padding nomor, ruas yang aman) diuji terpisah di `apps/app/test/`.
+
+**Sisa utang:** halaman uji berupa PNG `data:` yang disuapkan lewat
+`window.__downloads.fixture()` — sama alasannya dengan pemutar di Fase 5.
+Artinya **jalur native (`Filesystem.downloadFile` beserta `Referer`-nya) belum
+terbukti berjalan**; buktinya menunggu Fase 8. Belum ada notifikasi progres di
+Android, belum ada penghapusan otomatis waktu ruang menipis, dan mengunduh masih
+harus berangkat dari daftar chapter sebuah judul.
 
 ## Fase 7 — Unduh anime
 

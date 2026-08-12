@@ -11,6 +11,40 @@ menautkan ke sana supaya changelog ini tetap ringkas.
 
 ## [Unreleased]
 
+### Fase 6 — Unduh manga
+
+#### Added
+
+- **Antrean unduhan yang bertahan** (`/downloads`): jeda/lanjutkan semuanya,
+  ulangi yang gagal, batalkan, bersihkan yang selesai, dan bilah progres per
+  chapter. Keadaannya di tabel `download`, jadi aplikasi yang ditutup di tengah
+  unduhan melanjutkannya sendiri waktu dibuka lagi — baris yang tertinggal
+  `running` dipulangkan ke antrean saat boot. Lihat
+  [docs/features/downloads.md](docs/features/downloads.md).
+- **Tombol unduh di tiap baris chapter** dengan empat keadaan (belum, sedang
+  dengan persennya, tersimpan, gagal), plus **Unduh N** untuk semua chapter yang
+  belum tersimpan dan tombol hapus seluruh unduhan satu judul.
+- **Berkasnya di Filesystem/OPFS, bukan di SQLite**: `Directory.Data` lewat
+  plugin Capacitor di APK (HTTP-nya di sisi Java, jadi `Referer` yang diminta CDN
+  ikut terkirim tanpa menyentuh CORS) dan OPFS di web. Nama direktorinya "bisa
+  dibaca manusia + sidik jari id aslinya", dan nomor halaman berpadding
+  (`001.jpg`) karena urutan halaman offline dibaca dari nama berkas.
+- **Reader membaca dari perangkat** begitu chapternya bertanda terunduh, bahkan
+  waktu jaringan sehat. Chapter yang tandanya basi (OPFS dibuang browser)
+  diturunkan tandanya di tempat lalu diambil ulang dari jaringan, bukan
+  menampilkan reader kosong.
+- **Setelan unduhan** di Pengaturan: berapa chapter dikerjakan sekaligus (1–4),
+  hapus otomatis setelah dibaca, dan pemakaian ruang.
+
+#### Changed
+
+- Halaman di dalam satu chapter diunduh **berurutan**; yang paralel chapternya.
+  Menembakkan puluhan permintaan sekaligus ke CDN manga adalah cara tercepat kena 429. Efek sampingnya: hanya berkas terakhir yang mungkin separuh jadi, jadi
+  melanjutkan unduhan terputus cukup menulis ulang berkas paling belakang.
+- Aturan alamat media disatukan di `mediaUrl()`: alamat yang isinya sudah ada di
+  perangkat (`blob:`, `data:`, `file:`, `capacitor:`, `ionic:`) tidak lagi
+  dilewatkan proxy. Sebelumnya aturan ini cuma hidup di jalur HLS.
+
 ### Fase 5 — Player anime
 
 #### Added

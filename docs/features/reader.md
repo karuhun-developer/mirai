@@ -14,9 +14,10 @@ itu cuma dua hal, dan keduanya menyangkut data:
 2. Chapter yang sudah dibaca habis bertanda selesai dengan sendirinya, tanpa
    pengguna menekan tombol centang.
 
-Batasnya masih sama seperti Fase 3: **daftar halaman selalu diambil dari
-jaringan.** Baca offline baru hadir bersama unduhan di Fase 6. Yang offline di
-sini adalah posisi dan statusnya — itu ada di SQLite.
+Sejak Fase 6 halamannya boleh datang dari dua tempat: **berkas di perangkat**
+kalau chapternya sudah diunduh, jaringan kalau belum. Yang lokal selalu
+didahulukan — aturannya ada di [Unduhan manga](downloads.md). Posisi dan
+statusnya sendiri tidak pernah butuh jaringan; itu ada di SQLite.
 
 ## User Flow
 
@@ -95,10 +96,11 @@ chapter.
 ### Gambar lewat resolver media, bukan URL mentah
 
 `<img>` tidak bisa mengirim `Referer`, sedangkan CDN manga rutin menolak
-permintaan tanpa itu. Karena itu tiap `SPage` dilewatkan
-`transport.media.toDisplayUrl(imageUrl, headers)`: di web jadi alamat proxy yang
-memasang headernya, di APK dipakai apa adanya karena `CapacitorHttp` bebas
-melakukannya sendiri.
+permintaan tanpa itu. Karena itu tiap `SPage` dilewatkan `mediaUrl(imageUrl,
+headers)`: di web jadi alamat proxy yang memasang headernya, di APK dipakai apa
+adanya karena `CapacitorHttp` bebas melakukannya sendiri. Alamat yang isinya
+sudah ada di perangkat (`blob:` halaman terunduh, `data:`, `capacitor:`)
+dilewatkan tanpa disentuh — tidak ada yang bisa diambilkan proxy dari sana.
 
 Gagalnya satu gambar tidak mematikan chapternya — halaman yang gagal punya tombol
 **Coba lagi** sendiri, dan mencoba ulang cuma memasang ulang elemennya (`:key`),
@@ -140,7 +142,6 @@ alih-alih kembali ke halaman judulnya.
 
 ## Yang sengaja belum ada
 
-- **Baca offline.** Halaman selalu dari jaringan sampai Fase 6.
 - **Halaman ganda (spread) di layar lebar.** Mode halaman selalu satu halaman.
 - **Penanda halaman di dalam chapter.** Penanda masih setingkat chapter.
 
@@ -148,7 +149,7 @@ alih-alih kembali ke halaman judulnya.
 
 | Path                                                | Fungsi                                                                      |
 | --------------------------------------------------- | --------------------------------------------------------------------------- |
-| `apps/app/src/services/reader.service.ts`           | Konteks chapter dari DB, daftar halaman dari source, progres, setelan       |
+| `apps/app/src/services/reader.service.ts`           | Konteks chapter dari DB, halaman dari berkas lokal atau source, progres     |
 | `apps/app/src/services/screen.service.ts`           | Layar penuh (Fullscreen API) + kunci orientasi (native saja)                |
 | `apps/app/src/stores/reader.ts`                     | Keadaan sesi baca; satu-satunya tempat aturan progres & "selesai"           |
 | `apps/app/src/composables/useZoomPan.ts`            | Cubit/ketuk-ganda untuk zoom, geser, usapan, dan ketukan tunggal            |
