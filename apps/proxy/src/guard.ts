@@ -34,9 +34,25 @@ export interface GuardOptions {
   allowedHosts: readonly string[]
 }
 
-/** `example.com` juga mengizinkan `cdn.example.com`, tapi bukan `notexample.com`. */
+/**
+ * `example.com` juga mengizinkan `cdn.example.com`, tapi bukan `notexample.com`.
+ *
+ * Entri boleh memuat `*`, yang mewakili **tepat satu label** DNS dan hanya
+ * cocok pada nama host yang utuh: `megap.*.top` menerima `megap.shiora.top`
+ * maupun `megap.norami.top`, tapi tidak `megap.a.b.top` dan tidak `evil.top`.
+ * Ini bukan kemewahan — CDN video mengganti label tengahnya beberapa hari
+ * sekali, dan tanpa ini pemutar mati sampai ada rilis extension baru.
+ */
 function hostMatches(hostname: string, allowed: string): boolean {
-  return hostname === allowed || hostname.endsWith(`.${allowed}`)
+  if (!allowed.includes('*')) {
+    return hostname === allowed || hostname.endsWith(`.${allowed}`)
+  }
+
+  const pattern = allowed
+    .split('*')
+    .map((part) => part.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+    .join('[^.]+')
+  return new RegExp(`^${pattern}$`).test(hostname)
 }
 
 function isPrivateAddress(hostname: string): boolean {

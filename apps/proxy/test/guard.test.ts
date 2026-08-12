@@ -26,6 +26,25 @@ describe('gerbang SSRF', () => {
     expect(blocked('https://mangadex.org.jahat.test/')).toContain('allowlist')
   })
 
+  it('mencocokkan pola bintang tepat satu label', () => {
+    // CDN video mengganti label tengahnya beberapa hari sekali; polanya harus
+    // mengikuti tanpa ikut membuka seluruh TLD.
+    const wildcard = { allowedHosts: ['megap.*.top'] }
+    expect(assertAllowed('https://megap.shiora.top/x/master.m3u8', wildcard).hostname).toBe(
+      'megap.shiora.top',
+    )
+    expect(assertAllowed('https://megap.norami.top/x', wildcard).hostname).toBe('megap.norami.top')
+
+    for (const url of ['https://megap.a.b.top/', 'https://evil.top/', 'https://xmegap.a.top/']) {
+      try {
+        assertAllowed(url, wildcard)
+        throw new Error(`${url} seharusnya ditolak`)
+      } catch (error) {
+        expect(error).toBeInstanceOf(BlockedUrlError)
+      }
+    }
+  })
+
   it('menolak alamat loopback dan jaringan privat', () => {
     for (const url of [
       'http://localhost:5432/',
