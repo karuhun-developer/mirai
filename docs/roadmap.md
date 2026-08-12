@@ -13,7 +13,7 @@ hasilnya dicatat di [CHANGELOG.md](../CHANGELOG.md).
 | 4    | 0.5.0 | Reader manga               | ✅     |
 | 5    | 0.6.0 | Player anime               | ✅     |
 | 6    | 0.7.0 | Unduh manga                | ✅     |
-| 7    | 0.8.0 | Unduh anime                | ⬜     |
+| 7    | 0.8.0 | Unduh anime                | ✅     |
 | 8    | 0.9.0 | Build Android              | ⬜     |
 | 9    | 1.0.0 | Backup, tracker, polish    | ⬜     |
 
@@ -163,12 +163,33 @@ terbukti berjalan**; buktinya menunggu Fase 8. Belum ada notifikasi progres di
 Android, belum ada penghapusan otomatis waktu ruang menipis, dan mengunduh masih
 harus berangkat dari daftar chapter sebuah judul.
 
-## Fase 7 — Unduh anime
+## Fase 7 — Unduh anime ✅
 
-mp4 langsung dan HLS (ambil segmen, dekripsi AES-128, playlist lokal, loader
+mp4 langsung dan HLS (ambil segmen, tangani AES-128, playlist lokal, loader
 `hls.js` kustom yang membaca Filesystem), manajemen kuota penyimpanan.
 
 **Selesai kalau:** satu episode HLS terunduh diputar utuh tanpa jaringan.
+→ [features/downloads.md](features/downloads.md)
+
+**Terverifikasi:** `scripts/smoke.mjs` mengunduh satu episode HLS lewat tombol di
+daftar episode, menunggu `download.state = 'done'` dan `item.downloaded = 1`
+mendarat di tabel, memutus jalur ke proxy, lalu membukanya lagi — durasi penuh
+terbaca (0:30), kualitasnya bertanda `Terunduh`, videonya benar-benar berjalan,
+dan melompat ke detik ke-26 tetap memutar. Yang terakhir itu yang menjawab kata
+"utuh": kalau cuma segmen pertama yang tersimpan, pemutarannya berhenti di situ.
+Berkas ujinya HLS fMP4/VP9 yang dibuat ffmpeg, seluruh segmennya `data:` —
+Chromium Playwright tidak punya dekoder H.264 maupun MPEG-TS. Aturan playlist
+(master, `#EXT-X-KEY`, `#EXT-X-MAP`, pelokalan), loader lokal, dan ambang ruang
+penyimpanan diuji terpisah di `apps/app/test/`.
+
+**Sisa utang:** **AES-128 tidak didekripsi sendiri** — kunci ikut diunduh dan
+atribut `URI`-nya ditulis ulang ke berkas lokal, lalu hls.js yang mendekripsi
+saat memutar. Lebih sedikit yang bisa salah, tapi hasil unduhannya jadi cuma
+berguna di dalam aplikasi ini, dan jalur itu baru diuji lewat unit test, bukan
+smoke. Berkas ujinya `data:` seperti Fase 5 dan 6, jadi **jalur native belum
+terbukti** — menunggu Fase 8, bersama notifikasi progres. Hapus otomatis setelah
+ditonton baru berlaku untuk chapter, DASH belum ditangani, dan belum ada yang
+membuang unduhan lama sendiri waktu ruang menipis.
 
 ## Fase 8 — Build Android
 

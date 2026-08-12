@@ -71,7 +71,7 @@ mesin pengembangan.
 | 4    | Reader manga (paged + webtoon)                   | ✅     |
 | 5    | Player anime                                     | ✅     |
 | 6    | Unduh manga                                      | ✅     |
-| 7    | Unduh anime (mp4 + HLS)                          | ⬜     |
+| 7    | Unduh anime (mp4 + HLS)                          | ✅     |
 | 8    | Build Android (APK)                              | ⬜     |
 | 9    | Backup, tracker, polish                          | ⬜     |
 

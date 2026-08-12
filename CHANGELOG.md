@@ -11,6 +11,54 @@ menautkan ke sana supaya changelog ini tetap ringkas.
 
 ## [Unreleased]
 
+### Fase 7 — Unduh anime
+
+#### Added
+
+- **Unduh episode** lewat antrean, tombol, dan halaman yang sama persis dengan
+  chapter — yang berbeda cuma isi pekerjaannya. Video `mp4`/`mkv` turun sebagai
+  satu berkas dengan progres per byte; **HLS** dibaca playlist-nya, dipilih
+  variannya dengan aturan kualitas yang sama seperti menonton, lalu seluruh
+  segmen, kunci, dan segmen inisialisasinya diunduh berurutan. Lihat
+  [docs/features/downloads.md](docs/features/downloads.md).
+- **Playlist lokal ditulis paling akhir**, jadi keberadaannya berarti "seluruh
+  segmennya sudah ada". Unduhan HLS yang terputus dilanjutkan dengan aturan yang
+  sama seperti halaman manga — hanya berkas terakhir yang ditulis ulang — tapi
+  dibatasi pada berkas yang memang direncanakan, supaya takarir dari percobaan
+  sebelumnya tidak menyamar jadi segmen yang utuh.
+- **Memutar episode terunduh tanpa jaringan dan tanpa extension.**
+  `resolveVideos()` mendahulukan berkas lokal seperti reader mendahulukan
+  halaman lokal, menawarkannya sebagai satu kualitas berlabel `Terunduh`, dan
+  menurunkan tanda `downloaded` yang basi alih-alih menampilkan pemutar kosong.
+- **Skema `mirai-local://` + loader hls.js pembacanya.** Playlist tersimpan
+  memakai nama berkas relatif; salinan di memori yang diserahkan ke pemutar
+  memakai alamat absolut, jadi direktori episode boleh berubah tanpa mematikan
+  playlist. Loader membuka satu segmen pada satu waktu lalu melepasnya —
+  ratusan segmen tidak jadi ratusan `blob:` yang menahan seluruh episode di
+  memori.
+- **Takarir ikut terunduh**, sudah dikonversi ke WebVTT, beserta `subtitles.json`
+  yang menyimpan labelnya. Satu takarir yang gagal tidak menggagalkan episode
+  yang sudah turun ratusan megabita.
+- **Peringatan dan penjagaan ruang penyimpanan**: peringatan di halaman Unduhan
+  dan Pengaturan waktu sisa ruang menipis, dan penolakan berangkat waktu tinggal
+  sedikit — setengah episode yang tidak bisa diputar tapi tetap memakan ruang
+  adalah hasil terburuk yang bisa terjadi. Ambangnya memakai persentase dan
+  angka mutlak sekaligus.
+- `scripts/smoke.mjs` mengunduh satu episode HLS, memutus jalur ke proxy, lalu
+  memutarnya: durasi penuh terbaca, kualitasnya bertanda berasal dari perangkat,
+  videonya benar-benar berjalan, dan melompat ke detik ke-26 tetap memutar —
+  bukti segmen terakhir ikut terbaca dari berkas, bukan cuma yang pertama.
+
+#### Fixed
+
+- **Menutup pemutar tidak lagi mengosongkan sesi berikutnya.** `close()` dipanggil
+  tanpa ditunggu dari `onBeforeUnmount`, jadi `release()` yang berada setelah
+  `await` mendarat ketika episode berikutnya sudah selesai memuat — dan membuang
+  daftar videonya. Akibatnya lanjut-otomatis dan membuka ulang episode berakhir
+  di "tidak punya video yang bisa diputar" tanpa pesan error. Keadaannya sekarang
+  dibereskan sinkron lebih dulu, dan yang ditunggu cuma tulisan ke database.
+  Perbaikan yang sama diterapkan ke store reader, yang punya bentuk bug identik.
+
 ### Fase 6 — Unduh manga
 
 #### Added

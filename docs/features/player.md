@@ -1,6 +1,6 @@
 # Fitur: Player anime
 
-**Status:** ✅ Selesai (Fase 5) · **Route:** `/watch/:itemId(.*)`
+**Status:** ✅ Selesai (Fase 5 · pemutaran offline di Fase 7) · **Route:** `/watch/:itemId(.*)`
 
 ## Tujuan
 
@@ -13,9 +13,10 @@ Yang dijaga sama seperti reader, cuma satuannya berganti dari halaman jadi detik
 2. Episode yang sudah ditonton habis bertanda selesai dengan sendirinya.
 3. **Berganti kualitas atau host tidak mengulang dari awal.**
 
-Batasnya masih sama: **daftar video selalu diambil dari jaringan.** Nonton
-offline hadir bersama unduhan di Fase 7 — jalurnya sudah disiapkan (lihat
-"Skema lokal melewati proxy" di bawah).
+Sejak Fase 7 ada satu lagi: episode yang sudah diunduh diputar **tanpa jaringan
+dan tanpa extension sama sekali** — termasuk HLS yang isinya ratusan segmen.
+Yang mengunduhnya dijelaskan di [downloads.md](downloads.md); yang di sini cuma
+sisi memutarnya.
 
 ## User Flow
 
@@ -32,6 +33,9 @@ offline hadir bersama unduhan di Fase 7 — jalurnya sudah disiapkan (lihat
    lompatan, lanjut otomatis, layar penuh, dan kunci orientasi (APK saja).
 6. Melewati 90% durasi → episode bertanda sudah ditonton dan Riwayat terisi.
 7. Video habis → episode berikutnya dibuka sendiri kalau setelannya menyala.
+8. Episode yang sudah diunduh langsung diputar dari perangkat, dengan satu
+   kualitas berlabel **Terunduh** dan takarir yang ikut tersimpan. Jaringan
+   boleh mati sepenuhnya.
 
 ## Data & Aturan
 
@@ -94,8 +98,43 @@ memecahkan salah satunya:
 
 `data:`, `blob:`, `file:`, `capacitor:`, dan `ionic:` dipakai apa adanya. Tidak
 ada yang bisa diambilkan proxy dari alamat yang isinya sudah ada di perangkat
-ini. Ini juga jalur yang akan dipakai episode terunduh di Fase 7, dan yang
-membuat berkas uji di smoke test bisa diputar tanpa jaringan sama sekali.
+ini. Ini jalur yang dipakai episode terunduh, dan yang membuat berkas uji di
+smoke test bisa diputar tanpa jaringan sama sekali.
+
+### Episode terunduh mendahului jaringan, dan menyembuhkan tanda yang basi
+
+`resolveVideos()` memeriksa `downloaded = 1` sebelum menyentuh extension —
+persis seperti `loadPages()` di reader. Kalau berkasnya ada, itu yang dipakai
+walau jaringannya sehat: itulah gunanya mengunduh. Kalau direktorinya ternyata
+kosong (OPFS dibuang browser, berkasnya dihapus dari luar), tandanya diturunkan
+di tempat lalu videonya diambil dari jaringan seperti biasa.
+
+Karena itu pula `open()` di store menerima sumber yang tidak ada tanpa
+mengeluh: extension yang dicopot tidak boleh membuat episode yang sudah ada di
+perangkat mendadak tidak bisa diputar. Yang memutuskan cuma `resolveVideos()`,
+satu-satunya tempat yang tahu berkasnya benar-benar ada.
+
+Episode lokal muncul sebagai **satu** pilihan berlabel `Terunduh`. Label itu
+sengaja tidak ikut tersimpan sebagai kualitas pilihan — "Terunduh" bukan
+kualitas, dan menyimpannya membuat unduhan berikutnya kehilangan acuan waktu
+memilih varian.
+
+### Segmen lokal dibaca loader, bukan diubah jadi ratusan `blob:`
+
+Playlist HLS yang tersimpan menyebut segmennya dengan nama relatif; salinan yang
+diserahkan ke hls.js sudah berisi `mirai-local://<path>` absolut. Skema itu tidak
+dikenal browser mana pun, dan memang tidak perlu: `createLocalLoader` menangkap
+alamat berawalan itu dan membacanya lewat `storage.service`, sementara alamat
+lain diteruskan ke loader proxy di bawahnya.
+
+Alternatifnya — membuat object URL untuk tiap segmen di depan — berarti menahan
+seluruh episode di memori sekaligus. Loader membuka satu berkas, menyerahkan
+byte-nya, lalu mencabut alamatnya; hls.js yang menentukan kapan segmen
+berikutnya dibutuhkan.
+
+Permintaan yang keburu dibatalkan (`abort()`) tidak jadi membuka berkasnya, dan
+berkas yang hilang dilaporkan sebagai gagal alih-alih menggantung — pemutar yang
+diam tanpa pesan lebih buruk daripada pesan yang menyuruh mengunduh ulang.
 
 ### Takarir dikonversi, bukan disodorkan mentah
 
@@ -158,7 +197,6 @@ kembali ke halaman judulnya.
 
 ## Yang sengaja belum ada
 
-- **Nonton offline.** Video selalu dari jaringan sampai Fase 7.
 - **Playback native tanpa proxy.** Spike-nya sudah tertulis di kode — `transport.media.toDisplayUrl()`
   adalah fungsi identitas di native, jadi WebView mengambil medianya sendiri
   lengkap dengan header lewat `CapacitorHttp` — tapi buktinya menunggu APK di
@@ -181,9 +219,11 @@ kembali ke halaman judulnya.
 | Path                                                | Fungsi                                                                          |
 | --------------------------------------------------- | ------------------------------------------------------------------------------- |
 | `apps/app/src/services/playback.ts`                 | Aturan murni: pilih kualitas, ambang selesai, detik lanjut, format waktu        |
-| `apps/app/src/services/player.service.ts`           | Daftar video dari source, takarir, progres, setelan pemutar                     |
+| `apps/app/src/services/player.service.ts`           | Daftar video: berkas lokal dulu, lalu source; takarir, progres, setelan         |
+| `apps/app/src/services/localMedia.ts`               | Episode terunduh: playlist dilokalkan, katalog takarir, pelepas alamatnya       |
+| `apps/app/src/services/hlsPlaylist.ts`              | `localizePlaylist()`/`localPathOf()` — skema `mirai-local://`                   |
 | `apps/app/src/services/hls.service.ts`              | Memasang sumber ke `<video>`: hls.js, HLS bawaan, atau `src` biasa              |
-| `apps/app/src/services/hlsLoader.ts`                | Loader hls.js yang membelokkan permintaan ke proxy tanpa merusak URL relatif    |
+| `apps/app/src/services/hlsLoader.ts`                | Loader hls.js: ke proxy tanpa merusak URL relatif, dan ke berkas di perangkat   |
 | `apps/app/src/services/subtitle.ts`                 | SRT/ASS → WebVTT                                                                |
 | `apps/app/src/services/item.service.ts`             | Konteks item (entri, tetangga, nomor urut) — dipakai bersama reader             |
 | `apps/app/src/stores/player.ts`                     | Keadaan sesi tonton; satu-satunya tempat aturan progres & "selesai"             |
@@ -194,5 +234,6 @@ kembali ke halaman judulnya.
 | `apps/app/src/router/links.ts`                      | `playerLocation()` — pembentuk rute pemutar yang aman                           |
 | `apps/app/test/playback.test.ts`                    | Unit: pemilihan kualitas, ambang selesai, format waktu                          |
 | `apps/app/test/subtitle.test.ts`                    | Unit: konversi SRT dan ASS                                                      |
-| `apps/app/test/hlsLoader.test.ts`                   | Unit: URL asli dikembalikan ke hls.js, bukan alamat proxy                       |
+| `apps/app/test/hlsLoader.test.ts`                   | Unit: URL asli dikembalikan ke hls.js; berkas lokal dibuka lalu dilepas         |
 | `scripts/smoke.mjs`                                 | Smoke: tonton → keluar → lanjut → ganti kualitas → selesai → episode berikutnya |
+| `scripts/smoke.mjs`                                 | Smoke: unduh episode HLS → putus jaringan → diputar utuh sampai segmen terakhir |
