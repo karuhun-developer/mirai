@@ -1,37 +1,28 @@
 <script setup lang="ts">
 import { onMounted } from 'vue'
 import { RouterLink } from 'vue-router'
-import { BookOpen, Clapperboard, Compass, TriangleAlert } from '@lucide/vue'
+import { BookOpen, Clapperboard, Compass } from '@lucide/vue'
 import AppHeader from '@/components/layout/AppHeader.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 import { Button } from '@/components/ui/button'
-import { useSourcesStore } from '@/stores/sources'
+import { useExtensionsStore } from '@/stores/extensions'
 
-const store = useSourcesStore()
+const store = useExtensionsStore()
 
 onMounted(() => void store.ensureLoaded())
 </script>
 
 <template>
-  <AppHeader title="Browse" show-refresh @refresh="store.load()" />
+  <AppHeader title="Browse" show-refresh @refresh="store.refreshAll()" />
 
   <p v-if="store.state === 'loading'" class="px-4 py-6 text-sm text-muted-foreground">
     Memuat extension…
   </p>
 
   <EmptyState
-    v-else-if="store.state === 'error'"
-    :icon="TriangleAlert"
-    title="Extension gagal dimuat"
-    :description="store.error ?? undefined"
-  >
-    <Button @click="store.load()">Coba lagi</Button>
-  </EmptyState>
-
-  <EmptyState
     v-else-if="store.sources.length === 0"
     :icon="Compass"
-    title="Belum ada sumber terpasang"
+    title="Belum ada sumber aktif"
     description="Mirai tidak membawa sumber bawaan. Tambahkan repo extension dulu, lalu pasang sumber yang kamu mau."
   >
     <Button as-child>

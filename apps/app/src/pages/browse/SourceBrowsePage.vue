@@ -8,12 +8,12 @@ import EmptyState from '@/components/common/EmptyState.vue'
 import EntryGrid from '@/components/entry/EntryGrid.vue'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { useSourcesStore } from '@/stores/sources'
+import { useExtensionsStore } from '@/stores/extensions'
 
 type Mode = 'popular' | 'latest' | 'search'
 
 const route = useRoute()
-const store = useSourcesStore()
+const store = useExtensionsStore()
 
 const sourceId = computed(() => String(route.params['sourceId'] ?? ''))
 const source = computed(() => store.byId(sourceId.value))

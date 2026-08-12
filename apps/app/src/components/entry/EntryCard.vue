@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
 import type { SEntry } from '@mirai/extension-api'
-import { transport } from '@/services/extensions'
+import { transport } from '@/services/extensions.service'
 
 const props = defineProps<{
   entry: SEntry
