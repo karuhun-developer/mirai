@@ -1,0 +1,30 @@
+node_modules/
+dist/
+dist-ssr/
+*.local
+.DS_Store
+
+# Build output extension (di-publish ke gh-pages lewat CI, bukan di-commit)
+extensions/dist/
+
+# Capacitor / Android
+apps/app/android/app/build/
+apps/app/android/build/
+apps/app/android/.gradle/
+apps/app/android/local.properties
+apps/app/android/app/src/main/assets/public/
+apps/app/ios/
+
+# Rahasia — hanya .env.example yang ikut ter-commit
+.env
+.env.*
+!.env.example
+
+# Artefak smoke test
+scripts/*.png
+*.log
+
+# Editor
+.vscode/*
+!.vscode/extensions.json
+.idea/

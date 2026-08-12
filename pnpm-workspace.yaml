@@ -1,0 +1,11 @@
+packages:
+  - 'apps/*'
+  - 'packages/*'
+  - 'extensions'
+
+# Hanya paket yang memang butuh script instalasi. Sisanya sengaja dibiarkan
+# tidak jalan supaya dependensi transitif tidak bisa mengeksekusi apa pun waktu
+# install.
+allowBuilds:
+  # postinstall-nya cuma memilih shim Vue 2/3; tanpa ini @vueuse/core pecah.
+  vue-demi: true
