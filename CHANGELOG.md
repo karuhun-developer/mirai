@@ -11,6 +11,76 @@ menautkan ke sana supaya changelog ini tetap ringkas.
 
 ## [Unreleased]
 
+### Fase 2 — Repo extension & manajemen
+
+#### Added
+
+- Halaman **Extension**: tambah/hapus repo, pasang, update, copot, setelan per
+  paket, aktif/nonaktif, pencarian, dan saringan 18+. Sumber sekarang sepenuhnya
+  dipasang pengguna — aplikasi tidak membawa satu pun. Lihat
+  [docs/features/extension-manager.md](docs/features/extension-manager.md).
+- `extensions/scripts/build.ts` naik dari sekadar pembungkus esbuild jadi
+  pemeriksa hasil build: tiap bundel dijalankan sekali dengan konteks tiruan
+  untuk mengumpulkan source-nya, jadi `export default` yang lupa, factory kosong,
+  `baseUrl` di luar `hosts[]`, dan id source yang bentrok antar-paket gagal di CI.
+- `.github/workflows/publish-extensions.yml` — `extensions/dist` diterbitkan ke
+  GitHub Pages lewat action Pages resmi, jadi tidak ada action pihak ketiga yang
+  memegang token tulis.
+- Lima source baru yang membuktikan kontraknya generik di luar API resmi:
+  **Komikcast** dan **Otakudesu** (id), **Mangabat**, **KunManga**, dan
+  **Aniwatch** (en) — manga dan anime, scraping HTML maupun API internal.
+- `extensions/scripts/smoke.mjs` — menjalankan bundel hasil build ke situs
+  aslinya, dari populer sampai daftar halaman/video. Sengaja di luar CI: yang
+  diujinya adalah markup pihak ketiga hari ini, bukan kode di repo ini.
+  `MIRAI_SMOKE_RESOLVE` memaksa IP untuk jaringan yang memblokir lewat DNS.
+- Pola bintang di allowlist proxy: `megap.*.top` cocok dengan tepat satu label.
+  CDN video mengganti label tengahnya beberapa hari sekali, dan tanpa ini pemutar
+  mati sampai ada rilis extension baru.
+- Komponen `Switch` (shadcn-vue di atas `reka-ui`) dan `PreferenceForm` yang
+  merender keempat tipe `SourcePreference` — extension mendeklarasikan setelannya,
+  bukan mengirim komponen.
+
+#### Changed
+
+- `stores/sources.ts` → `stores/extensions.ts` dan `services/extensions.ts` →
+  `services/extensions.service.ts`, ikut memuat repo, katalog, dan status
+  terpasang. Browse sekarang membaca daftar sumber dari situ, dan halaman
+  kosongnya menuntun ke halaman Extension alih-alih menyatakan tidak ada apa-apa.
+- `/ext-dev` tidak lagi memasang extension otomatis saat `pnpm dev`; ia sekadar
+  **terdaftar sebagai repo**. Jalur "tambah repo → pasang → pakai" yang dipakai
+  pengguna sungguhan jadi ikut tercoba tiap hari.
+
+#### Notes
+
+- Bundel extension disimpan di **Cache API**, bukan `localStorage`: satu paket
+  ±275 KB karena linkedom ikut dibundel, dan beberapa paket saja sudah melewati
+  kuota 5 MB. Metadata (repo, daftar terpasang, setelan) tetap di `localStorage`
+  karena harus terbaca sinkron saat boot.
+- Bundel dibaca **cache lebih dulu, baru jaringan**, dan extension yang aktif
+  dijalankan dari cache sebelum repo mana pun disentuh. Kalau kodenya harus
+  diunduh ulang tiap kali app dibuka, "offline-first" cuma klaim.
+- Update dan penyimpanan setelan tidak pernah mematikan worker lama sebelum
+  penggantinya terbukti jalan. Update yang gagal — repo mati, bundel rusak —
+  tidak boleh meninggalkan pengguna tanpa sumber yang tadinya baik-baik saja.
+- Setelan bersifat **per paket**, bukan per source: `SourceContext` menyerahkan
+  satu `PreferenceStore` ke seluruh factory, jadi dua source dalam satu paket
+  memang berbagi ruang kunci. Ini batas kontrak, bukan jalan pintas.
+- Menghapus repo tidak mencopot extension yang sudah dipasang darinya — kodenya
+  ada di cache dan masih jalan; yang hilang cuma jalur update-nya. Dinyatakan di
+  UI supaya tidak jadi kejutan.
+- `index.min.json` diambil dengan `fetch` biasa, bukan lewat proxy. Repo adalah
+  berkas statis yang memang untuk dibaca browser dan GitHub Pages mengirim
+  `Access-Control-Allow-Origin: *`; melewatkannya ke proxy justru memaksa
+  pengguna mendaftarkan host repo di allowlist yang dipakai untuk situs sumber.
+- Situs dengan verifikasi Cloudflare mengikuti sikap Aniyomi: tantangannya
+  diselesaikan pengguna sendiri, tidak diputari otomatis. Kalau tidak bisa
+  diselesaikan, sumber itu memang tidak bisa dipakai.
+
+Fase 2 terverifikasi 2026-08-12: `pnpm typecheck`, `pnpm lint`, `pnpm
+format:check` bersih; `node scripts/smoke.mjs` lolos 15 pemeriksaan di 375px dan
+1440px, termasuk memasang MangaDex lewat UI dari repo `/ext-dev`, memuat ulang
+halaman, dan menemukannya masih terpasang serta bisa di-browse.
+
 ### Fase 1 — Extension API & runtime
 
 #### Added

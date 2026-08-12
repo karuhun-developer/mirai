@@ -8,7 +8,7 @@ hasilnya dicatat di [CHANGELOG.md](../CHANGELOG.md).
 | ---- | ----- | -------------------------- | ------ |
 | 0    | 0.1.0 | Fondasi monorepo           | ✅     |
 | 1    | 0.2.0 | Extension API & runtime    | ✅     |
-| 2    | 0.3.0 | Repo extension & manajemen | ⬜     |
+| 2    | 0.3.0 | Repo extension & manajemen | ✅     |
 | 3    | 0.4.0 | DB & Library offline-first | ⬜     |
 | 4    | 0.5.0 | Reader manga               | ⬜     |
 | 5    | 0.6.0 | Player anime               | ⬜     |
@@ -47,15 +47,22 @@ respons asli. Daftar chapter dan halaman baca baru punya UI di Fase 3–4; di fa
 ini keduanya cuma terbukti lewat test. Sekali jalan di jaringan normal untuk
 menutupnya.
 
-## Fase 2 — Repo extension & manajemen
+## Fase 2 — Repo extension & manajemen ✅
 
-`extensions/scripts/build.ts` (esbuild → ESM + `index.min.json` + ikon), workflow
-publish ke `gh-pages`, halaman Extensions (tambah/hapus repo, pasang, update,
-uninstall, preferences per sumber, enable/disable, filter NSFW, cek
-`apiVersion`). Tambah **Komikcast** dan **Otakudesu**.
+`extensions/scripts/build.ts` (esbuild → ESM + `index.min.json` + ikon, plus
+pemeriksaan yang menjalankan tiap bundel sekali), workflow publish ke GitHub
+Pages, halaman Extension (tambah/hapus repo, pasang, update, copot, setelan per
+paket, aktif/nonaktif, filter NSFW, cek `apiVersion`). Tambah **Komikcast**,
+**Otakudesu**, **Mangabat**, **KunManga**, dan **Aniwatch**.
 
 **Selesai kalau:** extension bisa dipasang dari URL repo hasil build, dan masih
-terpasang setelah app dimuat ulang.
+terpasang setelah app dimuat ulang. → [features/extension-manager.md](features/extension-manager.md)
+
+**Sisa utang:** setelan bersifat per paket, bukan per source — batas kontrak
+`SourceContext`, baru bisa dicabut kalau kontraknya berubah (naik `API_VERSION`).
+Situs dengan verifikasi Cloudflare gagal dengan pesan biasa; UI khusus "selesaikan
+verifikasi" belum ada, dan penyelesaiannya tetap di tangan pengguna seperti
+Aniyomi.
 
 ## Fase 3 — DB & Library offline-first
 
