@@ -33,15 +33,38 @@ menautkan ke sana supaya changelog ini tetap ringkas.
   aslinya, dari populer sampai daftar halaman/video. Sengaja di luar CI: yang
   diujinya adalah markup pihak ketiga hari ini, bukan kode di repo ini.
   `MIRAI_SMOKE_RESOLVE` memaksa IP untuk jaringan yang memblokir lewat DNS.
-- Pola bintang di allowlist proxy: `megap.*.top` cocok dengan tepat satu label.
-  CDN video mengganti label tengahnya beberapa hari sekali, dan tanpa ini pemutar
-  mati sampai ada rilis extension baru.
+- Pola bintang pada pembatas host proxy: `megap.*.top` cocok dengan tepat satu
+  label. CDN video mengganti label tengahnya beberapa hari sekali.
 - Komponen `Switch` (shadcn-vue di atas `reka-ui`) dan `PreferenceForm` yang
   merender keempat tipe `SourcePreference` — extension mendeklarasikan setelannya,
   bukan mengirim komponen.
 
+#### Fixed
+
+- **Proxy menolak hampir semua sumber yang baru dipasang.** `PROXY_ALLOWED_HOSTS`
+  adalah daftar statis yang dibaca sekali saat proxy start, sedangkan extension
+  dipasang pengguna saat aplikasi sudah jalan — jadi apa pun di luar MangaDex
+  (isi bawaan `.env.example`) dijamin kena `403 Host … tidak ada di allowlist`.
+  Bukan kadang-kadang: selalu, dan gejalanya persis seperti sumbernya rusak.
+
+  Pembatas host sekarang **opsional dan kosong secara bawaan**. Mengirim
+  `hosts[]` dari aplikasi di tiap request sempat dipertimbangkan lalu dibuang:
+  daftarnya akan datang dari pihak yang sama dengan yang mengirim URL-nya, jadi
+  itu cuma lapisan kode tanpa jaminan apa pun. Yang benar-benar menjaga mesin
+  tempat proxy berjalan — penolakan loopback, jaringan privat, metadata cloud,
+  `file:`, dan pemeriksaan ulang di tiap lompatan redirect — tetap wajib dan
+  tidak bisa dimatikan lewat env. `PROXY_ALLOWED_HOSTS` bertahan hanya untuk
+  proxy yang dipasang di server dan dipakai bersama-sama.
+
+- `hosts[]` di manifest jadi **deklarasi**, bukan gerbang: dipakai build untuk
+  memastikan `baseUrl` tercakup, dan nanti untuk memberi tahu pengguna domain apa
+  saja yang akan dihubungi sebuah paket.
+
 #### Changed
 
+- `/health` melaporkan `hostLimits`, bukan `allowedHosts`. `0` sekarang berarti
+  "tanpa pembatas host" — dulu artinya "tolak semua", dan angka yang sama dengan
+  arti terbalik adalah jebakan waktu mendiagnosis 403.
 - `stores/sources.ts` → `stores/extensions.ts` dan `services/extensions.ts` →
   `services/extensions.service.ts`, ikut memuat repo, katalog, dan status
   terpasang. Browse sekarang membaca daftar sumber dari situ, dan halaman

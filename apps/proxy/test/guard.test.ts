@@ -14,7 +14,7 @@ function blocked(url: string): string {
 }
 
 describe('gerbang SSRF', () => {
-  it('mengizinkan host di allowlist beserta subdomainnya', () => {
+  it('mengizinkan host yang dibatasi beserta subdomainnya', () => {
     expect(assertAllowed('https://api.mangadex.org/manga', guard).hostname).toBe('api.mangadex.org')
     expect(assertAllowed('https://uploads.mangadex.org/covers/x.jpg', guard).hostname).toBe(
       'uploads.mangadex.org',
@@ -22,8 +22,8 @@ describe('gerbang SSRF', () => {
   })
 
   it('tidak tertipu host yang cuma berakhiran sama', () => {
-    expect(blocked('https://notmangadex.org/')).toContain('allowlist')
-    expect(blocked('https://mangadex.org.jahat.test/')).toContain('allowlist')
+    expect(blocked('https://notmangadex.org/')).toContain('tidak ada di daftar')
+    expect(blocked('https://mangadex.org.jahat.test/')).toContain('tidak ada di daftar')
   })
 
   it('mencocokkan pola bintang tepat satu label', () => {
@@ -88,10 +88,24 @@ describe('gerbang SSRF', () => {
     expect(blocked('bukan url sama sekali')).toContain('tidak valid')
   })
 
-  it('gagal tertutup: allowlist kosong menolak semuanya', () => {
-    // Proxy yang ter-deploy tanpa konfigurasi harus jadi tembok, bukan open relay.
-    expect(() => assertAllowed('https://mangadex.org/', { allowedHosts: [] })).toThrow(
-      BlockedUrlError,
-    )
+  it('tanpa pembatas host, situs publik mana pun lolos', () => {
+    // Pembatas host di sisi proxy tidak bisa mengikuti extension yang dipasang
+    // pengguna saat app sudah jalan; memaksakannya cuma menghasilkan 403 untuk
+    // situs yang sah. Batas keamanannya ada di daftar penolakan di bawah.
+    for (const options of [{}, { allowedHosts: [] }]) {
+      expect(assertAllowed('https://www.mangabats.com/', options).hostname).toBe(
+        'www.mangabats.com',
+      )
+      expect(assertAllowed('https://be.komikcast.cc/api', options).hostname).toBe('be.komikcast.cc')
+    }
+  })
+
+  it('gerbang alamat internal tetap jalan tanpa pembatas host', () => {
+    // Yang boleh dilonggarkan cuma "situs mana yang boleh dibuka", bukan
+    // "boleh mengintip jaringan tempat proxy berjalan".
+    for (const url of ['http://127.0.0.1/', 'http://169.254.169.254/', 'http://[::1]/']) {
+      expect(() => assertAllowed(url, {})).toThrow(BlockedUrlError)
+    }
+    expect(() => assertAllowed('file:///etc/passwd', {})).toThrow(BlockedUrlError)
   })
 })

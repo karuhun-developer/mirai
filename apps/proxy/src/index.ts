@@ -20,9 +20,12 @@ await app.register(cors, {
 
 registerRoutes(app, config)
 
-if (config.allowedHosts.length === 0) {
+// Terikat ke loopback, proxy ini cuma bisa dipakai orang yang sudah duduk di
+// mesin ini. Begitu di-bind ke alamat lain, dia jadi layanan yang bisa dipanggil
+// siapa saja dari jaringan — di situ pembatas host baru masuk akal.
+if (config.allowedHosts.length === 0 && !/^(127\.|::1$|localhost$)/.test(config.host)) {
   app.log.warn(
-    'PROXY_ALLOWED_HOSTS kosong — semua permintaan ditolak. Isi dengan host dari manifest extension.',
+    `Proxy mendengarkan di ${config.host} tanpa PROXY_ALLOWED_HOSTS — siapa pun di jaringan ini bisa memakainya untuk mengambil URL publik mana pun.`,
   )
 }
 

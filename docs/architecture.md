@@ -45,9 +45,11 @@ sering menolak permintaan tanpa `Referer`/`User-Agent` yang benar. Karena itu
   dipasang, dan tidak ada server perantara.
 - **Web.** Semua request menempuh `apps/proxy`. Proxy tidak menyimpan apa pun;
   ia meneruskan byte, meneruskan `Range` apa adanya (wajib untuk video), dan
-  memasang header CORS. Host tujuan wajib lolos allowlist yang berasal dari
-  `hosts[]` di manifest extension, dan origin tidak boleh berpindah dari base —
-  gerbang SSRF, karena path-nya dikendalikan kode pihak ketiga.
+  memasang header CORS. Tujuan yang berupa alamat internal — loopback, jaringan
+  privat, metadata cloud — ditolak, dan tiap lompatan redirect diperiksa ulang:
+  gerbang SSRF, karena URL-nya dikendalikan kode pihak ketiga. Situs publik tidak
+  dibatasi daftar apa pun; alasannya di
+  [features/network-proxy.md](features/network-proxy.md#kenapa-tanpa-allowlist).
 
 Rate limit, cookie jar, dan retry dipasang di sisi host, bukan di dalam
 extension, supaya satu extension nakal tidak bisa membanjiri situs sumber.

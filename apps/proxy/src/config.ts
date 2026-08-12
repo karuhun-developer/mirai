@@ -1,8 +1,4 @@
-/**
- * Konfigurasi proxy lewat environment. Nilai bawaannya sengaja aman: allowlist
- * kosong berarti "tolak semua", bukan "izinkan semua" — kalau proxy ini pernah
- * ter-deploy tanpa konfigurasi, dia harus jadi tembok, bukan open relay.
- */
+/** Konfigurasi proxy lewat environment. */
 
 function list(value: string | undefined): string[] {
   return (value ?? '')
@@ -14,7 +10,18 @@ function list(value: string | undefined): string[] {
 export interface ProxyConfig {
   host: string
   port: number
-  /** Host tujuan yang boleh dihubungi; berasal dari `hosts[]` manifest extension. */
+  /**
+   * Pembatas host tujuan, **opsional**. Kosong = host publik mana pun boleh,
+   * dan itu nilai bawaannya.
+   *
+   * Dulu ini allowlist wajib yang gagal-tertutup, diisi tangan dari `hosts[]`
+   * manifest. Itu tidak pernah bisa benar: sumber dipasang pengguna saat app
+   * jalan, sedangkan daftar ini dibaca sekali saat proxy start — extension apa
+   * pun yang dipasang setelahnya pasti kena 403. Yang benar-benar menjaga mesin
+   * tempat proxy berjalan adalah gerbang alamat internal di `guard.ts`, dan itu
+   * tidak bisa dimatikan. Isi daftar ini hanya kalau proxy dipasang untuk
+   * dipakai bersama-sama.
+   */
   allowedHosts: string[]
   /** Origin browser yang boleh memanggil proxy. */
   allowedOrigins: string[]

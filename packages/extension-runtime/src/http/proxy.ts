@@ -4,8 +4,8 @@ import { HttpError } from '@mirai/extension-api'
 /**
  * Transport untuk build web. Browser tidak bisa menembus CORS situs sumber,
  * jadi semua request menempuh `apps/proxy`. Proxy tidak menyimpan apa pun; ia
- * meneruskan byte dan memasang header CORS, dengan allowlist host + gerbang
- * SSRF karena URL-nya dikendalikan kode extension.
+ * meneruskan byte dan memasang header CORS, dengan gerbang SSRF karena URL-nya
+ * dikendalikan kode extension.
  */
 export function createProxyHttpClient(proxyUrl: string): HttpClient {
   const base = proxyUrl.replace(/\/+$/, '')

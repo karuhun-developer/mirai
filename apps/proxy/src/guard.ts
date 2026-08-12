@@ -27,11 +27,15 @@ export class BlockedUrlError extends Error {
 
 export interface GuardOptions {
   /**
-   * Host yang boleh dihubungi, berasal dari `hosts[]` manifest extension.
-   * Kosong berarti **tolak semua**. Gagal tertutup: proxy yang ter-deploy tanpa
-   * konfigurasi harus jadi tembok, bukan open relay.
+   * Pembatas host opsional. **Kosong = tanpa batasan host** — sumber dipasang
+   * pengguna kapan saja, jadi daftar statis di sisi proxy dijamin ketinggalan
+   * dan cuma menghasilkan 403 untuk situs yang sah.
+   *
+   * Yang tidak opsional dan tidak bisa dimatikan: penolakan alamat internal di
+   * bawah. Itu yang mencegah extension memakai proxy untuk mengintip jaringan
+   * tempat proxy berjalan.
    */
-  allowedHosts: readonly string[]
+  allowedHosts?: readonly string[]
 }
 
 /**
@@ -107,8 +111,9 @@ export function assertAllowed(rawUrl: string, options: GuardOptions): URL {
   }
 
   const hostname = url.hostname.toLowerCase()
-  if (!options.allowedHosts.some((allowed) => hostMatches(hostname, allowed))) {
-    throw new BlockedUrlError(`Host ${hostname} tidak ada di allowlist proxy`)
+  const limits = options.allowedHosts ?? []
+  if (limits.length > 0 && !limits.some((allowed) => hostMatches(hostname, allowed))) {
+    throw new BlockedUrlError(`Host ${hostname} tidak ada di daftar host yang diizinkan proxy ini`)
   }
 
   return url

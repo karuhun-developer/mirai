@@ -368,7 +368,7 @@ interface RepoEntry {
   version: string // SemVer; naiknya memunculkan tombol Update
   apiVersion: number
   nsfw: boolean
-  hosts: string[] // allowlist proxy
+  hosts: string[] // domain yang disentuh paket; deklarasi, bukan gerbang
   file: string // relatif terhadap URL repo
   icon?: string // idem; SVG didahulukan
   sources: RepoSourceInfo[]

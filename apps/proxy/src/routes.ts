@@ -52,7 +52,9 @@ export function registerRoutes(app: FastifyInstance, config: ProxyConfig): void 
 
   app.get('/health', () => ({
     ok: true,
-    allowedHosts: config.allowedHosts.length,
+    // `0` berarti tanpa pembatas host, bukan "tolak semua" — perbedaan yang
+    // dulu terbalik dan bikin salah baca saat mendiagnosis 403.
+    hostLimits: config.allowedHosts.length,
   }))
 
   /**

@@ -37,28 +37,36 @@ extensions/src/<lang>/<slug>/
 }
 ```
 
-| Field        | Kegunaan                                                                    |
-| ------------ | --------------------------------------------------------------------------- |
-| `pkg`        | Nama berkas hasil build (`dist/js/<pkg>.js`) dan kunci di index repo        |
-| `version`    | SemVer. Dinaikkan tiap perbaikan; itu yang memunculkan tombol **Update**    |
-| `apiVersion` | Dicocokkan runtime dengan `API_VERSION`; beda = ditolak dengan pesan jelas  |
-| `hosts`      | **Allowlist proxy.** Host di luar daftar ini akan ditolak dengan 403 di web |
+| Field        | Kegunaan                                                                   |
+| ------------ | -------------------------------------------------------------------------- |
+| `pkg`        | Nama berkas hasil build (`dist/js/<pkg>.js`) dan kunci di index repo       |
+| `version`    | SemVer. Dinaikkan tiap perbaikan; itu yang memunculkan tombol **Update**   |
+| `apiVersion` | Dicocokkan runtime dengan `API_VERSION`; beda = ditolak dengan pesan jelas |
+| `hosts`      | Semua domain yang disentuh paket ini, termasuk CDN gambar dan video        |
 
-`hosts` bukan formalitas: di build web setiap request menempuh `apps/proxy`, dan
-proxy menolak host yang tidak terdaftar. Lupa mencantumkan CDN gambar adalah
-penyebab paling umum "judulnya muncul tapi cover-nya kosong".
+`hosts` adalah **deklarasi**, bukan gerbang: proxy tidak lagi memakainya sebagai
+allowlist (alasannya di
+[network-proxy.md](../features/network-proxy.md#kenapa-tanpa-allowlist)). Yang
+memakainya:
 
-Satu entri `hosts` juga mencakup subdomainnya — `example.com` mengizinkan
-`cdn.example.com`, tapi bukan `notexample.com`. Untuk CDN yang mengganti label
-domainnya berkala, `*` mewakili **tepat satu label**:
+- build menolak paket yang `baseUrl`-nya tidak tercakup — penangkap salah ketik;
+- pengguna, yang bisa melihat domain apa saja yang akan dihubungi paketmu sebelum
+  memasangnya;
+- deployment proxy bersama, yang boleh mengaktifkan pembatasan berbasis daftar
+  ini.
+
+Tetap tulis lengkap. Daftar yang bohong lebih buruk daripada tidak ada.
+
+Satu entri juga mencakup subdomainnya — `example.com` mencakup `cdn.example.com`,
+bukan `notexample.com`. Untuk CDN yang mengganti label domainnya berkala, `*`
+mewakili **tepat satu label**:
 
 ```json
 "hosts": ["otakudesu.blog", "megap.*.top"]
 ```
 
-`megap.*.top` menerima `megap.shiora.top` maupun `megap.norami.top`, tapi bukan
-`megap.a.b.top` dan bukan `evil.top`. Pakai seperlunya: `*` yang terlalu longgar
-memperlebar permukaan SSRF proxy.
+`megap.*.top` mencakup `megap.shiora.top` maupun `megap.norami.top`, tapi bukan
+`megap.a.b.top` dan bukan `evil.top`.
 
 ---
 
@@ -248,8 +256,9 @@ otomatis: extension yang baru dibangun harus kamu **Pasang** sendiri, persis
 seperti yang dilakukan pengguna. Kalau dipasang otomatis, jalur "tambah repo →
 pasang → pakai" tidak pernah dicoba selama pengembangan.
 
-Jangan lupa menambahkan host baru ke `PROXY_ALLOWED_HOSTS` di
-`apps/proxy/.env` — daftar itu gagal-tertutup.
+Tidak ada daftar host yang perlu disinkronkan di sisi proxy: proxy meneruskan ke
+host publik mana pun dan hanya menolak alamat internal. Host baru di manifest
+cukup ditulis di manifest.
 
 ### Apa yang diperiksa build
 
