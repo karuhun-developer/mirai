@@ -1,7 +1,8 @@
 import type HlsJs from 'hls.js'
 import { mediaUrl } from './extensions.service'
-import { createProxyLoader, type LoaderConstructor } from './hlsLoader'
+import { createLocalLoader, createProxyLoader, type LoaderConstructor } from './hlsLoader'
 import type { PlayableVideo } from './playback'
+import { fileUrl, revokeFileUrl } from './storage.service'
 
 /**
  * Memasang satu pilihan video ke elemen `<video>`.
@@ -28,8 +29,8 @@ export async function attachVideo(
   video: PlayableVideo,
   onFatal: FatalHandler,
 ): Promise<AttachedVideo> {
-  // Berkas yang sudah di perangkat (episode terunduh nanti di Fase 7) lewat apa
-  // adanya; sisanya ikut aturan transport.
+  // Berkas yang sudah di perangkat (`blob:`, `capacitor:`) lewat apa adanya —
+  // itu sudah aturan `mediaUrl` sendiri; sisanya ikut aturan transport.
   const resolve = (url: string): string => mediaUrl(url, video.headers)
 
   if (video.type !== 'hls') {
@@ -44,6 +45,13 @@ export async function attachVideo(
     // playlist-nya terpaksa diserahkan apa adanya — kalau isinya URL relatif dan
     // jalurnya lewat proxy, segmennya tidak akan ketemu. Belum ada jalan lain
     // selain ini; di native resolvernya identitas, jadi tidak jadi masalah.
+    // Episode terunduh tidak punya jalan lain di sini: segmennya bukan alamat
+    // jaringan, dan pemutar bawaan tidak bisa dititipi loader.
+    if (video.local) {
+      onFatal('Browser ini tidak bisa memutar episode HLS yang terunduh.')
+      return { detach: () => {} }
+    }
+
     if (el.canPlayType(NATIVE_HLS) !== '') {
       el.src = resolve(video.url)
       return { detach: () => clearSource(el) }
@@ -54,12 +62,21 @@ export async function attachVideo(
   }
 
   const hls = new Hls({
-    loader: createProxyLoader(
-      // hls.js mendeskripsikan loader-nya lebih rinci daripada yang dibutuhkan
-      // pembungkusnya; bentuk minimal itu yang membuat `hlsLoader` bisa diuji
-      // tanpa memuat pustakanya sama sekali.
-      Hls.DefaultConfig.loader as unknown as LoaderConstructor,
-      resolve,
+    // Dua loader ditumpuk, bukan dipilih salah satu. Yang di luar menangani
+    // alamat `mirai-local://` di playlist terunduh; sisanya — termasuk playlist
+    // `blob:` yang membungkusnya — jatuh ke loader proxy di dalamnya. Dengan
+    // begitu tidak ada percabangan "sedang offline atau tidak" di sini, dan
+    // episode setengah terunduh pun tetap punya jalur yang benar per berkas.
+    loader: createLocalLoader(
+      createProxyLoader(
+        // hls.js mendeskripsikan loader-nya lebih rinci daripada yang dibutuhkan
+        // pembungkusnya; bentuk minimal itu yang membuat `hlsLoader` bisa diuji
+        // tanpa memuat pustakanya sama sekali.
+        Hls.DefaultConfig.loader as unknown as LoaderConstructor,
+        resolve,
+      ),
+      fileUrl,
+      revokeFileUrl,
     ) as unknown as typeof Hls.DefaultConfig.loader,
     // Pemulihan ditangani sendiri di bawah supaya kegagalan yang benar-benar
     // buntu sampai ke pengguna, bukan berputar diam-diam selamanya.

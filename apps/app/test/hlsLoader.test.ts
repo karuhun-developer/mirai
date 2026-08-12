@@ -135,6 +135,24 @@ describe('createLocalLoader', () => {
     expect(error).toContain('downloads/ep/0002.ts')
   })
 
+  it('membuka berkas yang sama lagi waktu hls.js mencoba ulang', async () => {
+    const Loader = makeLoader()
+    const loader = new Loader({})
+
+    const context: LoaderContextLike = { url: 'mirai-local://downloads/ep/0004.ts' }
+    const callbacks = { onSuccess: () => {} } as LoaderCallbacksLike
+
+    loader.load(context, {}, callbacks)
+    await Promise.resolve()
+    // Percobaan kedua memakai `context` yang alamatnya sudah tertimpa `blob:`
+    // yang barusan dicabut; yang benar adalah membuka berkasnya sekali lagi.
+    loader.load(context, {}, callbacks)
+    await Promise.resolve()
+
+    expect(requested).toEqual(['blob:downloads/ep/0004.ts', 'blob:downloads/ep/0004.ts'])
+    expect(closed).toHaveLength(2)
+  })
+
   it('tidak jadi mengambil berkas yang permintaannya keburu dibatalkan', async () => {
     const Loader = makeLoader()
     const loader = new Loader({})

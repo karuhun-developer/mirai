@@ -22,6 +22,12 @@ export interface PlayableVideo {
   /** Header asli dari source; dipakai di native yang bisa memasangnya sendiri. */
   headers?: HttpHeaders
   subtitles: PlayableTrack[]
+  /**
+   * Berkasnya sudah ada di perangkat. Bukan sekadar penanda tampilan: jalur
+   * pemutarnya berbeda (segmen HLS dibaca dari berkas, bukan dari jaringan), dan
+   * kegagalannya butuh pesan yang berbeda juga.
+   */
+  local?: boolean
 }
 
 /**

@@ -1,11 +1,31 @@
 import type { SPage } from '@mirai/extension-api'
-import type { RemoteMangaSource, RemoteSource } from '@mirai/extension-runtime'
+import type { RemoteAnimeSource, RemoteMangaSource, RemoteSource } from '@mirai/extension-runtime'
 import type { DownloadEntry, DownloadRow, EntryRow, ItemRow } from '@mirai/db'
 import { toSItem } from '@mirai/db'
 import { repos } from './db.service'
-import { mediaUrl } from './extensions.service'
-import { entryDir, itemDir, pageFileName } from './downloadPath'
-import { downloadFile, fileUrl, listDir, removeDir, requestPersistence } from './storage.service'
+import { isLocalUrl, mediaUrl, transport } from './extensions.service'
+import { entryDir, itemDir, pageFileName, videoFileName } from './downloadPath'
+import {
+  PLAYLIST_NAME,
+  isMasterPlaylist,
+  localizePlaylist,
+  parseVariants,
+  planPlaylist,
+} from './hlsPlaylist'
+import { pickVideo, type PlayableVideo } from './playback'
+import { loadVideos, readPlayerPrefs } from './player.service'
+import {
+  downloadFile,
+  fileUrl,
+  listDir,
+  readText,
+  removeDir,
+  requestPersistence,
+  revokeFileUrl,
+  storageEstimate,
+  writeText,
+} from './storage.service'
+import { storageStatus } from './storageQuota'
 
 /**
  * Antrean unduhan.
@@ -18,6 +38,13 @@ import { downloadFile, fileUrl, listDir, removeDir, requestPersistence } from '.
  * Kenapa pekerjanya modul, bukan store: unduhan tidak boleh berhenti waktu
  * halaman Unduhan ditutup. Store bisa dibuang router kapan saja; modul hidup
  * selama tab-nya hidup. Store cuma jadi wajah reaktifnya lewat `onChange`.
+ *
+ * Chapter dan episode lewat antrean yang sama persis; yang berbeda cuma isi
+ * pekerjaannya (`downloadChapter` vs `downloadEpisode`). Kenapa modul ini yang
+ * memanggil `player.service` dan bukan sebaliknya: daftar video satu episode
+ * ditentukan aturan yang sama untuk menonton dan mengunduh — termasuk kualitas
+ * pilihan pengguna — dan menyalinnya ke sini berarti dua aturan yang lambat laun
+ * berbeda.
  */
 
 // ── Setelan ──────────────────────────────────────────────────────────────────
@@ -231,12 +258,17 @@ async function run(job: DownloadRow): Promise<void> {
     const source = resolveSource(entry.source_id)
     if (!source) {
       throw new Error(
-        'Extension sumber chapter ini tidak terpasang atau sedang dimatikan, jadi halamannya tidak bisa diambil.',
+        'Extension sumber judul ini tidak terpasang atau sedang dimatikan, jadi isinya tidak bisa diambil.',
       )
     }
-    if (source.kind !== 'manga') throw new Error('Sumber ini bukan sumber manga.')
+    if (source.kind !== entry.kind) throw new Error(`Sumber ini bukan sumber ${entry.kind}.`)
 
-    const path = await downloadChapter(source as RemoteMangaSource, entry, item, job.id)
+    await guardStorage()
+
+    const path =
+      entry.kind === 'anime'
+        ? await downloadEpisode(source as RemoteAnimeSource, entry, item, job.id)
+        : await downloadChapter(source as RemoteMangaSource, entry, item, job.id)
 
     await items.setDownloaded([item.id], true)
     await downloads.setState(job.id, 'done', { progress: 100, path })
@@ -300,6 +332,170 @@ async function downloadChapter(
   return dir
 }
 
+/**
+ * Mengunduh satu episode.
+ *
+ * Kualitasnya mengikuti setelan pemutar, bukan selalu yang tertinggi: orang yang
+ * menonton di 480p demi kuota tidak mau unduhannya diam-diam 1080p. Host `embed`
+ * dibuang di depan — isinya halaman pemutar pihak ketiga, bukan berkas video,
+ * dan tidak ada yang bisa disimpan dari sana.
+ */
+async function downloadEpisode(
+  source: RemoteAnimeSource,
+  entry: EntryRow,
+  item: ItemRow,
+  jobId: string,
+): Promise<string> {
+  const dir = itemDir(entry, item)
+  const videos = await loadVideos(source, item)
+  const playable = videos.filter((video) => video.type !== 'embed')
+
+  if (playable.length === 0) {
+    throw new Error(
+      videos.length === 0
+        ? 'Sumber tidak mengembalikan satu video pun.'
+        : 'Episode ini cuma tersedia lewat halaman pemutar pihak ketiga, yang tidak bisa diunduh.',
+    )
+  }
+
+  const { quality } = await readPlayerPrefs()
+  const video = playable[pickVideo(playable, quality)] ?? playable[0]
+  if (!video) throw new Error('Tidak ada video yang bisa diunduh.')
+
+  checkStop(jobId)
+
+  return video.type === 'hls'
+    ? await downloadHls(video, quality, dir, jobId)
+    : await downloadWhole(video, dir, jobId)
+}
+
+/** Video satu berkas (mp4/mkv). Progresnya dari byte yang sudah turun. */
+async function downloadWhole(video: PlayableVideo, dir: string, jobId: string): Promise<string> {
+  const name = videoFileName(video.url)
+
+  await downloadFile(
+    `${dir}/${name}`,
+    video.url,
+    mediaUrl(video.url, video.headers),
+    video.headers,
+    (ratio) => {
+      // Tanpa laporan byte, satu episode 300 MB berarti bilah progres yang
+      // membeku di nol selama beberapa menit dan terlihat seperti macet.
+      void repos().downloads.setProgress(jobId, ratio * 100)
+      changed()
+    },
+  )
+
+  return dir
+}
+
+/**
+ * Video HLS: playlist, seluruh segmennya, dan kunci AES-128-nya.
+ *
+ * Playlist ditulis **paling akhir**. Keberadaannya karena itu berarti "seluruh
+ * segmennya sudah ada" — tanpa aturan itu, unduhan yang terputus di tengah
+ * meninggalkan playlist utuh yang menunjuk ratusan berkas yang belum turun, dan
+ * episodenya berhenti di tengah tanpa penjelasan.
+ *
+ * Segmennya sengaja berurutan, bukan paralel: alasannya sama dengan halaman
+ * manga (lihat `downloadChapter`), ditambah satu lagi — satu episode bisa berisi
+ * ratusan segmen, dan menembakkannya serentak adalah beda antara mengunduh dan
+ * membanjiri.
+ */
+async function downloadHls(
+  video: PlayableVideo,
+  quality: string,
+  dir: string,
+  jobId: string,
+): Promise<string> {
+  let url = video.url
+  let text = await fetchPlaylist(url, video.headers)
+
+  if (isMasterPlaylist(text)) {
+    const variants = parseVariants(text, url).map<PlayableVideo>((variant) => ({
+      url: variant.url,
+      quality: variant.quality,
+      type: 'hls',
+      ...(video.headers === undefined ? {} : { headers: video.headers }),
+      subtitles: [],
+    }))
+
+    const chosen = variants[pickVideo(variants, quality)] ?? variants[0]
+    if (!chosen) throw new Error('Master playlist ini tidak menawarkan satu kualitas pun.')
+
+    url = chosen.url
+    text = await fetchPlaylist(url, video.headers)
+    // Master yang menunjuk master lagi bukan bentuk yang wajar; lebih baik gagal
+    // dengan jelas daripada menelusuri rantai yang tidak ada ujungnya.
+    if (isMasterPlaylist(text)) throw new Error('Playlist HLS ini bertingkat terlalu dalam.')
+  }
+
+  const plan = planPlaylist(text, url)
+  if (plan.resources.length === 0) throw new Error('Playlist HLS ini tidak berisi satu segmen pun.')
+
+  // Melanjutkan yang terputus, aturannya sama dengan halaman manga: yang sudah
+  // ada dilewati kecuali berkas terakhir, yang mungkin separuh tertulis.
+  const existing = new Set(await listDir(dir))
+  existing.delete(PLAYLIST_NAME)
+  const last = [...existing].sort().pop()
+  if (last !== undefined) existing.delete(last)
+
+  for (const [index, resource] of plan.resources.entries()) {
+    checkStop(jobId)
+
+    if (!existing.has(resource.name)) {
+      await downloadFile(
+        `${dir}/${resource.name}`,
+        resource.url,
+        mediaUrl(resource.url, video.headers),
+        video.headers,
+      )
+    }
+
+    await repos().downloads.setProgress(jobId, ((index + 1) / plan.resources.length) * 100)
+    changed()
+  }
+
+  checkStop(jobId)
+  await writeText(`${dir}/${PLAYLIST_NAME}`, plan.playlist)
+  return dir
+}
+
+/**
+ * Isi playlist sebagai teks.
+ *
+ * Lewat `HttpClient`, bukan `fetch` ke alamat media: playlist bukan berkas yang
+ * dipasang ke elemen, isinya perlu dibaca dan ditulis ulang — dan `HttpClient`
+ * yang tahu cara memasang `Referer` di APK maupun di web. Alamat yang isinya
+ * sudah ada di tangan (`data:`, `blob:`) tidak lewat sana sama sekali.
+ */
+async function fetchPlaylist(
+  url: string,
+  headers?: Readonly<Record<string, string>>,
+): Promise<string> {
+  if (isLocalUrl(url)) {
+    const response = await fetch(url)
+    if (!response.ok) throw new Error(`Playlist HLS gagal dibaca (HTTP ${response.status}).`)
+    return response.text()
+  }
+
+  const response = await transport.http.get(url, headers)
+  if (!response.ok) throw new Error(`Playlist HLS gagal diambil (HTTP ${response.status}).`)
+  return response.body
+}
+
+/**
+ * Menolak berangkat waktu ruangnya tinggal sedikit.
+ *
+ * Satu episode bisa ratusan megabita, dan kegagalan menulis di tengah jalan
+ * meninggalkan setengah episode yang tetap memakan ruang tanpa bisa diputar.
+ * Peringatan di UI ada di halaman Unduhan; ini jaring terakhirnya.
+ */
+async function guardStorage(): Promise<void> {
+  const status = storageStatus(await storageEstimate())
+  if (status.level === 'full') throw new Error(status.message ?? 'Ruang penyimpanan habis.')
+}
+
 function checkStop(jobId: string): void {
   if (stopping.has(jobId)) throw STOPPED
 }
@@ -337,6 +533,50 @@ export function releaseLocalPages(pages: readonly LocalPage[]): void {
   for (const page of pages) {
     if (page.url.startsWith('blob:')) URL.revokeObjectURL(page.url)
   }
+}
+
+/** Episode yang sudah ada di perangkat, siap dipasang ke pemutar. */
+export interface LocalVideo {
+  type: 'hls' | 'mp4'
+  /** `blob:` berisi playlist untuk HLS, atau alamat berkas videonya. */
+  url: string
+}
+
+/**
+ * Episode dari berkas di perangkat; `null` kalau belum lengkap terunduh.
+ *
+ * Untuk HLS, playlist tersimpan ditulis ulang **di memori** jadi alamat
+ * `mirai-local://` yang absolut lalu diserahkan sebagai `blob:`. Dua alasan
+ * kenapa bukan berkasnya langsung yang diserahkan: playlist di berkas menyimpan
+ * nama relatif, dan `blob:` bukan alamat yang bisa dipakai menyelesaikan nama
+ * relatif jadi apa pun yang berguna — sementara direktorinya sendiri ikut berubah
+ * kalau judul atau nama episodenya berubah, jadi menyimpan alamat mutlak di
+ * berkasnya akan mematikan unduhan lama diam-diam.
+ *
+ * Yang membaca segmennya nanti `createLocalLoader` di `hls.service`; di sinilah
+ * satu-satunya tempat skema `mirai-local://` lahir.
+ */
+export async function localVideo(entry: EntryRow, item: ItemRow): Promise<LocalVideo | null> {
+  const dir = itemDir(entry, item)
+
+  const playlist = await readText(`${dir}/${PLAYLIST_NAME}`)
+  if (playlist !== null) {
+    const blob = new Blob([localizePlaylist(playlist, dir)], {
+      type: 'application/vnd.apple.mpegurl',
+    })
+    return { type: 'hls', url: URL.createObjectURL(blob) }
+  }
+
+  const names = await listDir(dir)
+  const video = names.find((name) => name.startsWith('video.'))
+  if (video === undefined) return null
+
+  const url = await fileUrl(`${dir}/${video}`)
+  return url === null ? null : { type: 'mp4', url }
+}
+
+export function releaseLocalVideo(video: LocalVideo): void {
+  revokeFileUrl(video.url)
 }
 
 // ── Menghapus ────────────────────────────────────────────────────────────────

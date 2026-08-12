@@ -132,6 +132,13 @@ export function createLocalLoader(
     /** Alamat berkas yang sedang dipakai; wajib dilepas setelah selesai. */
     #opened: string | null = null
     /**
+     * Alamat `mirai-local://` yang asli. Sama alasannya dengan `ProxyLoader`:
+     * hls.js memakai ulang instance yang sama waktu mencoba ulang, dan
+     * `context.url` sudah terlanjur ditimpa alamat berkas yang keburu dilepas —
+     * percobaan kedua akan mengambil `blob:` yang sudah tidak ada isinya.
+     */
+    #originalUrl: string | null = null
+    /**
      * hls.js membatalkan permintaan yang keburu tidak dibutuhkan (pindah
      * kualitas, seek). Tanpa penanda ini, berkas yang alamatnya baru selesai
      * dibuka tetap diambil sesudah pembatalan — dan tidak pernah dilepas.
@@ -143,7 +150,9 @@ export function createLocalLoader(
       config: unknown,
       callbacks: LoaderCallbacksLike,
     ): void {
-      const original = context.url
+      this.#originalUrl ??= context.url
+      const original = this.#originalUrl
+
       if (!original.startsWith(SCHEME)) {
         super.load(context, config, callbacks)
         return
