@@ -23,6 +23,13 @@ export type FatalHandler = (message: string) => void
 
 const NATIVE_HLS = 'application/vnd.apple.mpegurl'
 
+/**
+ * Alamat yang sumbernya sudah di perangkat ini. Melewatkannya ke proxy jelas
+ * salah — tidak ada yang bisa diambilkan proxy dari `blob:` milik tab lain — dan
+ * inilah jalur yang dipakai episode terunduh nanti di Fase 7.
+ */
+const LOCAL_URL = /^(data|blob|file|capacitor|ionic):/i
+
 export async function attachVideo(
   el: HTMLVideoElement,
   video: PlayableVideo,
@@ -30,7 +37,8 @@ export async function attachVideo(
 ): Promise<AttachedVideo> {
   // Di APK ini fungsi identitas — WebView mengambil medianya sendiri lengkap
   // dengan header. Di web, alamatnya berubah jadi `…/stream?url=…`.
-  const resolve = (url: string): string => transport.media.toDisplayUrl(url, video.headers)
+  const resolve = (url: string): string =>
+    LOCAL_URL.test(url) ? url : transport.media.toDisplayUrl(url, video.headers)
 
   if (video.type !== 'hls') {
     el.src = resolve(video.url)

@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { onBeforeUnmount, ref, watch } from 'vue'
+import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { attachVideo, type AttachedVideo } from '@/services/hls.service'
 import type { PlayableVideo } from '@/services/playback'
 import type { PlayerTrack } from '@/stores/player'
@@ -34,26 +34,29 @@ const emit = defineEmits<{
 const el = ref<HTMLVideoElement | null>(null)
 let attached: AttachedVideo | null = null
 
+async function attach(): Promise<void> {
+  attached?.detach()
+  attached = null
+
+  const element = el.value
+  const video = props.video
+  // Tipe `embed` tidak punya berkas video; halamannya yang menampilkan tautan.
+  if (!element || !video || video.type === 'embed') return
+
+  attached = await attachVideo(element, video, (message) => emit('error', message))
+  element.playbackRate = props.speed
+  element.volume = props.volume
+}
+
 /**
- * Sumber diganti tiap kali pilihan video berubah. `flush: 'post'` supaya
- * elemennya sudah ada di DOM waktu pemasangan pertama dijalankan.
+ * Pemasangan pertama menunggu `onMounted`, bukan `watch(…, { immediate: true })`:
+ * watcher immediate dijalankan saat setup, waktu elemennya belum ada di DOM,
+ * jadi sumber video pertama tidak akan pernah terpasang.
  */
-watch(
-  () => props.video,
-  async (video) => {
-    attached?.detach()
-    attached = null
+onMounted(attach)
 
-    const element = el.value
-    // Tipe `embed` tidak punya berkas video; halamannya yang menampilkan tautan.
-    if (!element || !video || video.type === 'embed') return
-
-    attached = await attachVideo(element, video, (message) => emit('error', message))
-    element.playbackRate = props.speed
-    element.volume = props.volume
-  },
-  { immediate: true, flush: 'post' },
-)
+/** Pemasangan berikutnya: tiap kali pilihan kualitas/host berganti. */
+watch(() => props.video, attach)
 
 watch(
   () => props.speed,
