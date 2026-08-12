@@ -145,6 +145,9 @@ importers:
       esbuild:
         specifier: ^0.25.12
         version: 0.25.12
+      undici:
+        specifier: ^8.10.0
+        version: 8.10.0
 
   packages/extension-api: {}
 
@@ -2102,6 +2105,10 @@ packages:
 
   undici-types@8.3.0:
     resolution: {integrity: sha512-j375ScV60dom+YkPFIfTLcOiPxkN/buHz5GobjLhixFuANaNs3C9l4GmrWqejgXWJ7BbJcFYpTEUkS1Ge8bpZQ==}
+
+  undici@8.10.0:
+    resolution: {integrity: sha512-HvltHd7avK13QIw/oLe4qoOLyoVSoafqJ2jYOrtMRBkbYT31eiBQ8O0ehRKZiEZCMEyLFQNIADpgCWC5fALvYQ==}
+    engines: {node: '>=22.19.0'}
 
   universalify@2.0.1:
     resolution: {integrity: sha512-gptHNQghINnc/vTGIk0SOFGFNXw7JVrlRUtConJRlvaw6DuX0wO5Jeko9sWrMBhh+PsYAZ7oXAiOnf/UKogyiw==}
@@ -4195,6 +4202,8 @@ snapshots:
   uhyphen@0.2.0: {}
 
   undici-types@8.3.0: {}
+
+  undici@8.10.0: {}
 
   universalify@2.0.1: {}
 
