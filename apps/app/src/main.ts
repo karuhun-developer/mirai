@@ -2,15 +2,18 @@ import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 import App from './App.vue'
 import { router } from './router'
+import { setupDb } from './services/db.service'
 import './assets/index.css'
 
 /**
- * Urutan boot sengaja eksplisit dan berurutan. Mulai Fase 3 di sini akan ada
- * `initDb()` sebelum Pinia — store membaca DB saat dibuat, jadi DB harus sudah
- * siap lebih dulu. Kalau gagal, app tidak boleh mount setengah jadi: lebih baik
- * menampilkan panel error mentah daripada layar kosong tanpa penjelasan.
+ * Urutan boot sengaja eksplisit dan berurutan: database dulu, baru Pinia. Store
+ * membaca DB begitu dibuat, jadi DB harus sudah bermigrasi lebih dulu. Kalau
+ * gagal, app tidak boleh mount setengah jadi: lebih baik menampilkan panel
+ * error mentah daripada layar kosong tanpa penjelasan.
  */
 async function bootstrap(): Promise<void> {
+  await setupDb()
+
   const app = createApp(App)
 
   app.use(createPinia())
