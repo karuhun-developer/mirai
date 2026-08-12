@@ -92,12 +92,14 @@ kategori yang selalu 32 karakter heksadesimal.
 Angka di tiap tab dihitung dari query **tanpa saringan**. Menyalakan "ada yang
 belum dibaca" menyaring grid, bukan mengubah jumlah anggota kategori.
 
-### Riwayat sebelum ada reader
+### Menandai manual juga mengisi riwayat
 
-Sampai reader hadir di Fase 4, menandai chapter "sudah dibaca" adalah
-satu-satunya peristiwa "saya baca ini" yang ada — jadi itulah yang mengisi
-`history`, dan membatalkan tandanya menghapus barisnya lagi. Begitu reader
-mencatat posisi sungguhan, aturan ini tetap benar dan tinggal ditambahi.
+Menandai chapter "sudah dibaca" dari halaman detail adalah peristiwa "saya baca
+ini" yang sah, jadi ia mengisi `history` persis seperti membacanya sungguhan;
+membatalkan tandanya menghapus barisnya lagi. Sejak
+[reader](reader.md) hadir di Fase 4 keduanya hidup berdampingan — reader menulis
+posisi halaman lewat jalur yang sama, jadi tidak ada aturan yang perlu diubah di
+sini.
 
 ### Cache cover
 
@@ -125,10 +127,10 @@ membuat `%2F` ter-encode dua kali dan judulnya tidak pernah ketemu.
 
 ## Yang sengaja belum ada
 
-- **Tombol Lanjut** di halaman detail sudah tampil beserta nama chapter/episode
-  berikutnya, tapi dinonaktifkan — reader dan player baru hadir di Fase 4–5.
-  Menautkannya ke rute yang belum ada lebih buruk daripada tombol mati yang
-  menjelaskan dirinya sendiri.
+- **Tombol Lanjut untuk anime** masih dinonaktifkan, begitu juga baris
+  episodenya: pemutarnya baru hadir di Fase 5. Untuk manga tombol itu sudah
+  membuka [reader](reader.md). Menautkan ke rute yang belum ada lebih buruk
+  daripada tombol mati yang menjelaskan dirinya sendiri.
 - **Saringan "sudah diunduh"** sudah jalan sampai ke SQL, tapi kolom `downloaded`
   baru akan terisi di Fase 6.
 - **Penyegaran latar belakang terjadwal** belum ada; penyegaran selalu dimulai

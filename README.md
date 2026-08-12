@@ -68,7 +68,7 @@ mesin pengembangan.
 | 1    | Extension API, runtime sandbox, proxy            | ✅     |
 | 2    | Repo extension, manajemen, Komikcast + Otakudesu | ✅     |
 | 3    | SQLite, Library offline-first, Updates           | ✅     |
-| 4    | Reader manga                                     | ⬜     |
+| 4    | Reader manga (paged + webtoon)                   | ✅     |
 | 5    | Player anime                                     | ⬜     |
 | 6    | Unduh manga                                      | ⬜     |
 | 7    | Unduh anime (mp4 + HLS)                          | ⬜     |

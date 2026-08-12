@@ -10,7 +10,7 @@ hasilnya dicatat di [CHANGELOG.md](../CHANGELOG.md).
 | 1    | 0.2.0 | Extension API & runtime    | ✅     |
 | 2    | 0.3.0 | Repo extension & manajemen | ✅     |
 | 3    | 0.4.0 | DB & Library offline-first | ✅     |
-| 4    | 0.5.0 | Reader manga               | ⬜     |
+| 4    | 0.5.0 | Reader manga               | ✅     |
 | 5    | 0.6.0 | Player anime               | ⬜     |
 | 6    | 0.7.0 | Unduh manga                | ⬜     |
 | 7    | 0.8.0 | Unduh anime                | ⬜     |
@@ -89,13 +89,27 @@ skema tapi belum ada yang mengisinya sampai Fase 6. Tabel `extension` dan
 sudah terlanjur (dan tepat) tinggal di `localStorage` + Cache API sejak Fase 2
 karena harus terbaca sinkron sebelum database dibuka.
 
-## Fase 4 — Reader manga
+## Fase 4 — Reader manga ✅
 
 Paged (LTR/RTL) dan webtoon continuous, preload, zoom/pan, tap zone + keyboard,
 progres per halaman, fullscreen, kunci orientasi di native.
 
 **Selesai kalau:** keluar di tengah chapter lalu masuk lagi mendarat di halaman
 yang sama, dan item otomatis bertanda sudah dibaca.
+→ [features/reader.md](features/reader.md)
+
+**Terverifikasi:** `scripts/smoke.mjs` membuka chapter sungguhan dari Komikcast,
+menukar mode lewat panel setelan, maju dua halaman, keluar lewat `Esc`, lalu
+masuk lagi dan mendarat di halaman 3 — posisinya dibaca langsung dari kolom
+`item.last_position`. Diteruskan sampai halaman terakhir, `item.seen` berubah
+jadi 1 tanpa ditandai manual, dan halaman detail menampilkannya sebagai sudah
+dibaca.
+
+**Sisa utang:** kunci orientasi ditulis penuh tapi cuma nyata di APK, jadi
+buktinya menunggu Fase 8 — sama dengan driver SQLite native. Halaman selalu
+diambil dari jaringan sampai unduhan hadir di Fase 6. Mode halaman belum punya
+tata letak dua halaman berdampingan di layar lebar, dan penanda masih setingkat
+chapter, bukan per halaman.
 
 ## Fase 5 — Player anime
 

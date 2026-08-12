@@ -11,6 +11,47 @@ menautkan ke sana supaya changelog ini tetap ringkas.
 
 ## [Unreleased]
 
+### Fase 4 — Reader manga
+
+#### Added
+
+- **Reader manga** (`/read/:itemId`) dengan dua mode: halaman per halaman
+  (kiri→kanan dan kanan→kiri) dan gulir menerus untuk manhwa/manhua. Lengkap
+  dengan preload halaman yang bisa disetel, zoom/geser lewat cubit dan ketuk
+  ganda, tap zone, papan ketik (panah, spasi, `m`, `Esc`), layar penuh, dan kunci
+  orientasi di APK. Lihat [docs/features/reader.md](docs/features/reader.md).
+- **Progres per halaman.** Setiap perpindahan halaman menulis `item.last_position`
+  dan mengisi riwayat — bukan saat keluar, karena aplikasi yang dibunuh sistem
+  tidak pernah mendapat kesempatan itu. Halaman terakhir menandai chapternya
+  selesai dengan sendirinya, dan chapter yang sudah selesai dibuka lagi dari awal.
+- **Halaman yang gagal dimuat bisa dicoba ulang sendiri** tanpa membuka ulang
+  chapternya, dengan memasang ulang elemennya — bukan menambah parameter ke URL,
+  yang akan mengubah alamat proxy dan membatalkan cache-nya.
+- **Panel setelan reader** yang berlaku seketika dan tersimpan di tabel `setting`,
+  jadi ikut terbawa backup di Fase 9.
+- Baris chapter di halaman detail kini bisa diketuk untuk langsung membaca, dan
+  tombol **Lanjut** untuk manga sudah aktif. Baris episode anime tetap diam
+  sampai pemutarnya hadir di Fase 5.
+- `scripts/smoke.mjs` membaca satu chapter sungguhan sampai habis: maju halaman,
+  keluar di tengah, masuk lagi dan mendarat di halaman yang sama, lalu sampai
+  halaman terakhir dan chapternya bertanda selesai — semuanya diperiksa langsung
+  ke tabel `item` lewat `window.__db`.
+
+#### Fixed
+
+- **Chapter yang baru dibuka di mode gulir tercatat maju beberapa halaman
+  sendiri.** Selama gambar berdatangan, tinggi tiap potongan berubah dan pita
+  "sedang dibaca" di tengah layar berpindah tanpa satu pun jari menyentuh layar,
+  jadi posisi baca tertulis salah dan chapternya tidak pernah dilanjutkan di
+  tempat yang benar. Posisi baru sekarang cuma ditulis setelah ada gulir
+  sungguhan, dan halaman yang belum dimuat diberi tinggi cadangan.
+- **Ketukan tunggal mengganti halaman sebelum ketukan kedua sempat dibaca**, jadi
+  zoom ketuk-ganda tidak pernah bisa dipakai di mode halaman. Ketukan tunggal
+  sekarang ditunda 280 ms.
+- ESLint melaporkan `window`, `IntersectionObserver`, dan kawan-kawan sebagai
+  identifier tak dikenal di dalam `<script setup>`: `no-undef` dimatikan
+  typescript-eslint untuk `.ts` tapi override-nya tidak menyebut `.vue`.
+
 ### Fase 3 — DB & Library offline-first
 
 #### Added
