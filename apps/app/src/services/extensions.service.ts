@@ -11,6 +11,7 @@ import type { RepoEntry } from './extensionRepo.service'
 import { repoAssetUrl } from './extensionRepo.service'
 import type { InstalledRecord } from './extensionStorage.service'
 import { readBundle, writeBundle } from './extensionStorage.service'
+import { userAgentOverride } from './settings.service'
 
 /**
  * Jembatan antara app dan runtime extension. Satu-satunya tempat app tahu soal
@@ -19,7 +20,10 @@ import { readBundle, writeBundle } from './extensionStorage.service'
 
 const PROXY_URL = import.meta.env.VITE_PROXY_URL ?? 'http://localhost:5181'
 
-export const transport: Transport = createTransport({ proxyUrl: PROXY_URL })
+export const transport: Transport = createTransport({
+  proxyUrl: PROXY_URL,
+  userAgent: userAgentOverride,
+})
 
 export interface LoadedExtension {
   pkg: string

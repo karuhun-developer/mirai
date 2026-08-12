@@ -4,11 +4,13 @@ import { useRoute } from 'vue-router'
 import { TriangleAlert } from '@lucide/vue'
 import type { SEntry } from '@mirai/extension-api'
 import AppHeader from '@/components/layout/AppHeader.vue'
+import ChallengeNotice from '@/components/common/ChallengeNotice.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 import EntryGrid from '@/components/entry/EntryGrid.vue'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useExtensionsStore } from '@/stores/extensions'
+import { challengeOf, type ChallengeInfo } from '@/services/challenge.service'
 
 type Mode = 'popular' | 'latest' | 'search'
 
@@ -25,6 +27,9 @@ const mode = ref<Mode>('popular')
 const searchTerm = ref('')
 const busy = ref(false)
 const error = ref<string | null>(null)
+// Tantangan Cloudflare bukan error biasa: yang diminta bukan "coba lagi",
+// melainkan tindakan manusia. Dipisah supaya UI-nya juga berbeda.
+const challenge = ref<ChallengeInfo | null>(null)
 
 // Halaman yang datang terlambat setelah user mengganti mode akan menimpa hasil
 // yang benar; token ini membuat respons basi dibuang, bukan dirender.
@@ -37,6 +42,7 @@ async function fetchPage(next: boolean): Promise<void> {
   const token = ++requestToken
   busy.value = true
   error.value = null
+  challenge.value = null
   const targetPage = next ? page.value + 1 : 1
 
   try {
@@ -54,7 +60,9 @@ async function fetchPage(next: boolean): Promise<void> {
     hasNextPage.value = result.hasNextPage
   } catch (cause) {
     if (token !== requestToken) return
-    error.value = cause instanceof Error ? cause.message : String(cause)
+    const blocked = challengeOf(cause)
+    if (blocked) challenge.value = blocked
+    else error.value = cause instanceof Error ? cause.message : String(cause)
   } finally {
     if (token === requestToken) busy.value = false
   }
@@ -120,6 +128,12 @@ const tabs: { key: Mode; label: string }[] = [
   />
 
   <template v-else>
+    <ChallengeNotice
+      v-if="challenge"
+      :challenge="challenge"
+      :source-name="source?.name ?? 'Sumber ini'"
+    />
+
     <p v-if="error" class="mx-4 mt-4 rounded-md bg-destructive/10 p-3 text-sm text-destructive">
       {{ error }}
     </p>
@@ -129,7 +143,7 @@ const tabs: { key: Mode; label: string }[] = [
     <p v-if="busy" class="px-4 py-6 text-center text-sm text-muted-foreground">Memuat…</p>
 
     <p
-      v-else-if="entries.length === 0 && !error"
+      v-else-if="entries.length === 0 && !error && !challenge"
       class="px-4 py-10 text-center text-sm text-muted-foreground"
     >
       Tidak ada hasil.
