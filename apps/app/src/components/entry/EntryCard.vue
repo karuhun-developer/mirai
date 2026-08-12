@@ -1,30 +1,26 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
-import type { SEntry } from '@mirai/extension-api'
-import { transport } from '@/services/extensions.service'
+import { computed } from 'vue'
+import { RouterLink } from 'vue-router'
+import { Heart } from '@lucide/vue'
+import { useCover } from '@/composables/useCover'
+import { entryLocation } from '@/router/links'
+import type { GridEntry } from './grid'
 
-const props = defineProps<{
-  entry: SEntry
-  /** Jumlah chapter/episode belum dibaca; badge disembunyikan kalau nol. */
-  unread?: number
-  downloaded?: boolean
-}>()
+const props = defineProps<{ entry: GridEntry }>()
 
-const failed = ref(false)
+const { src, failed } = useCover(() => props.entry.thumbnailUrl)
 
-// Di APK URL cover dipakai apa adanya; di web dia harus lewat proxy, karena CDN
-// sumber hampir tidak pernah memasang header CORS.
-const coverUrl = computed(() =>
-  props.entry.thumbnailUrl ? transport.media.toDisplayUrl(props.entry.thumbnailUrl) : '',
-)
+const to = computed(() => entryLocation(props.entry.kind, props.entry.sourceId, props.entry.url))
 </script>
 
 <template>
-  <article class="group flex flex-col gap-1.5">
-    <div class="relative aspect-2/3 overflow-hidden rounded-lg bg-surface">
+  <RouterLink :to="to" class="group flex flex-col gap-1.5 focus-visible:outline-none">
+    <div
+      class="relative aspect-2/3 overflow-hidden rounded-lg bg-surface ring-offset-background group-focus-visible:ring-2 group-focus-visible:ring-ring group-focus-visible:ring-offset-2"
+    >
       <img
-        v-if="coverUrl && !failed"
-        :src="coverUrl"
+        v-if="src && !failed"
+        :src="src"
         :alt="entry.title"
         loading="lazy"
         decoding="async"
@@ -39,18 +35,30 @@ const coverUrl = computed(() =>
       </div>
 
       <span
-        v-if="unread"
+        v-if="entry.unread"
         class="absolute left-1.5 top-1.5 rounded-full bg-unread px-1.5 py-0.5 text-[11px] font-semibold leading-none text-unread-foreground"
       >
-        {{ unread }}
+        {{ entry.unread }}
       </span>
       <span
-        v-if="downloaded"
+        v-if="entry.downloaded"
         class="absolute right-1.5 top-1.5 size-2.5 rounded-full bg-downloaded"
         aria-label="Sudah diunduh"
       />
+      <!--
+        Penanda favorit cuma dipakai di Browse: di Library semuanya favorit, jadi
+        di sana `favorite` sengaja tidak dikirim supaya ikonnya tidak muncul di
+        tiap kartu tanpa memberi tahu apa pun.
+      -->
+      <span
+        v-if="entry.favorite"
+        class="absolute bottom-1.5 right-1.5 grid size-5 place-items-center rounded-full bg-background/80"
+        aria-label="Ada di library"
+      >
+        <Heart class="size-3 fill-primary text-primary" />
+      </span>
     </div>
 
     <p class="line-clamp-2 text-xs leading-snug text-foreground/90">{{ entry.title }}</p>
-  </article>
+  </RouterLink>
 </template>

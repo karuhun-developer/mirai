@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import type { SEntry } from '@mirai/extension-api'
 import EntryCard from './EntryCard.vue'
+import type { GridEntry } from './grid'
 
-defineProps<{ entries: SEntry[] }>()
+defineProps<{ entries: GridEntry[] }>()
 </script>
 
 <template>
@@ -14,6 +14,6 @@ defineProps<{ entries: SEntry[] }>()
     data-testid="entry-grid"
     class="grid grid-cols-[repeat(auto-fill,minmax(7.5rem,1fr))] gap-3 px-4 pb-24 md:pb-8"
   >
-    <EntryCard v-for="entry in entries" :key="entry.url" :entry="entry" />
+    <EntryCard v-for="entry in entries" :key="`${entry.sourceId}::${entry.url}`" :entry="entry" />
   </div>
 </template>
