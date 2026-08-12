@@ -29,6 +29,8 @@ export type { LibraryEntry, LibraryQuery, LibrarySort } from './repositories/ent
 export { ItemRepository } from './repositories/items.js'
 export type { ItemWithEntry, SyncResult } from './repositories/items.js'
 export { CategoryRepository } from './repositories/categories.js'
+export { DownloadRepository } from './repositories/downloads.js'
+export type { DownloadEntry } from './repositories/downloads.js'
 export { HistoryRepository } from './repositories/history.js'
 export type { HistoryEntry } from './repositories/history.js'
 export { SettingsRepository } from './repositories/settings.js'

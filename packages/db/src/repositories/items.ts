@@ -140,6 +140,33 @@ export class ItemRepository extends BaseRepository<ItemRow> {
     await this.update(id, { bookmark: toFlag(bookmark) })
   }
 
+  /**
+   * Menandai item punya berkas lokal.
+   *
+   * Kolomnya ada di `item`, bukan cuma di `download`, karena yang paling sering
+   * bertanya adalah daftar chapter dan saringan library — dan keduanya sudah
+   * membaca `item`. Menanyakannya lewat join ke antrean berarti setiap baris
+   * daftar membayar satu join demi satu tanda centang.
+   */
+  async setDownloaded(ids: string[], downloaded: boolean): Promise<void> {
+    if (ids.length === 0) return
+    const placeholders = ids.map(() => '?').join(', ')
+    await this.db.run(
+      `UPDATE item SET downloaded = ?, updated_at = ? WHERE id IN (${placeholders})`,
+      [toFlag(downloaded), nowMs(), ...ids],
+    )
+    await this.persisted(undefined)
+  }
+
+  /** Item yang berkasnya ada di perangkat — dasar pembersihan dan hitungan. */
+  listDownloaded(entryId?: string): Promise<ItemRow[]> {
+    return entryId === undefined
+      ? this.db.query<ItemRow>('SELECT * FROM item WHERE downloaded = 1')
+      : this.db.query<ItemRow>('SELECT * FROM item WHERE downloaded = 1 AND entry_id = ?', [
+          entryId,
+        ])
+  }
+
   unreadCount(entryId: string): Promise<number> {
     return this.count('entry_id = ? AND seen = 0', [entryId])
   }

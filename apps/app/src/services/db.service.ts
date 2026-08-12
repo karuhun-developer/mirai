@@ -1,6 +1,7 @@
 import wasmUrl from 'sql.js/dist/sql-wasm.wasm?url'
 import {
   CategoryRepository,
+  DownloadRepository,
   EntryRepository,
   HistoryRepository,
   ItemRepository,
@@ -26,6 +27,7 @@ export interface Repos {
   entries: EntryRepository
   items: ItemRepository
   categories: CategoryRepository
+  downloads: DownloadRepository
   history: HistoryRepository
   settings: SettingsRepository
 }
@@ -47,6 +49,7 @@ export function repos(): Repos {
     entries: new EntryRepository(getDb()),
     items: new ItemRepository(getDb()),
     categories: new CategoryRepository(getDb()),
+    downloads: new DownloadRepository(getDb()),
     history: new HistoryRepository(getDb()),
     settings: new SettingsRepository(getDb()),
   }
