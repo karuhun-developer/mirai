@@ -58,17 +58,37 @@ try {
 
     await nav.getByRole('link', { name: 'Browse' }).click()
     await page.waitForURL('**/browse')
+
+    // 4. Inilah bukti runtime extension benar-benar hidup: nama "MangaDex" cuma
+    //    bisa muncul kalau repo dev terbaca, bundle-nya di-import di dalam
+    //    Worker lewat blob URL, factory-nya jalan, dan describe() balik ke host
+    //    lewat RPC. Semuanya tanpa menyentuh jaringan luar.
+    const mangadex = page.getByRole('link', { name: /MangaDex/ })
+    await mangadex.waitFor({ state: 'visible', timeout: 15_000 }).catch(() => {})
+    check('Browse menampilkan sumber MangaDex dari extension', await mangadex.isVisible())
+    check('label sumber menyebut bahasa dan jenis', await page.getByText('ALL · manga').isVisible())
+
+    // 5. Halaman sumber harus mendarat di keadaan pasti — daftar atau pesan
+    //    error — bukan spinner abadi. Di mesin tanpa akses ke MangaDex yang
+    //    muncul memang error, dan itu tetap perilaku yang benar.
+    await mangadex.click()
+    await page.waitForURL('**/browse/mangadex')
     check(
-      'halaman Browse menjelaskan kenapa kosong',
-      await page.getByText('Belum ada sumber terpasang').isVisible(),
+      'judul halaman memakai nama sumber',
+      await page.getByRole('heading', { name: 'MangaDex' }).isVisible(),
+    )
+    check('kotak pencarian tersedia', await page.getByLabel('Cari judul').isVisible())
+
+    const settled = page
+      .locator('[data-testid="entry-grid"], .text-destructive, :text("Tidak ada hasil.")')
+      .first()
+    await settled.waitFor({ state: 'visible', timeout: 20_000 }).catch(() => {})
+    check(
+      'permintaan populer selesai (hasil atau error), bukan menggantung',
+      await settled.isVisible(),
     )
 
-    // 4. Tautan dari empty state harus benar-benar mendarat.
-    await page.getByRole('link', { name: 'Buka Extension' }).click()
-    await page.waitForURL('**/extensions')
-    check('CTA empty state → /extensions', new URL(page.url()).pathname === '/extensions')
-
-    // 5. Route tak dikenal jatuh ke halaman 404, bukan layar putih.
+    // 6. Route tak dikenal jatuh ke halaman 404, bukan layar putih.
     await page.goto(`${BASE}/rute-yang-tidak-ada`, { waitUntil: 'networkidle' })
     check('404 tampil', await page.getByText('Halaman tidak ditemukan').isVisible())
 

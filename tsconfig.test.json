@@ -1,0 +1,16 @@
+{
+  // Test punya tsconfig sendiri karena tiap paket sengaja dikunci ketat: paket
+  // extension jalan dengan `types: []` supaya API-nya tidak diam-diam memakai
+  // tipe Node. Test butuh sebaliknya. Tanpa berkas ini test tidak pernah
+  // di-typecheck sama sekali — vitest cuma menjalankan, tidak memeriksa tipe —
+  // dan salah urutan argumen baru ketahuan waktu assertion-nya merah.
+  "extends": "./tsconfig.base.json",
+  "include": ["*/*/test/**/*.ts", "vitest.config.ts"],
+  "compilerOptions": {
+    "noEmit": true,
+    "composite": false,
+    "lib": ["ES2023", "DOM"],
+    "types": ["node"],
+    "allowImportingTsExtensions": true
+  }
+}
