@@ -13,6 +13,7 @@ const store = useDownloadsStore()
 // tampil bukan cerminan basi dari kunjungan sebelumnya.
 onMounted(() => {
   void store.refresh()
+  void store.refreshStorage()
 })
 </script>
 
@@ -52,6 +53,22 @@ onMounted(() => {
     {{ store.error }}
   </p>
 
+  <!--
+    Peringatan ruang. Satu episode bisa ratusan megabita, jadi kabarnya harus
+    datang sebelum unduhannya gagal di tengah — bukan sesudah.
+  -->
+  <p
+    v-if="store.storage.message"
+    class="mx-4 mt-4 rounded-md p-3 text-sm"
+    :class="
+      store.storage.level === 'full'
+        ? 'bg-destructive/10 text-destructive'
+        : 'bg-muted text-muted-foreground'
+    "
+  >
+    {{ store.storage.message }}
+  </p>
+
   <ul v-if="store.jobs.length > 0" class="divide-y divide-border pb-24 md:pb-8">
     <DownloadRow
       v-for="job in store.jobs"
@@ -66,6 +83,6 @@ onMounted(() => {
     v-else
     :icon="Download"
     title="Belum ada unduhan"
-    description="Chapter yang kamu unduh bisa dibaca tanpa internet — tombol unduhnya ada di setiap baris chapter."
+    description="Chapter dan episode yang kamu unduh bisa dibuka tanpa internet — tombol unduhnya ada di setiap barisnya."
   />
 </template>

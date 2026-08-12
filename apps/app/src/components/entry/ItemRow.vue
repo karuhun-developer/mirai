@@ -15,14 +15,13 @@ import { Button } from '@/components/ui/button'
 const props = defineProps<{
   item: ItemRow
   /**
-   * Baris bisa dibuka. Episode anime belum punya pemutar, dan baris yang bisa
-   * diketuk tapi tidak melakukan apa-apa lebih membingungkan daripada baris yang
-   * jelas diam.
+   * Baris bisa dibuka. Baris yang bisa diketuk tapi tidak melakukan apa-apa
+   * lebih membingungkan daripada baris yang jelas diam.
    */
   openable?: boolean
-  /** Unduhan baru ada untuk manga; anime menyusul di fase berikutnya. */
-  downloadable?: boolean
-  /** Pekerjaan unduhan chapter ini, kalau ada di antrean. */
+  /** Sebutannya di tombol dan label a11y: `chapter` atau `episode`. */
+  unit?: string
+  /** Pekerjaan unduhan item ini, kalau ada di antrean. */
   job?: DownloadRow | undefined
 }>()
 
@@ -50,7 +49,7 @@ const downloadLabel = computed(() => {
   if (busy.value) return `Mengunduh ${props.job?.progress ?? 0}%`
   if (state.value === 'failed') return 'Unduhan gagal, coba lagi'
   if (downloaded.value) return 'Hapus unduhan'
-  return 'Unduh chapter ini'
+  return `Unduh ${props.unit ?? 'chapter'} ini`
 })
 
 function onDownload(): void {
@@ -92,7 +91,6 @@ const subtitle = computed(() => {
     </component>
 
     <Button
-      v-if="downloadable"
       variant="ghost"
       size="icon-sm"
       data-testid="item-download"

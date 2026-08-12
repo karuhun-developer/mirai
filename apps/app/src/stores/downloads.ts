@@ -16,9 +16,11 @@ import {
   removeJob,
   resumeAll,
   retry,
+  storageState,
   writeDownloadPrefs,
   type DownloadPrefs,
 } from '@/services/download.service'
+import type { StorageStatus } from '@/services/storageQuota'
 
 /**
  * Wajah reaktif antrean unduhan.
@@ -32,6 +34,12 @@ export const useDownloadsStore = defineStore('downloads', () => {
   const jobs = ref<DownloadEntry[]>([])
   const prefs = ref<DownloadPrefs>({ ...defaultDownloadPrefs })
   const error = ref<string | null>(null)
+  /**
+   * Peringatan ruang penyimpanan. Tidak ikut disegarkan tiap kabar progres:
+   * `estimate()` menyisir seluruh origin, dan memanggilnya tiap segmen yang turun
+   * jauh lebih mahal daripada kabar yang telat beberapa detik.
+   */
+  const storage = ref<StorageStatus>({ level: 'ok', free: Number.POSITIVE_INFINITY, message: null })
 
   let booted = false
   let scheduled = false
@@ -84,6 +92,11 @@ export const useDownloadsStore = defineStore('downloads', () => {
     configureDownloads({ resolve, onChange: schedule })
     await bootDownloads()
     await refresh()
+    await refreshStorage()
+  }
+
+  async function refreshStorage(): Promise<void> {
+    storage.value = await storageState()
   }
 
   async function download(items: ItemRow[]): Promise<void> {
@@ -93,6 +106,7 @@ export const useDownloadsStore = defineStore('downloads', () => {
       error.value = messageOf(cause)
     }
     await refresh()
+    await refreshStorage()
   }
 
   async function pause(): Promise<void> {
@@ -143,6 +157,7 @@ export const useDownloadsStore = defineStore('downloads', () => {
     jobs,
     prefs,
     error,
+    storage,
     byItem,
     active,
     finished,
@@ -150,6 +165,7 @@ export const useDownloadsStore = defineStore('downloads', () => {
     halted,
     boot,
     refresh,
+    refreshStorage,
     download,
     pause,
     resume,

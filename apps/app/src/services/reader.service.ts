@@ -3,7 +3,8 @@ import type { EntryRow, ItemRow } from '@mirai/db'
 import { toSItem } from '@mirai/db'
 import { repos } from './db.service'
 import { mediaUrl } from './extensions.service'
-import { cleanupAfterRead, localPages, releaseLocalPages } from './download.service'
+import { cleanupAfterRead } from './download.service'
+import { localPages, releaseLocalPages } from './localMedia'
 
 /**
  * Reader manga: halaman satu chapter, progres bacanya, dan tetangganya.

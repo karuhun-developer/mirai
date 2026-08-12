@@ -1,16 +1,18 @@
 import type { RemoteAnimeSource } from '@mirai/extension-runtime'
 import type { ItemRow } from '@mirai/db'
 import { toSItem } from '@mirai/db'
+import type { EntryRow } from '@mirai/db'
 import { repos } from './db.service'
-import { transport } from './extensions.service'
+import { isLocalUrl, transport } from './extensions.service'
+import { localVideo, releaseLocalVideo } from './localMedia'
 import type { PlayableTrack, PlayableVideo } from './playback'
 import { toVtt } from './subtitle'
 
 /**
  * Player anime: daftar video satu episode, takarirnya, dan progres tontonannya.
  *
- * Batas yang berlaku sampai unduhan hadir di Fase 7: **video selalu datang dari
- * jaringan.** Yang offline-first di sini cuma posisi tonton dan statusnya.
+ * Episode yang sudah diunduh diputar dari berkas di perangkat, dan yang belum
+ * tetap butuh jaringan — `resolveVideos()` satu-satunya yang memutuskan itu.
  */
 
 // ── Setelan ──────────────────────────────────────────────────────────────────
@@ -56,6 +58,74 @@ export async function writePlayerPrefs(prefs: PlayerPrefs): Promise<void> {
 
 // ── Memuat ───────────────────────────────────────────────────────────────────
 
+export interface PlayerVideos {
+  videos: PlayableVideo[]
+  /** Berkasnya dari perangkat; pemanggil wajib melepasnya lewat `releaseVideos()`. */
+  local: boolean
+}
+
+/**
+ * Pilihan tonton satu episode: dari perangkat kalau sudah diunduh, dari source
+ * kalau belum.
+ *
+ * Lokal selalu didahulukan, bahkan waktu jaringannya sehat — itulah gunanya
+ * mengunduh. Episode yang bertanda terunduh tapi berkasnya tidak ditemukan
+ * (browser membuang OPFS waktu ruang menipis, atau berkasnya dihapus dari luar)
+ * tandanya diturunkan di tempat lalu diambil ulang seperti biasa, sama persis
+ * dengan aturan chapter di `loadPages()`.
+ *
+ * Yang lokal cuma menawarkan satu pilihan: kualitasnya sudah ditentukan waktu
+ * mengunduh, dan pemilih kualitas berisi satu baris lebih jujur daripada daftar
+ * yang separuh isinya tidak ada di perangkat.
+ */
+export async function resolveVideos(
+  entry: EntryRow,
+  item: ItemRow,
+  source: RemoteAnimeSource | undefined,
+): Promise<PlayerVideos> {
+  if (item.downloaded === 1) {
+    const local = await localVideo(entry, item)
+    if (local) {
+      return {
+        videos: [
+          {
+            url: local.url,
+            quality: 'Terunduh',
+            type: local.type,
+            subtitles: local.subtitles.map((track) => ({
+              url: track.url,
+              label: track.label,
+              ...(track.lang === undefined ? {} : { lang: track.lang }),
+            })),
+            local: true,
+          },
+        ],
+        local: true,
+      }
+    }
+    await repos().items.setDownloaded([item.id], false)
+  }
+
+  if (!source) {
+    throw new Error(
+      'Episode ini belum diunduh, jadi videonya harus diambil dari internet — dan extension sumbernya tidak terpasang atau sedang dimatikan.',
+    )
+  }
+
+  return { videos: await loadVideos(source, item), local: false }
+}
+
+/**
+ * Melepas alamat berkas episode lokal beserta takarirnya. Object URL menahan
+ * seluruh isi berkasnya di memori sampai dicabut — untuk video 300 MB itu bukan
+ * kebocoran kecil.
+ */
+export function releaseVideos(videos: readonly PlayableVideo[]): void {
+  for (const video of videos) {
+    if (video.local) releaseLocalVideo(video)
+  }
+}
+
 /**
  * Daftar video dari source.
  *
@@ -100,13 +170,31 @@ export async function loadVideos(
  * host yang sama rewelnya dengan videonya. Hasilnya blob supaya `<track>`
  * membacanya dari origin yang sama — `<track>` lintas-origin diam-diam tidak
  * pernah tampil walau berkasnya berhasil diunduh.
+ *
+ * Takarir terunduh sudah berupa VTT di perangkat, jadi lewat `fetch` biasa;
+ * `toVtt()` tetap dijalankan karena berkas yang sudah WebVTT dibiarkannya apa
+ * adanya, dan satu jalur lebih sedikit berarti satu jalur lebih sedikit yang
+ * bisa berbeda perilaku.
  */
 export async function loadSubtitle(track: PlayableTrack): Promise<string> {
-  const response = await transport.http.get(track.url)
-  if (!response.ok) throw new Error(`Takarir gagal diambil (${response.status})`)
+  const body = isLocalUrl(track.url)
+    ? await fetchLocalText(track.url)
+    : await fetchRemoteText(track.url)
 
-  const blob = new Blob([toVtt(response.body)], { type: 'text/vtt' })
+  const blob = new Blob([toVtt(body)], { type: 'text/vtt' })
   return URL.createObjectURL(blob)
+}
+
+async function fetchLocalText(url: string): Promise<string> {
+  const response = await fetch(url)
+  if (!response.ok) throw new Error(`Takarir gagal dibaca (${response.status})`)
+  return response.text()
+}
+
+async function fetchRemoteText(url: string): Promise<string> {
+  const response = await transport.http.get(url)
+  if (!response.ok) throw new Error(`Takarir gagal diambil (${response.status})`)
+  return response.body
 }
 
 // ── Progres ──────────────────────────────────────────────────────────────────

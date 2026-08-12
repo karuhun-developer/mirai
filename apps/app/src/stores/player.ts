@@ -5,9 +5,10 @@ import type { EntryRow, ItemRow } from '@mirai/db'
 import {
   defaultPlayerPrefs,
   loadSubtitle,
-  loadVideos,
   markWatched,
   readPlayerPrefs,
+  releaseVideos,
+  resolveVideos,
   saveProgress,
   writePlayerPrefs,
   type PlayerPrefs,
@@ -47,6 +48,8 @@ export const usePlayerStore = defineStore('player', () => {
 
   const videos = ref<PlayableVideo[]>([])
   const videoIndex = ref(-1)
+  /** Diputar dari berkas di perangkat; UI menampilkannya, `release()` memakainya. */
+  const offline = ref(false)
   const tracks = ref<PlayerTrack[]>([])
   const trackIndex = ref(-1)
 
@@ -85,7 +88,7 @@ export const usePlayerStore = defineStore('player', () => {
     loading.value = true
     error.value = null
     challenge.value = null
-    videos.value = []
+    release()
     videoIndex.value = -1
     resetTracks()
     currentTime.value = 0
@@ -107,15 +110,19 @@ export const usePlayerStore = defineStore('player', () => {
       position.value = context.position
       totalItems.value = context.total
 
+      // Sumbernya boleh tidak ada: episode yang sudah diunduh diputar tanpa
+      // extension sama sekali. Yang memutuskan itu `resolveVideos`, satu-satunya
+      // tempat yang tahu berkas lokalnya benar-benar ada atau tidak.
       const source = resolve(context.entry.source_id)
-      if (!source) {
-        throw new Error(
-          'Extension sumber episode ini tidak terpasang atau sedang dimatikan, jadi videonya tidak bisa diambil.',
-        )
-      }
-      if (source.kind !== 'anime') throw new Error('Sumber ini bukan sumber anime.')
+      if (source && source.kind !== 'anime') throw new Error('Sumber ini bukan sumber anime.')
 
-      videos.value = await loadVideos(source as RemoteAnimeSource, context.item)
+      const resolved = await resolveVideos(
+        context.entry,
+        context.item,
+        source as RemoteAnimeSource | undefined,
+      )
+      videos.value = resolved.videos
+      offline.value = resolved.local
       if (videos.value.length === 0) throw new Error('Sumber tidak mengembalikan satu video pun.')
 
       videoIndex.value = pickVideo(videos.value, prefs.value.quality)
@@ -149,8 +156,9 @@ export const usePlayerStore = defineStore('player', () => {
 
     // Label yang dipilih manual jadi pilihan berikutnya, termasuk untuk episode
     // lain: orang yang menurunkan kualitas demi kuota tidak mau mengulanginya
-    // tiap episode.
-    if (target.type !== 'embed') await setPrefs({ quality: target.quality })
+    // tiap episode. Kecuali label episode terunduh — "Terunduh" bukan kualitas,
+    // dan menyimpannya berarti unduhan berikutnya kehilangan acuan.
+    if (target.type !== 'embed' && !target.local) await setPrefs({ quality: target.quality })
   }
 
   /** Memilih takarir; `-1` mematikannya. Berkasnya baru diambil saat dipilih. */
@@ -221,8 +229,16 @@ export const usePlayerStore = defineStore('player', () => {
       await saveProgress(row, currentTime.value, duration.value)
     }
     resetTracks()
+    release()
     playing.value = false
     buffering.value = false
+  }
+
+  /** Melepas berkas lokal yang sedang dibuka; aman dipanggil berkali-kali. */
+  function release(): void {
+    releaseVideos(videos.value)
+    videos.value = []
+    offline.value = false
   }
 
   /** Daftar takarir mengikuti video yang aktif; tiap host punya berkasnya sendiri. */
@@ -254,6 +270,7 @@ export const usePlayerStore = defineStore('player', () => {
     totalItems,
     videos,
     videoIndex,
+    offline,
     tracks,
     trackIndex,
     prefs,

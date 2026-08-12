@@ -5,27 +5,20 @@ import { toSItem } from '@mirai/db'
 import { repos } from './db.service'
 import { isLocalUrl, mediaUrl, transport } from './extensions.service'
 import { entryDir, itemDir, pageFileName, videoFileName } from './downloadPath'
-import {
-  PLAYLIST_NAME,
-  isMasterPlaylist,
-  localizePlaylist,
-  parseVariants,
-  planPlaylist,
-} from './hlsPlaylist'
+import { PLAYLIST_NAME, isMasterPlaylist, parseVariants, planPlaylist } from './hlsPlaylist'
+import { SUBTITLES_NAME, type LocalTrackFile } from './localMedia'
 import { pickVideo, type PlayableVideo } from './playback'
 import { loadVideos, readPlayerPrefs } from './player.service'
 import {
   downloadFile,
-  fileUrl,
   listDir,
-  readText,
   removeDir,
   requestPersistence,
-  revokeFileUrl,
   storageEstimate,
   writeText,
 } from './storage.service'
-import { storageStatus } from './storageQuota'
+import { storageStatus, type StorageStatus } from './storageQuota'
+import { toVtt } from './subtitle'
 
 /**
  * Antrean unduhan.
@@ -364,13 +357,50 @@ async function downloadEpisode(
 
   checkStop(jobId)
 
-  return video.type === 'hls'
-    ? await downloadHls(video, quality, dir, jobId)
-    : await downloadWhole(video, dir, jobId)
+  if (video.type === 'hls') await downloadHls(video, quality, dir, jobId)
+  else await downloadWhole(video, dir, jobId)
+
+  await downloadSubtitles(video, dir)
+  return dir
+}
+
+/**
+ * Takarir ikut diunduh, dan sudah dikonversi ke WebVTT di sini.
+ *
+ * Untuk sebagian besar orang yang menonton di sini, episode tanpa takarir sama
+ * saja dengan episode yang tidak bisa ditonton — jadi ini bukan pelengkap.
+ * Konversinya dikerjakan sekarang, bukan saat memutar, karena `toVtt()` butuh
+ * teks aslinya utuh dan berkas VTT yang sudah jadi bisa langsung dipasang ke
+ * `<track>` walau perangkatnya sedang tanpa jaringan.
+ *
+ * Satu takarir yang gagal tidak menggagalkan episodenya: video yang sudah turun
+ * ratusan megabita tidak boleh dibuang gara-gara satu berkas teks.
+ */
+async function downloadSubtitles(video: PlayableVideo, dir: string): Promise<void> {
+  const catalog: LocalTrackFile[] = []
+
+  for (const [index, track] of video.subtitles.entries()) {
+    const name = `sub-${String(index + 1).padStart(2, '0')}.vtt`
+    try {
+      const response = await transport.http.get(track.url)
+      if (!response.ok) continue
+
+      await writeText(`${dir}/${name}`, toVtt(response.body))
+      catalog.push({
+        name,
+        label: track.label,
+        ...(track.lang === undefined ? {} : { lang: track.lang }),
+      })
+    } catch {
+      // Idem: dicatat lewat ketiadaannya di katalog, bukan lewat error.
+    }
+  }
+
+  if (catalog.length > 0) await writeText(`${dir}/${SUBTITLES_NAME}`, JSON.stringify(catalog))
 }
 
 /** Video satu berkas (mp4/mkv). Progresnya dari byte yang sudah turun. */
-async function downloadWhole(video: PlayableVideo, dir: string, jobId: string): Promise<string> {
+async function downloadWhole(video: PlayableVideo, dir: string, jobId: string): Promise<void> {
   const name = videoFileName(video.url)
 
   await downloadFile(
@@ -385,8 +415,6 @@ async function downloadWhole(video: PlayableVideo, dir: string, jobId: string): 
       changed()
     },
   )
-
-  return dir
 }
 
 /**
@@ -407,7 +435,7 @@ async function downloadHls(
   quality: string,
   dir: string,
   jobId: string,
-): Promise<string> {
+): Promise<void> {
   let url = video.url
   let text = await fetchPlaylist(url, video.headers)
 
@@ -434,9 +462,12 @@ async function downloadHls(
   if (plan.resources.length === 0) throw new Error('Playlist HLS ini tidak berisi satu segmen pun.')
 
   // Melanjutkan yang terputus, aturannya sama dengan halaman manga: yang sudah
-  // ada dilewati kecuali berkas terakhir, yang mungkin separuh tertulis.
-  const existing = new Set(await listDir(dir))
-  existing.delete(PLAYLIST_NAME)
+  // ada dilewati kecuali berkas terakhir, yang mungkin separuh tertulis. Yang
+  // dihitung cuma berkas yang memang direncanakan — playlist dan takarir dari
+  // percobaan sebelumnya tidak boleh ikut jadi "berkas terakhir" dan membuat
+  // segmen yang benar-benar separuh jadi lolos.
+  const planned = new Set(plan.resources.map((resource) => resource.name))
+  const existing = new Set((await listDir(dir)).filter((name) => planned.has(name)))
   const last = [...existing].sort().pop()
   if (last !== undefined) existing.delete(last)
 
@@ -458,7 +489,6 @@ async function downloadHls(
 
   checkStop(jobId)
   await writeText(`${dir}/${PLAYLIST_NAME}`, plan.playlist)
-  return dir
 }
 
 /**
@@ -485,6 +515,15 @@ async function fetchPlaylist(
 }
 
 /**
+ * Keadaan ruang penyimpanan. Dibuka lewat sini, bukan lewat `storage.service`
+ * langsung, supaya halaman Unduhan cukup bicara dengan satu layanan — dan supaya
+ * peringatan di UI serta penolakan di antrean membaca angka yang sama.
+ */
+export async function storageState(): Promise<StorageStatus> {
+  return storageStatus(await storageEstimate())
+}
+
+/**
  * Menolak berangkat waktu ruangnya tinggal sedikit.
  *
  * Satu episode bisa ratusan megabita, dan kegagalan menulis di tengah jalan
@@ -492,91 +531,12 @@ async function fetchPlaylist(
  * Peringatan di UI ada di halaman Unduhan; ini jaring terakhirnya.
  */
 async function guardStorage(): Promise<void> {
-  const status = storageStatus(await storageEstimate())
+  const status = await storageState()
   if (status.level === 'full') throw new Error(status.message ?? 'Ruang penyimpanan habis.')
 }
 
 function checkStop(jobId: string): void {
   if (stopping.has(jobId)) throw STOPPED
-}
-
-// ── Membaca dari lokal ───────────────────────────────────────────────────────
-
-export interface LocalPage {
-  index: number
-  url: string
-}
-
-/**
- * Halaman satu chapter dari berkas di perangkat.
- *
- * Urutannya dari nama berkas, bukan dari daftar halaman source: itulah inti
- * offline — waktu jaringannya mati, `getPageList()` tidak bisa dipanggil sama
- * sekali. Nama `001.jpg` yang berpadding itulah yang membuat urutannya benar.
- *
- * Alamat hasilnya di web berupa `blob:` yang menahan isi berkas di memori;
- * pemanggilnya wajib memanggil `releaseLocalPages()` waktu selesai.
- */
-export async function localPages(entry: EntryRow, item: ItemRow): Promise<LocalPage[]> {
-  const dir = itemDir(entry, item)
-  const names = await listDir(dir)
-
-  const pages: LocalPage[] = []
-  for (const [index, name] of names.entries()) {
-    const url = await fileUrl(`${dir}/${name}`)
-    if (url) pages.push({ index, url })
-  }
-  return pages
-}
-
-export function releaseLocalPages(pages: readonly LocalPage[]): void {
-  for (const page of pages) {
-    if (page.url.startsWith('blob:')) URL.revokeObjectURL(page.url)
-  }
-}
-
-/** Episode yang sudah ada di perangkat, siap dipasang ke pemutar. */
-export interface LocalVideo {
-  type: 'hls' | 'mp4'
-  /** `blob:` berisi playlist untuk HLS, atau alamat berkas videonya. */
-  url: string
-}
-
-/**
- * Episode dari berkas di perangkat; `null` kalau belum lengkap terunduh.
- *
- * Untuk HLS, playlist tersimpan ditulis ulang **di memori** jadi alamat
- * `mirai-local://` yang absolut lalu diserahkan sebagai `blob:`. Dua alasan
- * kenapa bukan berkasnya langsung yang diserahkan: playlist di berkas menyimpan
- * nama relatif, dan `blob:` bukan alamat yang bisa dipakai menyelesaikan nama
- * relatif jadi apa pun yang berguna — sementara direktorinya sendiri ikut berubah
- * kalau judul atau nama episodenya berubah, jadi menyimpan alamat mutlak di
- * berkasnya akan mematikan unduhan lama diam-diam.
- *
- * Yang membaca segmennya nanti `createLocalLoader` di `hls.service`; di sinilah
- * satu-satunya tempat skema `mirai-local://` lahir.
- */
-export async function localVideo(entry: EntryRow, item: ItemRow): Promise<LocalVideo | null> {
-  const dir = itemDir(entry, item)
-
-  const playlist = await readText(`${dir}/${PLAYLIST_NAME}`)
-  if (playlist !== null) {
-    const blob = new Blob([localizePlaylist(playlist, dir)], {
-      type: 'application/vnd.apple.mpegurl',
-    })
-    return { type: 'hls', url: URL.createObjectURL(blob) }
-  }
-
-  const names = await listDir(dir)
-  const video = names.find((name) => name.startsWith('video.'))
-  if (video === undefined) return null
-
-  const url = await fileUrl(`${dir}/${video}`)
-  return url === null ? null : { type: 'mp4', url }
-}
-
-export function releaseLocalVideo(video: LocalVideo): void {
-  revokeFileUrl(video.url)
 }
 
 // ── Menghapus ────────────────────────────────────────────────────────────────

@@ -7,6 +7,7 @@ import { Switch } from '@/components/ui/switch'
 import { browserUserAgent, settings } from '@/services/settings.service'
 import { transport } from '@/services/extensions.service'
 import { storageEstimate } from '@/services/storage.service'
+import { humanBytes } from '@/services/storageQuota'
 import { useDownloadsStore } from '@/stores/downloads'
 
 const active = computed(() => settings.userAgent.trim() !== '')
@@ -18,20 +19,9 @@ const CONCURRENCY = [1, 2, 3, 4]
 
 onMounted(async () => {
   await downloads.loadPrefs()
+  await downloads.refreshStorage()
   usage.value = await storageEstimate()
 })
-
-/** Ukuran dalam satuan yang dibaca manusia; angka byte mentah tidak berarti apa-apa. */
-function human(bytes: number): string {
-  const units = ['B', 'KB', 'MB', 'GB']
-  let value = bytes
-  let unit = 0
-  while (value >= 1024 && unit < units.length - 1) {
-    value /= 1024
-    unit += 1
-  }
-  return `${value.toFixed(value < 10 && unit > 0 ? 1 : 0)} ${units[unit]}`
-}
 
 function useBrowserAgent(): void {
   settings.userAgent = browserUserAgent()
@@ -89,10 +79,22 @@ function reset(): void {
           />
         </div>
 
-        <p v-if="usage" class="border-t border-border pt-4 text-xs text-muted-foreground">
-          Terpakai {{ human(usage.used) }} dari kuota {{ human(usage.quota) }} yang diberikan
-          browser. Angkanya mencakup seluruh data Mirai di peramban ini, bukan cuma unduhan.
-        </p>
+        <div v-if="usage" class="space-y-2 border-t border-border pt-4">
+          <p class="text-xs text-muted-foreground">
+            Terpakai {{ humanBytes(usage.used) }} dari kuota {{ humanBytes(usage.quota) }} yang
+            diberikan browser. Angkanya mencakup seluruh data Mirai di peramban ini, bukan cuma
+            unduhan.
+          </p>
+          <!-- Satu episode anime bisa ratusan megabita; peringatannya diulang di sini
+               karena inilah halaman tempat orang mencari "kenapa penuh". -->
+          <p
+            v-if="downloads.storage.message"
+            class="text-xs"
+            :class="downloads.storage.level === 'full' ? 'text-destructive' : 'text-foreground'"
+          >
+            {{ downloads.storage.message }}
+          </p>
+        </div>
       </div>
     </section>
 

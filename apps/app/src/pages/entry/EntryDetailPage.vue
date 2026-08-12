@@ -51,9 +51,8 @@ const statusLabel: Record<string, string> = {
 }
 
 const itemLabel = computed(() => (kind.value === 'anime' ? 'Episode' : 'Chapter'))
+const itemWord = computed(() => itemLabel.value.toLowerCase())
 
-// Unduhan baru ada untuk manga; episode menyusul di fase berikutnya.
-const downloadable = computed(() => kind.value === 'manga')
 const pendingItems = computed(() =>
   store.items.filter((item) => item.seen === 0 && item.downloaded === 0),
 )
@@ -233,10 +232,10 @@ watch(
       <p class="flex-1 text-sm font-medium">{{ itemLabel }}</p>
 
       <Button
-        v-if="downloadable && pendingItems.length > 0"
+        v-if="pendingItems.length > 0"
         variant="ghost"
         size="sm"
-        :title="`Unduh ${pendingItems.length} chapter yang belum dibaca`"
+        :title="`Unduh ${pendingItems.length} ${itemWord} yang belum ${kind === 'anime' ? 'ditonton' : 'dibaca'}`"
         @click="downloads.download(pendingItems)"
       >
         <Download class="size-4" />
@@ -244,11 +243,11 @@ watch(
       </Button>
 
       <Button
-        v-if="downloadable && downloadedCount > 0"
+        v-if="downloadedCount > 0"
         variant="ghost"
         size="icon-sm"
-        :aria-label="`Hapus ${downloadedCount} chapter terunduh`"
-        :title="`Hapus ${downloadedCount} chapter terunduh`"
+        :aria-label="`Hapus ${downloadedCount} ${itemWord} terunduh`"
+        :title="`Hapus ${downloadedCount} ${itemWord} terunduh`"
         @click="removeAll()"
       >
         <Trash2 class="size-4" />
@@ -266,7 +265,7 @@ watch(
         :key="item.id"
         :item="item"
         openable
-        :downloadable="downloadable"
+        :unit="itemWord"
         :job="downloads.byItem.get(item.id)"
         @open="open(item)"
         @toggle-seen="store.toggleSeen(item)"
