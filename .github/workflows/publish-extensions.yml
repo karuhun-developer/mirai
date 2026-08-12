@@ -1,0 +1,62 @@
+name: Publish extensions
+
+# Repo extension diterbitkan terpisah dari aplikasi, persis pola keiyoushi:
+# `extensions-source` (kode) → `extensions` (hasil build yang dipasang user).
+# Di sini keduanya satu repo, jadi pemisahannya lewat GitHub Pages.
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'extensions/**'
+      - 'packages/extension-api/**'
+      - 'packages/extension-lib/**'
+      - '.github/workflows/publish-extensions.yml'
+  # Situs sumber berubah tanpa memberi tahu siapa pun; kadang perlu menerbitkan
+  # ulang tanpa ada commit baru.
+  workflow_dispatch:
+
+# Menerbitkan versi lama menimpa versi baru lebih buruk daripada menunggu, jadi
+# antrean dijaga berurutan dan run yang sedang jalan tidak dibatalkan.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  publish:
+    name: Build repo dan terbitkan ke GitHub Pages
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: pnpm/action-setup@v4
+        with:
+          run_install: false
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # `build` menjalankan tiap bundel sekali untuk mengumpulkan source-nya,
+      # jadi paket yang lupa `export default` atau punya host tak terdaftar
+      # gagal di sini — bukan di HP pengguna setelah terlanjur terbit.
+      - run: pnpm --filter @mirai/extensions build
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v4
+        with:
+          path: extensions/dist
+
+      - id: deploy
+        uses: actions/deploy-pages@v4
