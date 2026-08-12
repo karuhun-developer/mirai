@@ -39,6 +39,14 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/pages/entry/EntryDetailPage.vue'),
   },
   {
+    // Sama seperti `entry`: `itemId` berisi id sumber, url entri, dan url
+    // chapter yang disambung `::`, jadi garis miringnya harus lolos utuh.
+    path: '/read/:itemId(.*)',
+    name: 'reader',
+    component: () => import('@/pages/reader/ReaderPage.vue'),
+    meta: { fullscreen: true },
+  },
+  {
     path: '/history',
     name: 'history',
     component: () => import('@/pages/history/HistoryPage.vue'),

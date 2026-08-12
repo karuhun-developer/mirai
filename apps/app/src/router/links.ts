@@ -12,3 +12,12 @@ import type { EntryKind } from '@mirai/db'
 export function entryLocation(kind: EntryKind, sourceId: string, url: string): RouteLocationRaw {
   return { name: 'entry', params: { kind, sourceId, url } }
 }
+
+/**
+ * Halaman baca satu chapter. Parameternya id item apa adanya — di dalamnya ada
+ * `::` dan url sumber lengkap, jadi rutenya pun `(.*)` dengan alasan yang sama
+ * seperti `entryLocation`.
+ */
+export function readerLocation(itemId: string): RouteLocationRaw {
+  return { name: 'reader', params: { itemId } }
+}

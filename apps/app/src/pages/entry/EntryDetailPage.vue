@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import {
   ArrowDownUp,
   BookOpen,
@@ -10,7 +10,7 @@ import {
   RefreshCw,
   TriangleAlert,
 } from '@lucide/vue'
-import type { EntryKind } from '@mirai/db'
+import type { EntryKind, ItemRow as ItemRowType } from '@mirai/db'
 import AppHeader from '@/components/layout/AppHeader.vue'
 import ChallengeNotice from '@/components/common/ChallengeNotice.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
@@ -19,10 +19,12 @@ import ItemRow from '@/components/entry/ItemRow.vue'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { useCover } from '@/composables/useCover'
+import { readerLocation } from '@/router/links'
 import { useEntryStore } from '@/stores/entry'
 import { useExtensionsStore } from '@/stores/extensions'
 
 const route = useRoute()
+const router = useRouter()
 const store = useEntryStore()
 const extensions = useExtensionsStore()
 
@@ -49,6 +51,14 @@ const itemLabel = computed(() => (kind.value === 'anime' ? 'Episode' : 'Chapter'
 async function load(): Promise<void> {
   await extensions.ensureLoaded()
   await store.open(kind.value, sourceId.value, url.value, source.value)
+}
+
+/** Baca hanya untuk manga; episode anime menunggu pemutarnya di Fase 5. */
+const canRead = computed(() => kind.value === 'manga')
+
+async function open(item: ItemRowType): Promise<void> {
+  if (!canRead.value) return
+  await router.push(readerLocation(item.id))
 }
 
 async function saveCategories(ids: string[]): Promise<void> {
@@ -144,16 +154,21 @@ watch([kind, sourceId, url], load)
         </div>
 
         <!--
-          Reader dan player baru hadir di fase berikutnya. Tombolnya sudah ada
-          dan menyebut item yang akan dibuka supaya alurnya jelas, tapi sengaja
+          Pemutar anime baru hadir di fase berikutnya; tombolnya tetap ditampilkan
+          dan menyebut episode yang akan dibuka supaya alurnya jelas, tapi
           dinonaktifkan alih-alih mengarah ke rute yang belum ada.
         -->
         <Button
           v-if="store.resume"
           size="sm"
           variant="ghost"
-          disabled
-          :title="`${itemLabel} berikutnya: ${store.resume.name} — pemutar dan pembaca menyusul`"
+          :disabled="!canRead"
+          :title="
+            canRead
+              ? `Lanjut baca ${store.resume.name}`
+              : `${itemLabel} berikutnya: ${store.resume.name} — pemutarnya menyusul`
+          "
+          @click="store.resume && open(store.resume)"
         >
           <component :is="kind === 'anime' ? Play : BookOpen" />
           Lanjut: {{ store.resume.name }}
@@ -209,6 +224,8 @@ watch([kind, sourceId, url], load)
         v-for="item in store.sorted"
         :key="item.id"
         :item="item"
+        :openable="canRead"
+        @open="open(item)"
         @toggle-seen="store.toggleSeen(item)"
         @toggle-bookmark="store.toggleBookmark(item)"
         @mark-up-to="store.markUpTo(item)"

@@ -4,9 +4,18 @@ import { Bookmark, Check, ChevronsDown } from '@lucide/vue'
 import type { ItemRow } from '@mirai/db'
 import { Button } from '@/components/ui/button'
 
-const props = defineProps<{ item: ItemRow }>()
+const props = defineProps<{
+  item: ItemRow
+  /**
+   * Baris bisa dibuka. Episode anime belum punya pemutar, dan baris yang bisa
+   * diketuk tapi tidak melakukan apa-apa lebih membingungkan daripada baris yang
+   * jelas diam.
+   */
+  openable?: boolean
+}>()
 
 const emit = defineEmits<{
+  open: []
   toggleSeen: []
   toggleBookmark: []
   markUpTo: []
@@ -30,12 +39,18 @@ const subtitle = computed(() => {
 
 <template>
   <li class="flex items-center gap-2 px-4 py-2.5" :class="seen ? 'opacity-50' : ''">
-    <div class="min-w-0 flex-1">
+    <component
+      :is="openable ? 'button' : 'div'"
+      :type="openable ? 'button' : undefined"
+      :data-testid="openable ? 'item-open' : undefined"
+      class="min-w-0 flex-1 text-left"
+      @click="openable && emit('open')"
+    >
       <p class="truncate text-sm" :class="seen ? 'font-normal' : 'font-medium'">
         {{ item.name }}
       </p>
       <p v-if="subtitle" class="truncate text-xs text-muted-foreground">{{ subtitle }}</p>
-    </div>
+    </component>
 
     <Button
       variant="ghost"
