@@ -57,6 +57,32 @@ async function throttle() {
   lastRequest = Date.now()
 }
 
+/**
+ * Salinan ringkas `isCloudflareChallenge()` dari
+ * `packages/extension-runtime/src/http/cloudflare.ts`. Skrip ini sengaja berdiri
+ * sendiri — dijalankan dengan `node` polos tanpa build — jadi sepuluh baris ini
+ * ditiru alih-alih menyeret seluruh workspace ke dalamnya.
+ */
+function isCloudflareChallenge(res) {
+  if (![403, 429, 503].includes(res.status)) return false
+  if ((res.headers['cf-mitigated'] ?? '').includes('challenge')) return true
+  const fromCloudflare =
+    (res.headers['server'] ?? '').includes('cloudflare') || res.headers['cf-ray'] !== undefined
+  return (
+    fromCloudflare &&
+    ['__cf_chl', 'challenge-platform', 'cf-browser-verification', 'Just a moment'].some((m) =>
+      res.body.includes(m),
+    )
+  )
+}
+
+class ChallengeError extends Error {
+  constructor(url) {
+    super(`Cloudflare menahan ${url} dengan verifikasi "verify you are human"`)
+    this.isChallenge = true
+  }
+}
+
 const http = {
   async request(req) {
     await throttle()
@@ -67,13 +93,17 @@ const http = {
       redirect: 'follow',
     })
     const body = await res.text()
-    return {
+    const result = {
       url: res.url,
       status: res.status,
       ok: res.ok,
       headers: Object.fromEntries(res.headers),
       body,
     }
+    // Tantangan dihentikan di sini supaya yang terbaca di log bukan "parser
+    // tidak menemukan selector" untuk halaman yang memang bukan halaman sumber.
+    if (isCloudflareChallenge(result)) throw new ChallengeError(new URL(req.url).origin)
+    return result
   },
   get(url, headers) {
     return http.request({ url, method: 'GET', headers })
@@ -145,6 +175,7 @@ const wanted = process.argv.slice(2)
 const targets = wanted.length > 0 ? index.filter((e) => wanted.includes(e.pkg)) : index
 
 let failed = 0
+let blocked = 0
 for (const entry of targets) {
   console.log(`\n=== ${entry.name} (${entry.pkg}) ===`)
   try {
@@ -154,11 +185,25 @@ for (const entry of targets) {
       await (source.kind === 'anime' ? smokeAnime(source) : smokeManga(source))
     }
   } catch (error) {
-    failed += 1
     const cause = error instanceof Error && error.cause ? ` (${error.cause})` : ''
-    console.log(`  GAGAL     : ${error instanceof Error ? error.message : String(error)}${cause}`)
+    const message = error instanceof Error ? error.message : String(error)
+    // Tantangan Cloudflare bukan extension yang rusak: kodenya bisa saja benar
+    // seluruhnya dan tetap tertahan. Menghitungnya sebagai kegagalan build
+    // membuat orang mengutak-atik parser yang tidak salah apa-apa.
+    if (error?.isChallenge) {
+      blocked += 1
+      console.log(`  TERTAHAN  : ${message}`)
+      console.log('              Diselesaikan pengguna di WebView APK, bukan oleh skrip ini.')
+    } else {
+      failed += 1
+      console.log(`  GAGAL     : ${message}${cause}`)
+    }
   }
 }
 
-console.log(`\n${targets.length - failed}/${targets.length} paket lolos`)
+const passed = targets.length - failed - blocked
+console.log(
+  `\n${passed}/${targets.length} paket lolos` +
+    (blocked > 0 ? `, ${blocked} tertahan verifikasi Cloudflare` : ''),
+)
 process.exitCode = failed > 0 ? 1 : 0

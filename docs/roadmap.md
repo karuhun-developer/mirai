@@ -60,9 +60,11 @@ terpasang setelah app dimuat ulang. → [features/extension-manager.md](features
 
 **Sisa utang:** setelan bersifat per paket, bukan per source — batas kontrak
 `SourceContext`, baru bisa dicabut kalau kontraknya berubah (naik `API_VERSION`).
-Situs dengan verifikasi Cloudflare gagal dengan pesan biasa; UI khusus "selesaikan
-verifikasi" belum ada, dan penyelesaiannya tetap di tangan pengguna seperti
-Aniyomi.
+Verifikasi Cloudflare sudah dikenali dan punya UI sendiri beserta setelan
+User-Agent (→ [features/cloudflare.md](features/cloudflare.md)), tapi
+menyelesaikannya butuh WebView in-app yang berbagi cookie jar dengan
+`CapacitorHttp` — itu masuk Fase 8. Di build web tantangannya memang tidak bisa
+diselesaikan, dan itu batas permanen, bukan utang.
 
 ## Fase 3 — DB & Library offline-first
 
@@ -109,7 +111,10 @@ mp4 langsung dan HLS (ambil segmen, dekripsi AES-128, playlist lokal, loader
 ## Fase 8 — Build Android
 
 `cap add android`, ikon/splash, permission, signing debug, `cap:sync`, helper
-buka Android Studio, workflow rilis APK.
+buka Android Studio, workflow rilis APK. Ditambah **WebView in-app untuk
+verifikasi Cloudflare**: harus WebView aplikasi, bukan Custom Tabs, supaya
+`cf_clearance` masuk ke cookie jar yang dipakai `CapacitorHttp` — dan UA request
+disamakan dengan UA WebView. Lihat [features/cloudflare.md](features/cloudflare.md).
 
 **Selesai kalau:** APK terpasang di perangkat fisik dan alur browse → baca →
 unduh → tonton berjalan.

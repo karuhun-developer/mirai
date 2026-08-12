@@ -318,8 +318,12 @@ menyelesaikannya secara otomatis — bukan karena sulit, tapi karena memutari
 tantangan bot adalah pekerjaan yang akan kalah terus dan bikin aplikasi terlihat
 seperti scraper. Polanya sama dengan Aniyomi: tantangan itu **diselesaikan
 pengguna sendiri**, dan kalau tidak bisa, sumber itu memang tidak bisa dipakai.
-Yang jadi tanggung jawab extension cuma satu: gagal dengan pesan yang menyebut
-verifikasinya, bukan dengan "gagal mem-parse halaman".
+
+Yang membedakan tantangan dari 403 biasa sudah dikenali host, bukan extension:
+transport memeriksa tiap respons dan melempar `CloudflareChallengeError` sebelum
+HTML tantangan sempat sampai ke parser. Jadi **tidak ada yang perlu ditulis**
+di extension untuk ini — jangan menangkap 403 lalu menebak sendiri. Rinciannya
+di [features/cloudflare.md](../features/cloudflare.md).
 
 ---
 

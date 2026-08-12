@@ -38,6 +38,20 @@ menautkan ke sana supaya changelog ini tetap ringkas.
 - Komponen `Switch` (shadcn-vue di atas `reka-ui`) dan `PreferenceForm` yang
   merender keempat tipe `SourcePreference` — extension mendeklarasikan setelannya,
   bukan mengirim komponen.
+- **Pengenalan verifikasi Cloudflare.** Transport memeriksa tiap respons dan
+  melempar `CloudflareChallengeError` sebelum halaman tantangan sampai ke parser;
+  Browse menampilkannya sebagai kartu tersendiri dengan tindakan yang benar
+  ("selesaikan sendiri"), bukan sebagai `HTTP 403` yang membuat orang mencurigai
+  parser yang tidak salah apa-apa. Syaratnya berlapis supaya 403 biasa dari situs
+  ber-Cloudflare tetap error biasa. Lihat
+  [docs/features/cloudflare.md](docs/features/cloudflare.md).
+- Setelan **User-Agent** di Pengaturan. Kosong secara bawaan; kalau diisi ia
+  menimpa UA semua extension dan dibaca ulang tiap request. Ini lever kedua yang
+  didokumentasikan Aniyomi untuk kasus Cloudflare: `cf_clearance` hanya berlaku
+  untuk UA yang menyelesaikan tantangan.
+- `extensions/scripts/smoke.mjs` membedakan **TERTAHAN** dari **GAGAL**. Sumber
+  yang tertahan tantangan bukan extension yang rusak, dan tidak lagi membuat
+  skripnya keluar dengan kode gagal.
 
 #### Fixed
 
@@ -110,6 +124,14 @@ menautkan ke sana supaya changelog ini tetap ringkas.
 - Situs dengan verifikasi Cloudflare mengikuti sikap Aniyomi: tantangannya
   diselesaikan pengguna sendiri, tidak diputari otomatis. Kalau tidak bisa
   diselesaikan, sumber itu memang tidak bisa dipakai.
+- **Di build web, verifikasi Cloudflare tidak bisa diselesaikan sama sekali**,
+  dan itu dinyatakan di layar alih-alih disembunyikan di balik tombol yang
+  terlihat menjanjikan. Request dikirim proxy dari sisi server, sedangkan
+  `cf_clearance` terikat ke IP dan UA yang menyelesaikan tantangan. Jalannya cuma
+  ada di APK, tempat `CapacitorHttp` berbagi cookie jar dengan WebView — dan
+  WebView in-app-nya sendiri baru masuk di Fase 8, jadi yang selesai sekarang
+  adalah pengenalan, pesan, dan setelan UA-nya. KunManga adalah sumber pertama
+  yang kena; per 2026-08-12 ia menantang semua UA yang dicoba.
 
 Fase 2 terverifikasi 2026-08-12: `pnpm typecheck`, `pnpm lint`, `pnpm
 format:check` bersih; `node scripts/smoke.mjs` lolos 15 pemeriksaan di 375px dan

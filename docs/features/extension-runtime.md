@@ -58,8 +58,11 @@ Satu interface `HttpClient`, dua adapter, dipilih otomatis:
 | APK        | `CapacitorHttp` | Bebas CORS, bisa memasang `Referer`/`UA`      |
 | Web        | `apps/proxy`    | Browser tidak bisa menembus CORS situs sumber |
 
-Keduanya dibungkus `withRateLimit(http, 3)` — jeda minimum per host, bukan
-global, supaya satu source yang sibuk tidak memperlambat yang lain.
+Keduanya dibungkus tiga lapis, dari dalam ke luar: `withUserAgent` (setelan
+pengguna, kosong = tidak menyentuh apa pun), `withCloudflareDetection` (tantangan
+berhenti sebelum sampai ke parser — lihat [cloudflare.md](cloudflare.md)), lalu
+`withRateLimit(http, 3)` — jeda minimum per host, bukan global, supaya satu
+source yang sibuk tidak memperlambat yang lain.
 
 Gambar dan video **tidak** lewat RPC; terlalu besar untuk dipindah sebagai
 string. `MediaResolver` cuma menerjemahkan URL: apa adanya di native, lewat
@@ -114,5 +117,4 @@ satu cek itu membuktikan seluruh rantai runtime.
 Pemetaan tiap source ke situs aslinya diuji terpisah lewat
 `node extensions/scripts/smoke.mjs`, yang memanggil situs sungguhan. Hasil
 terakhir: Aniwatch, Komikcast, Mangabat, dan Otakudesu hijau; KunManga tertahan
-verifikasi Cloudflare — lihat
-[network-proxy.md](network-proxy.md#verifikasi-cloudflare).
+verifikasi Cloudflare — lihat [cloudflare.md](cloudflare.md).
