@@ -222,16 +222,27 @@ export const usePlayerStore = defineStore('player', () => {
     await writePlayerPrefs(prefs.value)
   }
 
-  /** Menutup pemutar: posisi terakhir disimpan, blob takarir dilepas. */
+  /**
+   * Menutup pemutar: berkas yang terbuka dilepas, posisi terakhir disimpan.
+   *
+   * Urutannya bukan selera. Halaman memanggilnya dari `onBeforeUnmount` tanpa
+   * menunggu, jadi apa pun yang ditulis **setelah** `await` di sini mendarat
+   * waktu episode berikutnya sudah selesai memuat — dan mengosongkan daftar
+   * videonya. Karena itu seluruh keadaan dibereskan lebih dulu secara sinkron,
+   * dan yang ditunggu cuma tulisan ke database yang tidak menyentuh store.
+   */
   async function close(): Promise<void> {
     const row = item.value
-    if (row && !finished && currentTime.value > 0) {
-      await saveProgress(row, currentTime.value, duration.value)
-    }
+    const seconds = currentTime.value
+    const total = duration.value
+    const saved = finished
+
     resetTracks()
     release()
     playing.value = false
     buffering.value = false
+
+    if (row && !saved && seconds > 0) await saveProgress(row, seconds, total)
   }
 
   /** Melepas berkas lokal yang sedang dibuka; aman dipanggil berkali-kali. */

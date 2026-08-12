@@ -168,14 +168,24 @@ export const useReaderStore = defineStore('reader', () => {
     offline.value = false
   }
 
-  /** Menutup reader: memastikan posisi terakhir sudah tersimpan. */
+  /**
+   * Menutup reader: berkas yang terbuka dilepas, posisi terakhir disimpan.
+   *
+   * Melepas lebih dulu, menunggu belakangan — alasannya sama persis dengan
+   * `close()` di store pemutar: halaman memanggilnya tanpa menunggu, jadi
+   * tulisan setelah `await` bisa mendarat waktu chapter berikutnya sudah
+   * termuat dan justru mengosongkannya.
+   */
   async function close(): Promise<void> {
     const current = item.value
-    if (current && pages.value.length > 0 && index.value < pages.value.length - 1) {
-      await saveProgress(current, index.value, pages.value.length)
-    }
-    if (entry.value && current) await cleanupIfFinished(entry.value, current)
+    const currentEntry = entry.value
+    const at = index.value
+    const total = pages.value.length
+
     release()
+
+    if (current && total > 0 && at < total - 1) await saveProgress(current, at, total)
+    if (currentEntry && current) await cleanupIfFinished(currentEntry, current)
   }
 
   return {
