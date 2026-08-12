@@ -4,16 +4,15 @@ import type { RemoteMangaSource, RemoteSource } from '@mirai/extension-runtime'
 import type { EntryRow, ItemRow } from '@mirai/db'
 import {
   defaultReaderPrefs,
-  loadContext,
   loadPages,
   markFinished,
   readReaderPrefs,
-  reloadItem,
   saveProgress,
   writeReaderPrefs,
   type ReaderPage,
   type ReaderPrefs,
 } from '@/services/reader.service'
+import { loadItemContext, reloadItem } from '@/services/item.service'
 import { challengeOf, type ChallengeInfo } from '@/services/challenge.service'
 
 /**
@@ -73,7 +72,7 @@ export const useReaderStore = defineStore('reader', () => {
     try {
       prefs.value = await readReaderPrefs()
 
-      const context = await loadContext(itemId)
+      const context = await loadItemContext(itemId)
       if (!context) throw new Error('Chapter ini tidak ada di database.')
 
       entry.value = context.entry
