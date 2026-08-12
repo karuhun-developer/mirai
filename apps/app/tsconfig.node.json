@@ -1,0 +1,15 @@
+{
+  "extends": "@tsconfig/node22/tsconfig.json",
+  "include": ["vite.config.ts", "capacitor.config.ts"],
+  "compilerOptions": {
+    "composite": true,
+    // Tanpa ini `vue-tsc -b` menulis vite.config.d.ts ke dalam folder sumber —
+    // artefak build yang ikut ter-lint dan ter-commit. Yang dibutuhkan dari
+    // proyek ini cuma pengecekan tipe, bukan output.
+    "noEmit": true,
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.node.tsbuildinfo",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "types": ["node"]
+  }
+}
