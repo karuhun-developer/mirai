@@ -69,7 +69,13 @@ export class ItemRepository extends BaseRepository<ItemRow> {
    */
   async syncFromSource(entry: EntryRow, items: (SChapter | SEpisode)[]): Promise<SyncResult> {
     const seeding = entry.items_at === null
-    const addedAt = seeding ? (entry.added_at ?? nowMs()) : nowMs()
+    // Kesamaan `added_at` itulah penanda "batch pertama", jadi sinkronisasi
+    // berikutnya wajib benar-benar lebih besar. Tanpa `+ 1` sebuah entri yang
+    // difavoritkan lalu disegarkan dalam milidetik yang sama menghasilkan
+    // `added_at` identik, dan chapter barunya tidak pernah muncul di Updates.
+    const addedAt = seeding
+      ? (entry.added_at ?? nowMs())
+      : Math.max(nowMs(), (entry.added_at ?? 0) + 1)
 
     return this.db.transaction(async (tx) => {
       const repo = new ItemRepository(tx)
