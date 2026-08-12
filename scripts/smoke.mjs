@@ -125,7 +125,97 @@ try {
       await settled.isVisible(),
     )
 
-    // 10. Route tak dikenal jatuh ke halaman 404, bukan layar putih.
+    // 10. Fase 3 — katalog → library yang bertahan reload dan hilangnya jaringan.
+    //     Seluruh blok ini butuh katalog yang benar-benar terisi. Di mesin yang
+    //     situs sumbernya tidak terjangkau bagiannya dilewati dengan pesan, bukan
+    //     dinyatakan lolos diam-diam.
+    const grid = page.locator('[data-testid="entry-grid"]')
+    if (!(await grid.isVisible())) {
+      console.log('  … katalog kosong (sumber tak terjangkau), cek library dilewati')
+    } else {
+      /** Jendela ke SQLite yang sedang dipakai app; cuma ada di build dev. */
+      const query = (sql, params = []) =>
+        page.evaluate(([text, values]) => globalThis.__db.query(text, values), [sql, params])
+
+      await grid.locator('a').first().click()
+      await page.waitForURL('**/entry/manga/komikcast/**')
+
+      // Id entri dibaca dari rutenya, bukan dari teks kartu: teks kartu ikut
+      // memuat judul cadangan waktu cover gagal dimuat, dan `${sourceId}::${url}`
+      // memang bentuk kunci yang dipakai tabelnya.
+      const prefix = '/entry/manga/komikcast/'
+      const id = `komikcast::${decodeURIComponent(new URL(page.url()).pathname.slice(prefix.length))}`
+
+      // Browse menyimpan hasil katalognya, jadi barisnya sudah ada sebelum
+      // getDetails() selesai — halaman detail tidak pernah mulai dari nol.
+      const stored = await query('SELECT title FROM entry WHERE id = ?', [id])
+      check('entri dari katalog tersimpan di SQLite', stored.length === 1)
+      const title = stored[0]?.title ?? ''
+
+      const markSeen = page.getByRole('button', { name: 'Tandai sudah dibaca' }).first()
+      await markSeen.waitFor({ state: 'visible', timeout: 30_000 }).catch(() => {})
+      check('daftar chapter tersinkron dari sumber', await markSeen.isVisible())
+
+      await page.getByRole('button', { name: 'Tambah ke library' }).click()
+      const inLibrary = page.getByRole('button', { name: 'Di library' })
+      await inLibrary.waitFor({ state: 'visible', timeout: 15_000 }).catch(() => {})
+      const favorited = await query('SELECT id FROM entry WHERE favorite = 1')
+      check(
+        'favorit tersimpan di kolom favorite, bukan cuma di layar',
+        favorited.length === 1 && favorited[0]?.id === id,
+      )
+
+      // Sampai reader hadir di Fase 4, menandai chapter "sudah dibaca" adalah
+      // satu-satunya peristiwa yang mengisi riwayat.
+      await markSeen.click()
+      await page
+        .getByRole('button', { name: 'Tandai belum dibaca' })
+        .first()
+        .waitFor({ state: 'visible', timeout: 10_000 })
+        .catch(() => {})
+      check(
+        'menandai chapter mengisi riwayat',
+        (await query('SELECT item_id FROM history')).length === 1,
+      )
+
+      await page.goto(`${BASE}/library/manga`, { waitUntil: 'networkidle' })
+      const libraryCards = page.locator('[data-testid="entry-grid"] a')
+      await libraryCards
+        .first()
+        .waitFor({ state: 'visible', timeout: 15_000 })
+        .catch(() => {})
+      check('judul favorit muncul di Library', (await libraryCards.count()) === 1)
+
+      await page.getByRole('button', { name: 'Filter' }).click()
+      await page.getByLabel('Nama kategori baru').fill('Uji')
+      await page.getByRole('button', { name: 'Tambah kategori' }).click()
+      const categoryTab = page.getByRole('tab', { name: /Uji/ })
+      await categoryTab.waitFor({ state: 'visible', timeout: 10_000 }).catch(() => {})
+      check('kategori baru muncul sebagai tab', await categoryTab.isVisible())
+
+      // Yang diputus jaringan ke sumber (lewat proxy), bukan seluruh jaringan:
+      // server dev masih harus bisa mengirim app-nya, persis seperti APK yang
+      // sudah terpasang tapi kehilangan sinyal.
+      await page.route('http://localhost:5181/**', (route) => route.abort())
+      await page.reload({ waitUntil: 'networkidle' })
+      await libraryCards
+        .first()
+        .waitFor({ state: 'visible', timeout: 15_000 })
+        .catch(() => {})
+      check('library bertahan setelah reload tanpa jaringan', (await libraryCards.count()) === 1)
+      check(
+        'kategori bertahan setelah reload tanpa jaringan',
+        await page.getByRole('tab', { name: /Uji/ }).isVisible(),
+      )
+
+      await page.goto(`${BASE}/history`, { waitUntil: 'networkidle' })
+      const historyRow = page.locator('li', { hasText: title }).first()
+      await historyRow.waitFor({ state: 'visible', timeout: 15_000 }).catch(() => {})
+      check('riwayat tetap tampil tanpa jaringan', await historyRow.isVisible())
+      await page.unroute('http://localhost:5181/**')
+    }
+
+    // 11. Route tak dikenal jatuh ke halaman 404, bukan layar putih.
     await page.goto(`${BASE}/rute-yang-tidak-ada`, { waitUntil: 'networkidle' })
     check('404 tampil', await page.getByText('Halaman tidak ditemukan').isVisible())
 
