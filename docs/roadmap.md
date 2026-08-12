@@ -168,6 +168,21 @@ unduh → tonton berjalan.
 
 ⚠️ **Terblokir:** Android SDK belum terpasang di mesin pengembangan.
 
+**APK dibangun di GitHub Actions, bukan di mesin ini.** Polanya mengikuti
+`release-apk.yml` POS Kacaw: dipicu `release: [published]`, versinya diturunkan
+dari tag `vX.Y.Z` (`versionCode = X*10000 + Y*100 + Z`), runner-nya memasang
+JDK 21 + Android SDK sendiri, lalu APK-nya ditempel ke Release itu. Bedanya di
+sini pakai **pnpm** (`pnpm install --frozen-lockfile`, `pnpm build`,
+`pnpm --filter @mirai/app exec cap sync android`), bukan npm. Itu juga yang
+menyelesaikan kendala SDK: rilis tetap bisa jalan walau mesin pengembangan tidak
+punya Android SDK — yang tersisa cuma memasang dan mencoba APK-nya di perangkat
+fisik.
+
+Sekalian di fase ini: host `embed` di pemutar dibuka lewat **WebView in-app**,
+bukan dilempar ke peramban luar seperti sekarang. Alasannya sama dengan
+verifikasi Cloudflare — cookie dan sesinya tetap di dalam aplikasi. Lihat
+[features/player.md](features/player.md).
+
 ## Fase 9 — Backup, tracker, polish
 
 Export/import backup JSON, migrasi entri antar-sumber, mode incognito, tracker
