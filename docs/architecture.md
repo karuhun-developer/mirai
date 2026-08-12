@@ -28,11 +28,18 @@ UI → store → extension-runtime → Worker (kode extension)
 | `packages/extension-api`     | Tipe + abstract class kontrak                   | Nol dependensi, jadi versinya stabil dan extension lama tidak pecah saat toolkit berubah |
 | `packages/extension-lib`     | Parser HTML, HttpClient, filter, resolver video | Boleh gemuk — ikut dibundel ke tiap extension, bukan ke app                              |
 | `packages/extension-runtime` | Loader, sandbox Worker, RPC, manajemen repo     | Satu-satunya yang tahu cara menjalankan kode asing                                       |
-| `packages/core`              | Library, updates, antrean unduhan, backup       | Domain murni, tidak tahu Vue                                                             |
 | `packages/db`                | Skema, migrasi, repository                      | Satu-satunya tempat SQL                                                                  |
-| `packages/ui`                | Komponen lintas halaman                         | Dipakai app dan (nanti) halaman preview extension                                        |
 | `apps/app`                   | SPA Vue + host Capacitor                        | Yang dibungkus jadi APK                                                                  |
 | `apps/proxy`                 | Fastify: `/fetch` + `/stream`                   | Hanya dipakai build web                                                                  |
+
+Rancangan awal menyebut dua paket lagi, `packages/core` (domain library/updates)
+dan `packages/ui` (komponen lintas halaman). Keduanya **tidak jadi dibuat** waktu
+Fase 3 ditulis. Isinya ternyata orkestrasi tipis di atas repository dan komponen
+yang cuma punya satu pemakai — memindahkannya ke paket sendiri hanya menambah
+batas build tanpa konsumen kedua yang membenarkannya. Lapisannya tetap
+dipaksakan, tapi di dalam `apps/app`: `pages/` → `stores/` → `services/` →
+repository `@mirai/db`. Kalau nanti ada pemakai kedua (mis. halaman preview
+extension), memisahkannya tinggal memindahkan berkas.
 
 ## Jaringan
 

@@ -11,6 +11,58 @@ menautkan ke sana supaya changelog ini tetap ringkas.
 
 ## [Unreleased]
 
+### Fase 3 — DB & Library offline-first
+
+#### Added
+
+- **`@mirai/db`** — skema SQLite, migrasi bernomor, dan repository di balik satu
+  interface `Db`. Drivernya dipilih saat runtime: `sql.js` di web (snapshot ke
+  IndexedDB) dan `@capacitor-community/sqlite` di APK, jadi lapisan fitur tidak
+  pernah tahu sedang berjalan di mana. Chapter dan episode berbagi satu tabel
+  `item`; id entri/item deterministik (`sourceId::url`) supaya judul yang sama
+  dari katalog, pencarian, dan riwayat tidak pernah jadi tiga baris berbeda.
+- **Library offline-first** — favorit, kategori sebagai tab, badge jumlah belum
+  dibaca, pengurutan (judul / ditambahkan / terakhir dibaca / belum dibaca), dan
+  saringan "ada yang belum dibaca" + "sudah diunduh". Pilihan tab dan setelan
+  tampilan ikut disimpan di database, bukan `localStorage`, supaya terbawa waktu
+  backup di Fase 9. Lihat [docs/features/library.md](docs/features/library.md).
+- **Halaman detail entri** (`/entry/:kind/:sourceId/:url`) — sinopsis, genre,
+  kategori, dan daftar chapter/episode beserta penanda, "tandai sampai sini", dan
+  "tandai semua". Isinya dibaca dari SQLite lebih dulu; kegagalan menyegarkan
+  jadi pesan di atas daftar, bukan pengganti halaman.
+- **Updates** (`/updates`) dan **Riwayat** (`/history`) yang keduanya membaca
+  database lokal. Penyegaran library berjalan berurutan dengan progres, laporan,
+  dan tombol Batal yang benar-benar berarti.
+- **Cache cover** di Cache API berkunci URL sumber (bukan URL proxy), batas 600
+  entri, dengan `useCover()` yang mengurus daur hidup `blob:` URL-nya.
+- Browse kini menyimpan hasil katalognya ke database, jadi mengetuk kartu tidak
+  pernah mendarat di halaman kosong dan tautan langsung ke sebuah judul tetap
+  bisa dibuka. Kartu yang sudah ada di library ditandai hati.
+- `scripts/smoke.mjs` memeriksa keadaan database lewat `window.__db`, bukan cuma
+  layar: favorit tercatat di `entry.favorite`, menandai chapter mengisi
+  `history`, lalu jaringan ke sumber diputus dan halamannya dimuat ulang —
+  library, kategori, dan riwayat wajib tetap tampil.
+
+#### Fixed
+
+- **Chapter baru bisa hilang dari Updates.** Sinkronisasi lanjutan memakai
+  `nowMs()` apa adanya, sementara Updates menyaring item yang lebih baru dari
+  entrinya. Entri yang difavoritkan lalu langsung disegarkan dalam milidetik yang
+  sama menghasilkan `added_at` identik, dan chapternya tidak pernah muncul.
+- **Pemisahan chunk driver database batal diam-diam.** `db.ts` sengaja
+  meng-`import()` drivernya secara dinamis supaya web tidak membawa plugin
+  Capacitor dan APK tidak membawa 650 KB WebAssembly, tapi satu `export` biasa di
+  `index.ts` menariknya kembali ke chunk utama. Chunk utama app turun dari 205 KB
+  ke 159 KB.
+
+#### Changed
+
+- `packages/core` dan `packages/ui` yang direncanakan di rancangan awal tidak
+  jadi dibuat; folder kosongnya dihapus. Isinya berupa orkestrasi tipis di atas
+  repository dan komponen dengan satu pemakai — lapisannya tetap dipaksakan, tapi
+  di dalam `apps/app`. Alasannya di
+  [docs/architecture.md](docs/architecture.md).
+
 ### Fase 2 — Repo extension & manajemen
 
 #### Added

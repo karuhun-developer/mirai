@@ -49,9 +49,7 @@ packages/
   extension-api      Kontrak extension. Nol dependensi.
   extension-lib      Toolkit penulis extension (parser, http, resolver)
   extension-runtime  Loader + sandbox Worker + manajemen repo
-  core               Domain: library, updates, antrean unduhan
   db                 Skema SQLite, migrasi, repositories
-  ui                 Komponen shadcn-vue lintas halaman
 extensions       Source extension bawaan + skrip build repo
 ```
 
@@ -69,7 +67,7 @@ mesin pengembangan.
 | 0    | Fondasi monorepo, shell layout, tooling          | ✅     |
 | 1    | Extension API, runtime sandbox, proxy            | ✅     |
 | 2    | Repo extension, manajemen, Komikcast + Otakudesu | ✅     |
-| 3    | SQLite, Library offline-first, Updates           | ⬜     |
+| 3    | SQLite, Library offline-first, Updates           | ✅     |
 | 4    | Reader manga                                     | ⬜     |
 | 5    | Player anime                                     | ⬜     |
 | 6    | Unduh manga                                      | ⬜     |

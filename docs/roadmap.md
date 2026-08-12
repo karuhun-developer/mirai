@@ -9,7 +9,7 @@ hasilnya dicatat di [CHANGELOG.md](../CHANGELOG.md).
 | 0    | 0.1.0 | Fondasi monorepo           | ✅     |
 | 1    | 0.2.0 | Extension API & runtime    | ✅     |
 | 2    | 0.3.0 | Repo extension & manajemen | ✅     |
-| 3    | 0.4.0 | DB & Library offline-first | ⬜     |
+| 3    | 0.4.0 | DB & Library offline-first | ✅     |
 | 4    | 0.5.0 | Reader manga               | ⬜     |
 | 5    | 0.6.0 | Player anime               | ⬜     |
 | 6    | 0.7.0 | Unduh manga                | ⬜     |
@@ -66,7 +66,7 @@ menyelesaikannya butuh WebView in-app yang berbagi cookie jar dengan
 `CapacitorHttp` — itu masuk Fase 8. Di build web tantangannya memang tidak bisa
 diselesaikan, dan itu batas permanen, bukan utang.
 
-## Fase 3 — DB & Library offline-first
+## Fase 3 — DB & Library offline-first ✅
 
 `packages/db` (skema, migrasi, driver native/web, `BaseRepository`), Library
 (favorit, kategori, tab, badge belum dibaca, sort/filter), detail entri, daftar
@@ -74,6 +74,20 @@ chapter/episode, history, Updates, cache cover.
 
 **Selesai kalau:** dengan jaringan dimatikan, library, kategori, dan history
 tetap tampil; data bertahan setelah reload.
+→ [features/library.md](features/library.md)
+
+**Terverifikasi:** `scripts/smoke.mjs` menjalankan alurnya di browser sungguhan —
+kartu katalog → detail → favorit → tandai dibaca, tiap langkah diperiksa langsung
+ke tabelnya lewat `window.__db`, lalu jaringan ke proxy diputus dan halamannya
+dimuat ulang. Library, tab kategori, dan riwayat tetap tampil.
+
+**Sisa utang:** driver native (`@capacitor-community/sqlite`) ditulis penuh tapi
+belum pernah dijalankan di perangkat — Android SDK belum ada, jadi buktinya baru
+bisa diambil di Fase 8. Kolom `downloaded` dan tabel `download` sudah ada di
+skema tapi belum ada yang mengisinya sampai Fase 6. Tabel `extension` dan
+`source_pref` yang direncanakan di rancangan awal **tidak dibuat**: extension
+sudah terlanjur (dan tepat) tinggal di `localStorage` + Cache API sejak Fase 2
+karena harus terbaca sinkron sebelum database dibuka.
 
 ## Fase 4 — Reader manga
 
