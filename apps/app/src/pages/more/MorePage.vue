@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { RouterLink } from 'vue-router'
-import { Download, Puzzle, Settings, Info, ChevronRight } from '@lucide/vue'
+import { Download, History, Puzzle, Settings, Info, ChevronRight } from '@lucide/vue'
 import AppHeader from '@/components/layout/AppHeader.vue'
 
 /**
@@ -9,6 +9,12 @@ import AppHeader from '@/components/layout/AppHeader.vue'
  * halaman ini tetap ada supaya deep link dari mana pun tidak buntu.
  */
 const links = [
+  {
+    to: '/history',
+    label: 'Riwayat',
+    description: 'Yang terakhir dibaca & ditonton',
+    icon: History,
+  },
   { to: '/downloads', label: 'Unduhan', description: 'Antrean & isi offline', icon: Download },
   { to: '/extensions', label: 'Extension', description: 'Repo & sumber', icon: Puzzle },
   { to: '/settings', label: 'Pengaturan', description: 'Tampilan & penyimpanan', icon: Settings },
