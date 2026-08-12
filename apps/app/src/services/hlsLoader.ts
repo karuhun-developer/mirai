@@ -1,5 +1,9 @@
 /**
- * Loader hls.js yang melewatkan setiap permintaan ke resolver media.
+ * Dua loader hls.js: satu untuk menonton dari jaringan lewat proxy
+ * (`createProxyLoader`), satu untuk memutar episode yang sudah ada di perangkat
+ * (`createLocalLoader`).
+ *
+ * Loader jaringan yang melewatkan setiap permintaan ke resolver media.
  *
  * Di web, playlist dan segmen HLS tidak bisa diambil langsung: CDN video
  * menolak permintaan lintas-origin dan sering menuntut `Referer` tertentu, dan
@@ -26,6 +30,11 @@ export interface LoaderResponseLike {
   url: string
 }
 
+export interface LoaderErrorLike {
+  code: number
+  text: string
+}
+
 export interface LoaderCallbacksLike {
   onSuccess: (
     response: LoaderResponseLike,
@@ -33,10 +42,18 @@ export interface LoaderCallbacksLike {
     context: LoaderContextLike,
     networkDetails: unknown,
   ) => void
+  onError?: (
+    error: LoaderErrorLike,
+    context: LoaderContextLike,
+    networkDetails: unknown,
+    stats: unknown,
+  ) => void
 }
 
 export interface LoaderLike {
   load(context: LoaderContextLike, config: unknown, callbacks: LoaderCallbacksLike): void
+  abort?(): void
+  destroy?(): void
 }
 
 export interface LoaderConstructor {
@@ -82,6 +99,111 @@ export function createProxyLoader(
           callbacks.onSuccess(response, stats, ctx, networkDetails)
         },
       })
+    }
+  }
+}
+
+/**
+ * Loader untuk episode yang berkasnya sudah di perangkat.
+ *
+ * Playlist lokal menunjuk segmennya dengan skema karangan `mirai-local://`
+ * (lihat `hlsPlaylist.ts`). Alamat itu tidak bisa diambil XHR, jadi loader ini
+ * yang menukarnya jadi alamat berkas sungguhan — `blob:` di web, `capacitor:` di
+ * APK — tepat sebelum diambil, lalu **melepasnya lagi begitu segmennya selesai
+ * dibaca**. Di situlah bedanya dengan menyiapkan semua alamat di muka: satu
+ * episode 24 menit berisi ratusan segmen, dan menahan ratusan berkas terbuka
+ * sekaligus cuma untuk memutarnya berurutan adalah cara paling gampang membuat
+ * pemutarnya dimatikan sistem karena kehabisan memori.
+ *
+ * Permintaan yang alamatnya bukan lokal — misalnya playlist `blob:` yang
+ * dipasang di awal — diteruskan apa adanya ke loader bawaan.
+ *
+ * @param open path berkas → alamat siap ambil, atau `null` kalau berkasnya hilang.
+ * @param close melepas alamat yang tadi dibuka `open`.
+ */
+export function createLocalLoader(
+  Base: LoaderConstructor,
+  open: (path: string) => Promise<string | null>,
+  close: (url: string) => void,
+): LoaderConstructor {
+  const SCHEME = 'mirai-local://'
+
+  return class LocalLoader extends Base {
+    /** Alamat berkas yang sedang dipakai; wajib dilepas setelah selesai. */
+    #opened: string | null = null
+    /**
+     * hls.js membatalkan permintaan yang keburu tidak dibutuhkan (pindah
+     * kualitas, seek). Tanpa penanda ini, berkas yang alamatnya baru selesai
+     * dibuka tetap diambil sesudah pembatalan — dan tidak pernah dilepas.
+     */
+    #aborted = false
+
+    override load(
+      context: LoaderContextLike,
+      config: unknown,
+      callbacks: LoaderCallbacksLike,
+    ): void {
+      const original = context.url
+      if (!original.startsWith(SCHEME)) {
+        super.load(context, config, callbacks)
+        return
+      }
+
+      const path = original.slice(SCHEME.length)
+
+      void open(path).then((url) => {
+        if (this.#aborted) {
+          if (url !== null) close(url)
+          return
+        }
+
+        if (url === null) {
+          callbacks.onError?.(
+            { code: 404, text: `Berkas ${path} tidak ada di perangkat.` },
+            context,
+            null,
+            {},
+          )
+          return
+        }
+
+        this.#opened = url
+        context.url = url
+
+        super.load(context, config, {
+          ...callbacks,
+          onSuccess: (response, stats, ctx, networkDetails) => {
+            // hls.js memakai alamat respons sebagai basis; yang dilaporkan harus
+            // alamat lokal, bukan `blob:` yang sebentar lagi dicabut.
+            response.url = original
+            ctx.url = original
+            this.#release()
+            callbacks.onSuccess(response, stats, ctx, networkDetails)
+          },
+          onError: (error, ctx, networkDetails, stats) => {
+            this.#release()
+            callbacks.onError?.(error, ctx, networkDetails, stats)
+          },
+        })
+      })
+    }
+
+    override abort(): void {
+      this.#aborted = true
+      this.#release()
+      super.abort?.()
+    }
+
+    override destroy(): void {
+      this.#aborted = true
+      this.#release()
+      super.destroy?.()
+    }
+
+    #release(): void {
+      if (this.#opened === null) return
+      close(this.#opened)
+      this.#opened = null
     }
   }
 }
