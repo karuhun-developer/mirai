@@ -200,6 +200,7 @@ onBeforeUnmount(() => {
           class="text-left text-foreground"
           :challenge="store.challenge"
           :source-name="store.entry?.title ?? 'Sumber ini'"
+          @solved="load()"
         />
       </template>
 

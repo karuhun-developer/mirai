@@ -9,6 +9,7 @@ import PlayerSettings from '@/components/player/PlayerSettings.vue'
 import VideoStage from '@/components/player/VideoStage.vue'
 import { Button } from '@/components/ui/button'
 import { entryLocation, playerLocation } from '@/router/links'
+import { openExternal } from '@/services/browser.service'
 import {
   enterFullscreen,
   exitFullscreen,
@@ -112,6 +113,19 @@ async function goToItem(id: string | undefined): Promise<void> {
   await router.replace(playerLocation(id))
 }
 
+/**
+ * Membuka halaman host `embed`.
+ *
+ * Bukan `<a target="_blank">` lagi: di APK itu berarti peramban luar, yang
+ * kehilangan cookie sesi aplikasi — banyak host embed menolak memutar tanpa
+ * itu. `openExternal()` yang memilih WebView aplikasi di APK dan tab baru di
+ * web.
+ */
+async function openEmbed(): Promise<void> {
+  const url = store.current?.url
+  if (url) await openExternal(url)
+}
+
 /** Keluar ke halaman detail judulnya. */
 async function leave(): Promise<void> {
   await store.close()
@@ -209,7 +223,7 @@ onBeforeUnmount(() => {
 
     <!-- Host yang cuma memberi halaman player pihak ketiga. Tidak ada berkas
          video yang bisa dipasang, jadi satu-satunya yang jujur adalah membuka
-         halamannya di luar app. -->
+         halamannya sendiri — di APK lewat WebView aplikasi, bukan peramban luar. -->
     <div
       v-else-if="store.isEmbed"
       class="grid h-dvh place-content-center gap-3 px-6 text-center"
@@ -217,12 +231,12 @@ onBeforeUnmount(() => {
     >
       <p class="text-sm text-white/80">
         Host ini ({{ store.current?.quality }}) cuma menyediakan halaman pemutarnya sendiri, bukan
-        berkas video. Bukalah di peramban, atau pilih host lain dari setelan.
+        berkas video. Bukalah halamannya, atau pilih host lain dari setelan.
       </p>
       <div class="flex justify-center gap-2">
-        <Button variant="secondary" size="sm" as="a" :href="store.current?.url" target="_blank">
+        <Button variant="secondary" size="sm" @click="openEmbed()">
           <ExternalLink />
-          Buka di peramban
+          Buka pemutarnya
         </Button>
         <Button variant="ghost" size="sm" class="text-white" @click="settings = true">
           Pilih host lain
@@ -241,6 +255,7 @@ onBeforeUnmount(() => {
         class="text-left text-foreground"
         :challenge="store.challenge"
         :source-name="store.entry?.title ?? 'Sumber ini'"
+        @solved="load()"
       />
       <p v-else class="text-sm text-white/80">
         {{ store.error ?? 'Episode ini tidak punya video yang bisa diputar.' }}

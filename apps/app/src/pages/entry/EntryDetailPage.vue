@@ -114,6 +114,7 @@ watch(
     v-if="store.challenge"
     :challenge="store.challenge"
     :source-name="source?.name ?? 'Sumber ini'"
+    @solved="load()"
   />
 
   <template v-if="store.entry">

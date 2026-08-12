@@ -1,4 +1,5 @@
 import { SourceCallError } from '@mirai/extension-runtime'
+import { openExternal, whenExternalClosed } from './browser.service'
 import { transport } from './extensions.service'
 
 /**
@@ -40,7 +41,12 @@ export function challengeOf(error: unknown): ChallengeInfo | undefined {
 }
 
 /**
- * Membuka halaman tantangan.
+ * Membuka halaman tantangan, lalu menunggu penggunanya kembali.
+ *
+ * Yang menunggu itu ada gunanya cuma di APK: WebView-nya ditutup berarti
+ * verifikasinya sudah dicoba, jadi layar pemanggil bisa langsung memuat ulang
+ * tanpa menyuruh orangnya mencari tombol kedua. Di web `whenExternalClosed()`
+ * selesai seketika — tab baru tidak punya "ditutup" yang bisa ditunggu.
  *
  * **Di build web ini tidak akan menolong, dan itu bukan bug yang bisa
  * diperbaiki.** Request extension dikirim `apps/proxy` dari sisi server,
@@ -50,9 +56,10 @@ export function challengeOf(error: unknown): ChallengeInfo | undefined {
  * tetap ada supaya pengguna bisa memastikan sendiri situsnya memang menantang,
  * tapi teksnya menyebutkan batas ini.
  */
-export function openChallenge(url: string): void {
-  // TODO(Fase 8): di APK ini harus jadi WebView in-app, bukan browser luar.
-  // Chrome Custom Tabs punya cookie jar terpisah, jadi verifikasi yang selesai
-  // di sana tidak akan terbaca `CapacitorHttp`.
-  window.open(url, '_blank', 'noopener,noreferrer')
+export async function openChallenge(url: string): Promise<void> {
+  // WebView aplikasi, bukan Custom Tabs: cuma WebView yang berbagi cookie jar
+  // dengan `CapacitorHttp`. Aturan itu beserta alasannya ada di
+  // `browser.service.ts`, satu tempat untuk semua halaman luar.
+  await openExternal(url)
+  await whenExternalClosed()
 }

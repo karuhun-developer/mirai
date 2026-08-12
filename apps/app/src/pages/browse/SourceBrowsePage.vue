@@ -153,6 +153,7 @@ const tabs: { key: Mode; label: string }[] = [
       v-if="challenge"
       :challenge="challenge"
       :source-name="source?.name ?? 'Sumber ini'"
+      @solved="fetchPage(false)"
     />
 
     <p v-if="error" class="mx-4 mt-4 rounded-md bg-destructive/10 p-3 text-sm text-destructive">

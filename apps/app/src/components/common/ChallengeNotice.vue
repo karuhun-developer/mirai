@@ -14,8 +14,16 @@ import { openChallenge, type ChallengeInfo } from '@/services/challenge.service'
  */
 const props = defineProps<{ challenge: ChallengeInfo; sourceName: string }>()
 
-function open(): void {
-  openChallenge(props.challenge.url)
+/**
+ * `solved` tidak berarti "verifikasinya berhasil" — tidak ada yang bisa tahu
+ * itu dari sini. Artinya "orangnya sudah kembali", dan satu-satunya cara
+ * memastikan hasilnya memang mencoba lagi.
+ */
+const emit = defineEmits<{ solved: [] }>()
+
+async function open(): Promise<void> {
+  await openChallenge(props.challenge.url)
+  emit('solved')
 }
 </script>
 
