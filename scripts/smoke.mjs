@@ -29,6 +29,22 @@ function check(label, condition) {
   }
 }
 
+/**
+ * Menunggu sebuah keadaan jadi benar.
+ *
+ * Dipakai untuk cek yang menyentuh SQLite: tulisannya asinkron dan terjadi
+ * setelah UI berubah, jadi membacanya sekali langsung setelah penekanan tombol
+ * kadang mengenai keadaan sebelum tulisan itu mendarat.
+ */
+async function waitUntil(condition, timeout = 10_000) {
+  const until = Date.now() + timeout
+  for (;;) {
+    if (await condition()) return true
+    if (Date.now() > until) return false
+    await new Promise((resolve) => setTimeout(resolve, 150))
+  }
+}
+
 const browser = await chromium.launch()
 
 try {
@@ -165,8 +181,6 @@ try {
         favorited.length === 1 && favorited[0]?.id === id,
       )
 
-      // Sampai reader hadir di Fase 4, menandai chapter "sudah dibaca" adalah
-      // satu-satunya peristiwa yang mengisi riwayat.
       await markSeen.click()
       await page
         .getByRole('button', { name: 'Tandai belum dibaca' })
@@ -177,6 +191,82 @@ try {
         'menandai chapter mengisi riwayat',
         (await query('SELECT item_id FROM history')).length === 1,
       )
+
+      // 10b. Fase 4 — baca satu chapter, keluar di tengah, masuk lagi.
+      //      Chapter kedua yang dipakai: yang pertama sudah ditandai selesai di
+      //      atas, dan chapter selesai sengaja mulai dari halaman satu lagi.
+      const chapters = page.locator('[data-testid="item-open"]')
+      await chapters.nth(1).click()
+      await page.waitForURL('**/read/**')
+
+      const reader = page.locator('[data-testid="reader"]')
+      const firstImage = reader.locator('img').first()
+      await firstImage.waitFor({ state: 'visible', timeout: 30_000 }).catch(() => {})
+
+      if (!(await firstImage.isVisible())) {
+        console.log('  … halaman chapter tidak bisa diambil dari sumber, cek reader dilewati')
+        await page.goBack()
+      } else {
+        check('chapter terbuka dan halaman pertamanya tampil', true)
+        const itemId = decodeURIComponent(new URL(page.url()).pathname.slice('/read/'.length))
+
+        // Mode bawaan `webtoon` menentukan halaman lewat gulir — tidak
+        // deterministik di headless. Ditukar ke mode halaman lewat panel
+        // setelannya sendiri, sekalian menguji panel itu.
+        await page.waitForTimeout(2800) // menu menyembunyikan dirinya
+        await page.keyboard.press('m')
+        const settingsButton = page.getByRole('button', { name: 'Setelan reader' })
+        await settingsButton.waitFor({ state: 'visible', timeout: 5000 }).catch(() => {})
+        check('menu reader bisa dipanggil lewat papan ketik', await settingsButton.isVisible())
+
+        await settingsButton.click()
+        await page.getByRole('button', { name: 'Kiri → kanan' }).click()
+        await page.getByRole('button', { name: 'Tutup setelan' }).click()
+
+        await page.keyboard.press('ArrowRight')
+        await page.keyboard.press('ArrowRight')
+        const advanced = await waitUntil(async () => {
+          const rows = await query('SELECT last_position FROM item WHERE id = ?', [itemId])
+          return rows[0]?.last_position === 2
+        })
+        check('maju dua halaman tersimpan sebagai posisi baca', advanced)
+
+        // Keluar di tengah chapter — inti verifikasi fase ini.
+        await page.keyboard.press('Escape')
+        await page.waitForURL('**/entry/manga/komikcast/**')
+        await chapters.nth(1).click()
+        await page.waitForURL('**/read/**')
+
+        // Menu (dan penghitungnya) tampil sejak detik pertama, jadi menunggu
+        // penghitung terlihat saja akan membaca "0 / 0" — yang ditunggu adalah
+        // daftar halamannya sampai.
+        const counter = reader.locator('p.tabular-nums').first()
+        await waitUntil(
+          async () => !/^0 \/ 0/.test(((await counter.textContent()) ?? '').trim()),
+          30_000,
+        )
+        const resumed = (await counter.textContent()) ?? ''
+        check(`masuk lagi mendarat di halaman yang sama (${resumed.trim()})`, /^3 \//.test(resumed))
+
+        // Sampai halaman terakhir: chapternya harus bertanda selesai tanpa
+        // ditandai manual.
+        const total = Number(resumed.split('/')[1]?.trim() ?? '0')
+        for (let at = 3; at < Math.min(total, 80); at += 1) {
+          await page.keyboard.press('ArrowRight')
+        }
+        const finished = await waitUntil(async () => {
+          const rows = await query('SELECT seen FROM item WHERE id = ?', [itemId])
+          return rows[0]?.seen === 1
+        })
+        check('halaman terakhir menandai chapter sudah dibaca', finished)
+
+        await page.keyboard.press('Escape')
+        await page.waitForURL('**/entry/manga/komikcast/**')
+        check(
+          'dua chapter bertanda sudah dibaca di halaman detail',
+          (await page.getByRole('button', { name: 'Tandai belum dibaca' }).count()) === 2,
+        )
+      }
 
       await page.goto(`${BASE}/library/manga`, { waitUntil: 'networkidle' })
       const libraryCards = page.locator('[data-testid="entry-grid"] a')
