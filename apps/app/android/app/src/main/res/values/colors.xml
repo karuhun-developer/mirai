@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Menimpa warna bawaan library `capacitor-android` (indigo Material) supaya
+         bilah status dan jendela mengikuti tema gelap aplikasi. Resource modul app
+         menang atas resource library waktu digabung, jadi cukup namanya sama. -->
+    <color name="colorPrimary">#0b0f13</color>
+    <color name="colorPrimaryDark">#0b0f13</color>
+    <color name="colorAccent">#4fd1c5</color>
+
+    <!-- Latar jendela sesudah splash. Tanpa ini jendelanya putih sampai WebView
+         selesai melukis halaman pertama — satu kedipan putih di aplikasi yang
+         seluruh temanya gelap. -->
+    <color name="miraiBackground">#0b0f13</color>
+</resources>

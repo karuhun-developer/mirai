@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Latar ikon adaptif. Harus sama dengan warna latar yang digambar
+         `scripts/make-icons.mjs`, kalau tidak lapisan foreground-nya mengambang
+         di atas kotak putih waktu peluncur memakai bentuk lingkaran. -->
+    <color name="ic_launcher_background">#0b0f13</color>
+</resources>
