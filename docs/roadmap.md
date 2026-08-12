@@ -188,5 +188,17 @@ verifikasi Cloudflare — cookie dan sesinya tetap di dalam aplikasi. Lihat
 Export/import backup JSON, migrasi entri antar-sumber, mode incognito, tracker
 MAL/AniList (opsional), audit aksesibilitas dan performa.
 
+Ditambah **dwibahasa**, sengaja ditaruh di akhir supaya yang diterjemahkan sudah
+tidak berubah-ubah lagi:
+
+- **Aplikasinya** memakai i18n (`vue-i18n`), bahasa Indonesia sebagai bawaan dan
+  Inggris sebagai bahasa kedua, dengan pilihan bahasa di Setelan. String UI yang
+  sekarang ditulis langsung di komponen dipindah ke berkas pesan.
+- **Dokumentasinya** dapat pasangan Inggris: `README_EN.md` dan `docs/en/`.
+  Bahasa Indonesia tetap sumber kebenarannya — kalau keduanya berbeda, yang
+  Indonesia yang benar — supaya terjemahan yang usang tidak diam-diam jadi
+  rujukan.
+
 **Selesai kalau:** backup dari satu perangkat direstore di perangkat lain
-menghasilkan library yang identik.
+menghasilkan library yang identik, dan aplikasinya bisa berpindah bahasa tanpa
+dimuat ulang.
