@@ -119,6 +119,14 @@ Pengurutan, arah, saringan, dan kategori yang sedang dibuka disimpan di tabel
 `setting`, bukan di `localStorage`. Alasannya satu: semua yang ada di SQLite ikut
 terbawa saat backup/restore di Fase 9.
 
+### Baris item membuka layar yang sesuai jenisnya
+
+Baris chapter membuka [reader](reader.md), baris episode membuka
+[pemutar](player.md), dan tombol **Lanjut** menunjuk item belum selesai paling
+awal dari jenis yang sama. Keduanya memakai konteks item yang sama
+(`item.service.ts`), jadi "berikutnya" tidak pernah berarti dua hal berbeda di
+dua layar yang menampilkan daftar yang sama.
+
 ### Rute entri
 
 URL sumber mengandung garis miring, jadi rutenya `:url(.*)` dan lokasinya selalu
@@ -127,10 +135,6 @@ membuat `%2F` ter-encode dua kali dan judulnya tidak pernah ketemu.
 
 ## Yang sengaja belum ada
 
-- **Tombol Lanjut untuk anime** masih dinonaktifkan, begitu juga baris
-  episodenya: pemutarnya baru hadir di Fase 5. Untuk manga tombol itu sudah
-  membuka [reader](reader.md). Menautkan ke rute yang belum ada lebih buruk
-  daripada tombol mati yang menjelaskan dirinya sendiri.
 - **Saringan "sudah diunduh"** sudah jalan sampai ke SQL, tapi kolom `downloaded`
   baru akan terisi di Fase 6.
 - **Penyegaran latar belakang terjadwal** belum ada; penyegaran selalu dimulai

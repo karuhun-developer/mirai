@@ -111,7 +111,7 @@ diambil dari jaringan sampai unduhan hadir di Fase 6. Mode halaman belum punya
 tata letak dua halaman berdampingan di layar lebar, dan penanda masih setingkat
 chapter, bukan per halaman.
 
-## Fase 5 — Player anime
+## Fase 5 — Player anime ✅
 
 `hls.js` + `<video>`, pemilih kualitas & host, subtitle, lanjut dari posisi, skip
 intro, PiP, episode berikutnya. Termasuk spike playback native tanpa proxy,
@@ -119,6 +119,25 @@ dengan proxy sebagai fallback.
 
 **Selesai kalau:** satu episode berjalan di web maupun APK, dan berganti
 kualitas tidak mengulang dari awal.
+→ [features/player.md](features/player.md)
+
+**Terverifikasi:** `scripts/smoke.mjs` menonton satu episode dari Library →
+detail → baris episode: durasi terbaca, posisi dan durasi tertulis ke
+`item.last_position`/`total_position` dalam detik, riwayat terisi, keluar lewat
+`Esc` lalu masuk lagi mendarat di detik yang sama, berganti kualitas lewat panel
+setelan **tidak** mengembalikan posisi ke nol, melewati 90% durasi menandai
+`item.seen = 1` tanpa ditandai manual, dan episode berikutnya terbuka sendiri.
+Aturan murninya (pilih kualitas, ambang selesai, detik lanjut, konversi SRT/ASS,
+loader HLS) diuji terpisah di `apps/app/test/`.
+
+**Sisa utang:** episodenya berkas VP9 30 detik buatan ffmpeg yang disodorkan
+lewat `window.__player.fixture()`, bukan episode Otakudesu sungguhan — situs
+sumbernya tidak terjangkau dari mesin ini dan Chromium bawaan Playwright tidak
+punya dekoder H.264. Artinya **HLS sungguhan lewat proxy dan playback di APK
+belum terbukti berjalan**; keduanya menunggu perangkat dan jaringan yang
+memungkinkan, playback native menunggu Fase 8. Host `embed` masih dilempar ke
+peramban luar, belum WebView in-app. Trek audio ganda dan gestur usap ala pemutar
+Android juga belum ada.
 
 ## Fase 6 — Unduh manga
 

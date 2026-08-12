@@ -11,6 +11,47 @@ menautkan ke sana supaya changelog ini tetap ringkas.
 
 ## [Unreleased]
 
+### Fase 5 — Player anime
+
+#### Added
+
+- **Pemutar anime** (`/watch/:itemId`) di atas `<video>` + hls.js: pemilih
+  kualitas dan host, takarir (SRT/ASS dikonversi ke WebVTT), kecepatan putar,
+  lompat opening yang panjangnya bisa disetel (bawaan 85 detik), Picture-in-
+  Picture, lompat episode, layar penuh, dan kunci orientasi di APK. Papan ketik:
+  spasi/`k`, `←`/`→`, `s`, `n`/`p`, `Esc`. Lihat
+  [docs/features/player.md](docs/features/player.md).
+- **Berganti kualitas tidak mengulang dari awal.** Posisi disalin sebelum sumber
+  ditukar dan dipasang kembali begitu metadata sumber baru siap; kualitas yang
+  dipilih tersimpan sebagai preferensi, dan episode berikutnya turun ke tinggi
+  gambar terdekat **di bawahnya** kalau label persisnya tidak tersedia.
+- **Progres dalam detik**, ditulis tiap lima detik alih-alih tiap `timeupdate`
+  yang menyala puluhan kali per detik. Melewati 90% durasi menandai episode
+  selesai dengan sendirinya — bukan detik terakhir, karena ending dan pratinjau
+  hampir selalu dilewati — lalu episode berikutnya dibuka sendiri kalau lanjut
+  otomatis menyala.
+- **Kegagalan HLS dipulihkan tepat sekali per jenis** (muat ulang segmen, reset
+  buffer) sebelum menyerah dengan pesan yang menyarankan pindah host: video yang
+  diam sambil mencoba ulang selamanya lebih buruk daripada pesan error.
+- **Host `embed` diakui apa adanya** — sumber yang cuma memberi halaman player
+  pihak ketiga menampilkan tombol buka di peramban dan pilih host lain, bukan
+  layar hitam.
+- Baris episode di halaman detail kini bisa diketuk, dan tombol **Lanjut** untuk
+  anime sudah aktif.
+- `scripts/smoke.mjs` menonton satu episode utuh: durasi terbaca, posisi tertulis
+  ke `item`, riwayat terisi, keluar lalu masuk lagi melanjutkan di detik yang
+  sama, ganti kualitas mempertahankan posisi, lewat 90% menandai selesai, dan
+  episode berikutnya terbuka sendiri.
+
+#### Fixed
+
+- **Sumber video pertama tidak pernah terpasang** karena `watch(..., { immediate:
+true })` berjalan saat setup, sebelum `<video>` masuk DOM — layarnya hitam
+  sampai kualitas diganti manual. Pemasangan awal dipindah ke `onMounted`.
+- **Alamat lokal (`data:`, `blob:`, `file:`, `capacitor:`) ikut dilewatkan
+  proxy**, padahal isinya sudah ada di perangkat. Sekarang dipakai apa adanya —
+  sekalian menyiapkan jalur episode terunduh di Fase 7.
+
 ### Fase 4 — Reader manga
 
 #### Added

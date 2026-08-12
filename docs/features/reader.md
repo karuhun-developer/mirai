@@ -141,10 +141,6 @@ alih-alih kembali ke halaman judulnya.
 ## Yang sengaja belum ada
 
 - **Baca offline.** Halaman selalu dari jaringan sampai Fase 6.
-- **Episode anime.** Baris episode di halaman detail tetap tidak bisa dibuka dan
-  tombol Lanjut untuk anime tetap mati sampai pemutarnya hadir di Fase 5. Baris
-  yang bisa diketuk tapi tidak melakukan apa-apa lebih membingungkan daripada
-  baris yang jelas diam.
 - **Halaman ganda (spread) di layar lebar.** Mode halaman selalu satu halaman.
 - **Penanda halaman di dalam chapter.** Penanda masih setingkat chapter.
 
