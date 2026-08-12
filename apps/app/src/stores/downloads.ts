@@ -10,6 +10,7 @@ import {
   enqueue,
   listDownloads,
   pauseAll,
+  readDownloadPrefs,
   removeDownload,
   removeEntryDownloads,
   removeJob,
@@ -129,6 +130,11 @@ export const useDownloadsStore = defineStore('downloads', () => {
     await refresh()
   }
 
+  /** Halaman Pengaturan memanggilnya; antreannya sendiri sudah membacanya saat boot. */
+  async function loadPrefs(): Promise<void> {
+    prefs.value = await readDownloadPrefs()
+  }
+
   async function setPrefs(patch: Partial<DownloadPrefs>): Promise<void> {
     prefs.value = await writeDownloadPrefs(patch)
   }
@@ -152,6 +158,7 @@ export const useDownloadsStore = defineStore('downloads', () => {
     remove,
     removeEntry,
     clearFinished,
+    loadPrefs,
     setPrefs,
   }
 })

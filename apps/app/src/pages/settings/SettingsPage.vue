@@ -1,12 +1,37 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import AppHeader from '@/components/layout/AppHeader.vue'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Switch } from '@/components/ui/switch'
 import { browserUserAgent, settings } from '@/services/settings.service'
 import { transport } from '@/services/extensions.service'
+import { storageEstimate } from '@/services/storage.service'
+import { useDownloadsStore } from '@/stores/downloads'
 
 const active = computed(() => settings.userAgent.trim() !== '')
+
+const downloads = useDownloadsStore()
+const usage = ref<{ used: number; quota: number } | null>(null)
+
+const CONCURRENCY = [1, 2, 3, 4]
+
+onMounted(async () => {
+  await downloads.loadPrefs()
+  usage.value = await storageEstimate()
+})
+
+/** Ukuran dalam satuan yang dibaca manusia; angka byte mentah tidak berarti apa-apa. */
+function human(bytes: number): string {
+  const units = ['B', 'KB', 'MB', 'GB']
+  let value = bytes
+  let unit = 0
+  while (value >= 1024 && unit < units.length - 1) {
+    value /= 1024
+    unit += 1
+  }
+  return `${value.toFixed(value < 10 && unit > 0 ? 1 : 0)} ${units[unit]}`
+}
 
 function useBrowserAgent(): void {
   settings.userAgent = browserUserAgent()
@@ -21,6 +46,56 @@ function reset(): void {
   <AppHeader title="Pengaturan" />
 
   <div class="space-y-8 px-4 py-6 pb-24 md:pb-8">
+    <section class="space-y-3">
+      <div>
+        <h2 class="text-base font-medium">Unduhan</h2>
+        <p class="text-sm text-muted-foreground">
+          Chapter yang diunduh tersimpan di perangkat dan tetap terbaca tanpa internet.
+        </p>
+      </div>
+
+      <div class="space-y-4 rounded-md border border-border p-4">
+        <div class="space-y-2">
+          <p class="text-sm font-medium">Unduhan berbarengan</p>
+          <p class="text-sm text-muted-foreground">
+            Berapa chapter dikerjakan sekaligus. Halaman di dalam satu chapter selalu berurutan —
+            menembakkan puluhan permintaan sekaligus adalah cara tercepat diblokir situs sumbernya.
+          </p>
+          <div class="flex gap-2 pt-1">
+            <Button
+              v-for="value in CONCURRENCY"
+              :key="value"
+              size="sm"
+              :variant="downloads.prefs.concurrency === value ? 'default' : 'outline'"
+              @click="downloads.setPrefs({ concurrency: value })"
+            >
+              {{ value }}
+            </Button>
+          </div>
+        </div>
+
+        <div class="flex items-start justify-between gap-4 border-t border-border pt-4">
+          <div class="min-w-0">
+            <p class="text-sm font-medium">Hapus setelah dibaca</p>
+            <p class="text-sm text-muted-foreground">
+              Berkas chapter dibuang begitu reader ditutup dan chapternya sudah tamat. Menghemat
+              ruang kalau kebiasaannya mengunduh untuk sekali baca.
+            </p>
+          </div>
+          <Switch
+            :model-value="downloads.prefs.deleteAfterRead"
+            aria-label="Hapus setelah dibaca"
+            @update:model-value="downloads.setPrefs({ deleteAfterRead: $event })"
+          />
+        </div>
+
+        <p v-if="usage" class="border-t border-border pt-4 text-xs text-muted-foreground">
+          Terpakai {{ human(usage.used) }} dari kuota {{ human(usage.quota) }} yang diberikan
+          browser. Angkanya mencakup seluruh data Mirai di peramban ini, bukan cuma unduhan.
+        </p>
+      </div>
+    </section>
+
     <section class="space-y-3">
       <div>
         <h2 class="text-base font-medium">Lanjutan</h2>
@@ -71,7 +146,8 @@ function reset(): void {
     <section class="space-y-1">
       <h2 class="text-base font-medium">Menyusul</h2>
       <p class="text-sm text-muted-foreground">
-        Tema, mode baca, kualitas video, dan penyimpanan masuk di fase berikutnya.
+        Tema, backup, dan tracker masuk di fase berikutnya. Mode baca dan kualitas video sudah ada
+        di dalam reader dan pemutarnya masing-masing.
       </p>
     </section>
   </div>

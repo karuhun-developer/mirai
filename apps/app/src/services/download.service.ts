@@ -1,8 +1,9 @@
+import type { SPage } from '@mirai/extension-api'
 import type { RemoteMangaSource, RemoteSource } from '@mirai/extension-runtime'
 import type { DownloadEntry, DownloadRow, EntryRow, ItemRow } from '@mirai/db'
 import { toSItem } from '@mirai/db'
 import { repos } from './db.service'
-import { transport } from './extensions.service'
+import { mediaUrl } from './extensions.service'
 import { entryDir, itemDir, pageFileName } from './downloadPath'
 import { downloadFile, fileUrl, listDir, removeDir, requestPersistence } from './storage.service'
 
@@ -264,9 +265,8 @@ async function downloadChapter(
   jobId: string,
 ): Promise<string> {
   const dir = itemDir(entry, item)
-  const pages = (await source.getPageList(toSItem(item))).filter(
-    (page) => typeof page.imageUrl === 'string' && page.imageUrl !== '',
-  )
+  const listed = fixturePages ?? (await source.getPageList(toSItem(item)))
+  const pages = listed.filter((page) => typeof page.imageUrl === 'string' && page.imageUrl !== '')
   if (pages.length === 0) throw new Error('Sumber tidak mengembalikan satu halaman pun.')
 
   checkStop(jobId)
@@ -286,7 +286,7 @@ async function downloadChapter(
       await downloadFile(
         `${dir}/${name}`,
         page.imageUrl,
-        transport.media.toDisplayUrl(page.imageUrl, page.headers),
+        mediaUrl(page.imageUrl, page.headers),
         page.headers,
       )
     }
@@ -382,6 +382,31 @@ export async function cleanupAfterRead(entry: EntryRow, item: ItemRow): Promise<
   } catch {
     // Ruang tidak jadi kembali; itu saja.
   }
+}
+
+// ── Jalur uji ────────────────────────────────────────────────────────────────
+
+/**
+ * Daftar halaman tiruan untuk `scripts/smoke.mjs`.
+ *
+ * Situs sumber manga tidak terjangkau dari mesin pengembangan ini, jadi jalur
+ * "unduh → matikan jaringan → tetap terbaca" mustahil diuji dengan sumber
+ * sungguhan. Dengan beberapa gambar `data:` kecil, sisa rantainya (antrean,
+ * penulisan berkas, tanda terunduh, reader membaca dari lokal) diuji apa adanya
+ * di browser sungguhan — termasuk penyimpanannya, karena `data:` tetap ditulis
+ * ke OPFS lewat jalan yang sama seperti gambar dari CDN.
+ *
+ * Cuma dipasang saat dev; build produksi tidak membawa jalur ini sama sekali.
+ */
+let fixturePages: SPage[] | null = null
+
+if (import.meta.env.DEV) {
+  const bridge = {
+    fixture(pages: SPage[] | null): void {
+      fixturePages = pages
+    },
+  }
+  ;(globalThis as unknown as { __downloads?: typeof bridge }).__downloads = bridge
 }
 
 // ── Helper ───────────────────────────────────────────────────────────────────

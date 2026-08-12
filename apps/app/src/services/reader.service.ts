@@ -2,7 +2,7 @@ import type { RemoteMangaSource } from '@mirai/extension-runtime'
 import type { EntryRow, ItemRow } from '@mirai/db'
 import { toSItem } from '@mirai/db'
 import { repos } from './db.service'
-import { transport } from './extensions.service'
+import { mediaUrl } from './extensions.service'
 import { cleanupAfterRead, localPages, releaseLocalPages } from './download.service'
 
 /**
@@ -129,7 +129,7 @@ async function fetchPages(source: RemoteMangaSource, item: ItemRow): Promise<Rea
     .filter((page) => typeof page.imageUrl === 'string' && page.imageUrl !== '')
     .map((page, index) => ({
       index,
-      url: transport.media.toDisplayUrl(page.imageUrl, page.headers),
+      url: mediaUrl(page.imageUrl, page.headers),
     }))
 }
 

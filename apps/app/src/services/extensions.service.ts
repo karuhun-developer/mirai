@@ -25,6 +25,24 @@ export const transport: Transport = createTransport({
   userAgent: userAgentOverride,
 })
 
+/**
+ * Alamat yang sumbernya sudah ada di perangkat ini. Melewatkannya ke proxy jelas
+ * salah: tidak ada yang bisa diambilkan proxy dari `blob:` milik tab lain, dan
+ * `data:` sudah membawa isinya sendiri.
+ */
+const LOCAL_URL = /^(data|blob|file|capacitor|ionic):/i
+
+/**
+ * Alamat media siap pasang ke `<img>`/`<video>`/`fetch`.
+ *
+ * Di APK ini fungsi identitas — WebView mengambil medianya sendiri lengkap
+ * dengan header. Di web alamatnya berubah jadi `…/stream?url=…` karena CDN
+ * sumber menolak permintaan tanpa `Referer` dan tidak mengirim header CORS.
+ */
+export function mediaUrl(url: string, headers?: Readonly<Record<string, string>>): string {
+  return LOCAL_URL.test(url) ? url : transport.media.toDisplayUrl(url, headers)
+}
+
 export interface LoadedExtension {
   pkg: string
   instance: ExtensionInstance

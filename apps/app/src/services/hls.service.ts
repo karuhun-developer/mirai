@@ -1,5 +1,5 @@
 import type HlsJs from 'hls.js'
-import { transport } from './extensions.service'
+import { mediaUrl } from './extensions.service'
 import { createProxyLoader, type LoaderConstructor } from './hlsLoader'
 import type { PlayableVideo } from './playback'
 
@@ -23,22 +23,14 @@ export type FatalHandler = (message: string) => void
 
 const NATIVE_HLS = 'application/vnd.apple.mpegurl'
 
-/**
- * Alamat yang sumbernya sudah di perangkat ini. Melewatkannya ke proxy jelas
- * salah — tidak ada yang bisa diambilkan proxy dari `blob:` milik tab lain — dan
- * inilah jalur yang dipakai episode terunduh nanti di Fase 7.
- */
-const LOCAL_URL = /^(data|blob|file|capacitor|ionic):/i
-
 export async function attachVideo(
   el: HTMLVideoElement,
   video: PlayableVideo,
   onFatal: FatalHandler,
 ): Promise<AttachedVideo> {
-  // Di APK ini fungsi identitas — WebView mengambil medianya sendiri lengkap
-  // dengan header. Di web, alamatnya berubah jadi `…/stream?url=…`.
-  const resolve = (url: string): string =>
-    LOCAL_URL.test(url) ? url : transport.media.toDisplayUrl(url, video.headers)
+  // Berkas yang sudah di perangkat (episode terunduh nanti di Fase 7) lewat apa
+  // adanya; sisanya ikut aturan transport.
+  const resolve = (url: string): string => mediaUrl(url, video.headers)
 
   if (video.type !== 'hls') {
     el.src = resolve(video.url)
