@@ -23,7 +23,10 @@ export {
   createProxyMediaResolver,
   createTransport,
   directMediaResolver,
+  isCloudflareChallenge,
   lowercaseHeaders,
+  withCloudflareDetection,
   withRateLimit,
+  withUserAgent,
 } from './http/index.js'
 export type { MediaResolver, Transport, TransportOptions } from './http/index.js'

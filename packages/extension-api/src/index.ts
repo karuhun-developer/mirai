@@ -9,7 +9,7 @@
 export { API_VERSION } from './context.js'
 export type { SourceContext, SourceFactory } from './context.js'
 
-export { HttpError } from './http.js'
+export { CloudflareChallengeError, HttpError } from './http.js'
 export type { HttpClient, HttpHeaders, HttpMethod, HttpRequest, HttpResponse } from './http.js'
 
 export type {

@@ -13,6 +13,13 @@ export interface SerializedError {
   stack?: string
   /** Diisi kalau errornya `HttpError`, supaya UI bisa membedakan 404 dari bug parser. */
   status?: number
+  /**
+   * Diisi kalau errornya `CloudflareChallengeError`: halaman yang harus dibuka
+   * pengguna untuk menyelesaikan verifikasi. Ikut melintas RPC karena tanpa itu
+   * UI cuma punya teks pesan, dan mencocokkan teks untuk memutuskan menampilkan
+   * tombol adalah cara paling gampang bikin fitur ini diam-diam mati.
+   */
+  challengeUrl?: string
 }
 
 /** Ringkasan source yang aman dikirim lintas worker (tanpa fungsi). */
@@ -56,10 +63,13 @@ export type WorkerMessage =
 
 export function serializeError(error: unknown): SerializedError {
   if (error instanceof Error) {
-    const status = (error as { status?: unknown }).status
+    // Dibaca lewat properti, bukan `instanceof`: error ini sudah pernah melintas
+    // batas worker sekali dan kehilangan prototipenya di jalan.
+    const { status, challengeUrl } = error as { status?: unknown; challengeUrl?: unknown }
     const base: SerializedError = { message: error.message }
     if (error.stack !== undefined) base.stack = error.stack
     if (typeof status === 'number') base.status = status
+    if (typeof challengeUrl === 'string') base.challengeUrl = challengeUrl
     return base
   }
   return { message: String(error) }
@@ -76,8 +86,11 @@ export class SourceCallError extends Error {
     this.name = 'SourceCallError'
     this.status = error.status
     this.remoteStack = error.stack
+    this.challengeUrl = error.challengeUrl
   }
 
   readonly status: number | undefined
   readonly remoteStack: string | undefined
+  /** Terisi kalau kegagalannya tantangan Cloudflare, bukan error biasa. */
+  readonly challengeUrl: string | undefined
 }

@@ -14,6 +14,49 @@ export function lowercaseHeaders(headers: Record<string, string | undefined>): H
 }
 
 /**
+ * Menimpa `User-Agent` semua request dengan satu nilai.
+ *
+ * Ini **menimpa**, bukan mengisi kalau kosong — `extension-lib` selalu memasang
+ * UA-nya sendiri, jadi nilai yang cuma jadi cadangan tidak akan pernah terpakai
+ * dan setelannya jadi tombol mati. Alasannya juga bukan selera: cookie
+ * `cf_clearance` hasil verifikasi Cloudflare terikat ke UA yang menyelesaikan
+ * tantangan, jadi request sesudahnya wajib memakai UA yang persis sama.
+ *
+ * Karena itu nilai kosong berarti "jangan sentuh": selama pengguna tidak
+ * mengaturnya, extension tetap memegang kendali penuh atas UA-nya.
+ *
+ * Nilainya dibaca per request, bukan sekali saat transport dibuat: mengganti UA
+ * adalah langkah diagnosis, dan memaksa restart app untuk mencobanya membuat
+ * setelan itu hampir tidak berguna.
+ */
+export function withUserAgent(client: HttpClient, resolve: () => string): HttpClient {
+  function override(headers?: HttpHeaders): HttpHeaders | undefined {
+    const userAgent = resolve().trim()
+    if (userAgent === '') return headers
+
+    // Nama header tidak case-sensitive; kunci lama harus dibuang, kalau tidak
+    // dua `user-agent` terkirim sekaligus dan servernya yang memilih.
+    const merged: Record<string, string> = {}
+    for (const [key, value] of Object.entries(headers ?? {})) {
+      if (key.toLowerCase() !== 'user-agent') merged[key] = value
+    }
+    merged['User-Agent'] = userAgent
+    return merged
+  }
+
+  return {
+    ...client,
+    request: (req) => {
+      const headers = override(req.headers)
+      return client.request(headers ? { ...req, headers } : req)
+    },
+    get: (url, headers) => client.get(url, override(headers)),
+    post: (url, body, headers) => client.post(url, body, override(headers)),
+    getJson: (url, headers) => client.getJson(url, override(headers)),
+  }
+}
+
+/**
  * Pembatas laju per host. Satu extension yang membanjiri situs sumber bisa
  * membuat seluruh pengguna Mirai kena blokir IP, jadi remnya dipasang di host —
  * bukan dititipkan ke kode pihak ketiga.

@@ -50,3 +50,25 @@ export class HttpError extends Error {
     this.name = 'HttpError'
   }
 }
+
+/**
+ * Situsnya hidup, tapi Cloudflare menahan request dengan tantangan "verify you
+ * are human". Dipisah dari `HttpError` biasa karena penanganannya berbeda
+ * secara mendasar: 403 biasa berarti kode extension salah alamat, sedangkan ini
+ * berarti **manusianya** yang harus turun tangan. Mirai mengikuti sikap
+ * Aniyomi — tantangan tidak diputari otomatis, penggunanya yang menyelesaikan
+ * di WebView. Kalau tidak bisa, sumber itu memang tidak bisa dipakai.
+ *
+ * `challengeUrl` adalah halaman yang harus dibuka pengguna, bukan URL API yang
+ * kebetulan kena — biar tombol "Selesaikan verifikasi" mendarat di tempat yang
+ * benar-benar menampilkan tantangannya.
+ */
+export class CloudflareChallengeError extends HttpError {
+  readonly challengeUrl: string
+
+  constructor(status: number, url: string, challengeUrl?: string) {
+    super(status, url, `Cloudflare meminta verifikasi sebelum ${url} bisa dibuka`)
+    this.name = 'CloudflareChallengeError'
+    this.challengeUrl = challengeUrl ?? url
+  }
+}
