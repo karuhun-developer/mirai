@@ -33,6 +33,16 @@ export const transport: Transport = createTransport({
 const LOCAL_URL = /^(data|blob|file|capacitor|ionic):/i
 
 /**
+ * Aturan yang sama, terbuka untuk pemanggil yang perlu memutuskan sendiri —
+ * mengambil playlist HLS, misalnya, yang isinya dibaca `fetch` biasa kalau sudah
+ * lokal dan lewat `HttpClient` kalau belum. Satu regex untuk semuanya supaya
+ * "apa yang dianggap lokal" tidak pernah punya dua jawaban.
+ */
+export function isLocalUrl(url: string): boolean {
+  return LOCAL_URL.test(url)
+}
+
+/**
  * Alamat media siap pasang ke `<img>`/`<video>`/`fetch`.
  *
  * Di APK ini fungsi identitas — WebView mengambil medianya sendiri lengkap

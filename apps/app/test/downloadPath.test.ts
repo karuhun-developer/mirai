@@ -6,6 +6,7 @@ import {
   itemDir,
   pageFileName,
   safeSegment,
+  videoFileName,
 } from '../src/services/downloadPath.ts'
 
 function entry(overrides: Partial<EntryRow> = {}): EntryRow {
@@ -119,5 +120,18 @@ describe('pageFileName', () => {
 
   it('jatuh ke jpg kalau URL-nya tidak menyebut ekstensi', () => {
     expect(pageFileName(2, 'https://cdn.test/image?id=3')).toBe('003.jpg')
+  })
+})
+
+describe('videoFileName', () => {
+  it('memakai nama tetap dengan ekstensi dari URL', () => {
+    expect(videoFileName('https://cdn.test/eps-1.mp4')).toBe('video.mp4')
+    expect(videoFileName('https://cdn.test/eps-1.MKV?token=abc')).toBe('video.mkv')
+  })
+
+  it('jatuh ke mp4 kalau URL-nya tidak menyebut ekstensi', () => {
+    expect(videoFileName('https://cdn.test/stream?id=3')).toBe('video.mp4')
+    // `.m3u8` bukan wadah video; yang lewat sini cuma berkas utuh.
+    expect(videoFileName('https://cdn.test/index.m3u8')).toBe('video.mp4')
   })
 })

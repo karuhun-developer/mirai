@@ -83,3 +83,17 @@ export function pageFileName(index: number, url: string): string {
   const extension = match?.[1]?.toLowerCase() ?? 'jpg'
   return `${String(index + 1).padStart(3, '0')}.${extension === 'jpeg' ? 'jpg' : extension}`
 }
+
+/**
+ * Nama berkas video utuh: `video.mp4`.
+ *
+ * Namanya tetap, bukan diturunkan dari URL: satu direktori episode isinya satu
+ * video, dan nama yang tetap membuat `localVideo()` menemukannya tanpa perlu
+ * mencocokkan apa pun. Yang diambil dari URL cuma ekstensinya — `<video>` di
+ * Android menolak berkas yang ekstensinya tidak dikenal walau isinya benar,
+ * karena tipe kontennya ditebak dari nama waktu dibuka lewat `capacitor://`.
+ */
+export function videoFileName(url: string): string {
+  const match = /\.(mp4|m4v|webm|mkv|mov)(?:$|[?#])/i.exec(url)
+  return `video.${match?.[1]?.toLowerCase() ?? 'mp4'}`
+}

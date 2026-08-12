@@ -99,22 +99,45 @@ async function filesystem() {
  * - Di **web**, alamatnya harus sudah berupa alamat proxy (`resolvedUrl`) karena
  *   `fetch` dari halaman tidak boleh memasang `Referer` dan CDN-nya tidak
  *   mengirim header CORS.
+ *
+ * `onProgress` (0–1) opsional dan cuma dipakai berkas besar — satu video utuh.
+ * Halaman manga tidak memakainya: laporan per byte untuk berkas 200 KB cuma
+ * membanjiri UI dengan pembaruan yang tidak ada bedanya di mata.
  */
 export async function downloadFile(
   path: string,
   url: string,
   resolvedUrl: string,
   headers?: Readonly<Record<string, string>>,
+  onProgress?: (ratio: number) => void,
 ): Promise<SavedFile> {
   if (native) {
     const { Filesystem, Directory } = await filesystem()
-    await Filesystem.downloadFile({
-      path,
-      url,
-      directory: Directory.Data,
-      recursive: true,
-      ...(headers ? { headers: { ...headers } } : {}),
-    })
+
+    // Peristiwa progresnya global untuk seluruh plugin, bukan per pemanggil, jadi
+    // beberapa unduhan yang jalan bersamaan saling mendengar kabar satu sama lain
+    // — makanya disaring per alamat.
+    const listener = onProgress
+      ? await Filesystem.addListener('progress', (status) => {
+          if (status.url === url && status.contentLength > 0) {
+            onProgress(Math.min(status.bytes / status.contentLength, 1))
+          }
+        })
+      : null
+
+    try {
+      await Filesystem.downloadFile({
+        path,
+        url,
+        directory: Directory.Data,
+        recursive: true,
+        progress: listener !== null,
+        ...(headers ? { headers: { ...headers } } : {}),
+      })
+    } finally {
+      await listener?.remove()
+    }
+
     const stat = await Filesystem.stat({ path, directory: Directory.Data })
     return { path, bytes: stat.size }
   }
@@ -122,13 +145,90 @@ export async function downloadFile(
   const response = await fetch(resolvedUrl)
   if (!response.ok) throw new Error(`HTTP ${response.status} saat mengambil berkas`)
 
-  const blob = await response.blob()
+  const blob = onProgress ? await readWithProgress(response, onProgress) : await response.blob()
   // Respons kosong hampir selalu berarti proxy meneruskan halaman error, dan
   // menyimpannya berarti chapter "terunduh" yang halamannya kosong melompong.
   if (blob.size === 0) throw new Error('Berkas kosong')
 
   await opfsWrite(path, blob)
   return { path, bytes: blob.size }
+}
+
+/**
+ * Membaca respons potongan demi potongan supaya progresnya bisa dilaporkan.
+ *
+ * Tanpa `Content-Length` — proxy yang meneruskan respons berkode chunked, misalnya
+ * — rasionya tidak bisa dihitung, dan yang dilaporkan cuma "sudah mulai": lebih
+ * jujur daripada bilah yang bergerak berdasarkan angka karangan.
+ */
+async function readWithProgress(
+  response: Response,
+  onProgress: (ratio: number) => void,
+): Promise<Blob> {
+  const total = Number.parseInt(response.headers.get('content-length') ?? '', 10)
+  const reader = response.body?.getReader()
+  if (!reader) return response.blob()
+
+  const chunks: Uint8Array[] = []
+  let received = 0
+
+  for (;;) {
+    const { done, value } = await reader.read()
+    if (done) break
+    chunks.push(value)
+    received += value.byteLength
+    if (Number.isFinite(total) && total > 0) onProgress(Math.min(received / total, 1))
+  }
+
+  return new Blob(chunks as BlobPart[])
+}
+
+/**
+ * Menulis berkas teks — sejauh ini cuma playlist HLS hasil unduhan.
+ *
+ * Dipisah dari `downloadFile()` karena isinya lahir di aplikasi, bukan diambil
+ * dari jaringan: playlist yang tersimpan sudah ditulis ulang supaya menunjuk
+ * berkas di perangkat, dan tidak ada alamat yang bisa diunduh untuk itu.
+ */
+export async function writeText(path: string, text: string): Promise<SavedFile> {
+  const bytes = new TextEncoder().encode(text).byteLength
+
+  if (native) {
+    const { Filesystem, Directory, Encoding } = await filesystem()
+    await Filesystem.writeFile({
+      path,
+      data: text,
+      directory: Directory.Data,
+      encoding: Encoding.UTF8,
+      recursive: true,
+    })
+    return { path, bytes }
+  }
+
+  await opfsWrite(path, new Blob([text], { type: 'text/plain' }))
+  return { path, bytes }
+}
+
+/** Isi berkas teks; `null` kalau berkasnya tidak ada. */
+export async function readText(path: string): Promise<string | null> {
+  if (native) {
+    const { Filesystem, Directory, Encoding } = await filesystem()
+    try {
+      const { data } = await Filesystem.readFile({
+        path,
+        directory: Directory.Data,
+        encoding: Encoding.UTF8,
+      })
+      // Pluginnya mengembalikan `Blob` di web dan `string` di native; jalur ini
+      // memang cuma native, tapi tipenya menuntut keduanya ditangani.
+      return typeof data === 'string' ? data : await data.text()
+    } catch {
+      return null
+    }
+  }
+
+  const file = await opfsFile(path)
+  return file ? file.text() : null
 }
 
 /**
