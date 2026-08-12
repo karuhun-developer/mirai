@@ -15,7 +15,11 @@ export { entryId, fromFlag, itemId, nowMs, parseEntryId, randomId, toFlag } from
 
 export { loadSnapshot, saveSnapshot, dropSnapshot } from './persist.js'
 
-export { createSqlJsDb } from './drivers/sqljs.js'
+// Driver sengaja tidak diekspor sebagai nilai dari sini. Satu `export` biasa
+// saja sudah membuat bundler menarik driver ke chunk utama dan membatalkan
+// `import()` dinamis di `db.ts` — web ikut membawa 650 KB WebAssembly `sql.js`
+// yang di APK tidak pernah dipanggil. Tipe aman karena hilang saat kompilasi;
+// yang butuh fungsinya (mis. test) mengimpor langsung dari `./drivers/*.js`.
 export type { SqlJsHandle, SqlJsOptions } from './drivers/sqljs.js'
 
 export { BaseRepository } from './repositories/base.js'
