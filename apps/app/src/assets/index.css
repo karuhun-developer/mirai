@@ -1,0 +1,166 @@
+@import 'tailwindcss';
+@import 'tw-animate-css';
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * Tailwind v4: tidak ada tailwind.config.js sama sekali. Seluruh token tema
+ * tinggal di sini, sama seperti POS Kacaw. Warna ditulis dalam OKLCH supaya
+ * penyesuaian terang/gelap cuma menggeser lightness, bukan menebak hex baru.
+ *
+ * Mirai default-nya gelap — pembaca manga dan pemutar video dipakai di ruangan
+ * gelap. Tema terang tetap ada supaya tidak memaksa.
+ */
+
+:root {
+  --background: oklch(0.99 0.002 250);
+  --foreground: oklch(0.18 0.012 250);
+
+  --card: oklch(1 0 0);
+  --card-foreground: var(--foreground);
+  --popover: oklch(1 0 0);
+  --popover-foreground: var(--foreground);
+
+  --primary: oklch(0.62 0.13 185);
+  --primary-foreground: oklch(0.99 0.005 185);
+
+  --secondary: oklch(0.95 0.006 250);
+  --secondary-foreground: oklch(0.25 0.012 250);
+
+  --muted: oklch(0.95 0.006 250);
+  --muted-foreground: oklch(0.52 0.014 250);
+
+  --accent: oklch(0.94 0.012 185);
+  --accent-foreground: oklch(0.25 0.03 185);
+
+  --destructive: oklch(0.58 0.21 27);
+  --destructive-foreground: oklch(0.99 0.005 27);
+
+  --border: oklch(0.9 0.006 250);
+  --input: oklch(0.9 0.006 250);
+  --ring: var(--primary);
+
+  /*
+   * Token khusus Mirai, di luar palet shadcn:
+   * - unread : badge jumlah chapter/episode belum dibaca di pojok cover
+   * - downloaded : penanda item yang sudah tersimpan offline
+   * - surface : latar kartu cover; sengaja beda dari --card supaya grid tidak
+   *   lebur dengan latar halaman waktu gambar cover-nya gagal dimuat
+   */
+  --unread: oklch(0.62 0.13 185);
+  --unread-foreground: oklch(0.99 0.005 185);
+  --downloaded: oklch(0.65 0.15 145);
+  --surface: oklch(0.96 0.004 250);
+
+  --radius: 0.75rem;
+}
+
+.dark {
+  --background: oklch(0.16 0.012 250);
+  --foreground: oklch(0.95 0.006 250);
+
+  --card: oklch(0.2 0.014 250);
+  --card-foreground: var(--foreground);
+  --popover: oklch(0.22 0.014 250);
+  --popover-foreground: var(--foreground);
+
+  --primary: oklch(0.72 0.13 185);
+  --primary-foreground: oklch(0.16 0.02 185);
+
+  --secondary: oklch(0.26 0.014 250);
+  --secondary-foreground: oklch(0.95 0.006 250);
+
+  --muted: oklch(0.26 0.014 250);
+  --muted-foreground: oklch(0.68 0.014 250);
+
+  --accent: oklch(0.3 0.03 185);
+  --accent-foreground: oklch(0.95 0.01 185);
+
+  --destructive: oklch(0.62 0.2 27);
+  --destructive-foreground: oklch(0.98 0.005 27);
+
+  --border: oklch(0.28 0.014 250);
+  --input: oklch(0.3 0.014 250);
+  --ring: var(--primary);
+
+  --unread: oklch(0.72 0.13 185);
+  --unread-foreground: oklch(0.16 0.02 185);
+  --downloaded: oklch(0.72 0.15 145);
+  --surface: oklch(0.23 0.014 250);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --color-unread: var(--unread);
+  --color-unread-foreground: var(--unread-foreground);
+  --color-downloaded: var(--downloaded);
+  --color-surface: var(--surface);
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  html,
+  body,
+  #app {
+    @apply h-full;
+  }
+
+  body {
+    @apply bg-background text-foreground antialiased;
+    /*
+     * Overscroll dimatikan supaya di APK tarikan ke bawah tidak memicu
+     * pull-to-refresh WebView di tengah-tengah membaca chapter.
+     */
+    overscroll-behavior: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Notch & gesture bar Android/iOS. Dipakai lewat utility di bawah. */
+  :root {
+    --safe-top: env(safe-area-inset-top, 0px);
+    --safe-bottom: env(safe-area-inset-bottom, 0px);
+  }
+}
+
+@utility pt-safe {
+  padding-top: var(--safe-top);
+}
+
+@utility pb-safe {
+  padding-bottom: var(--safe-bottom);
+}
+
+/* Scrollbar tipis; grid cover jadi tidak kehilangan lebar di desktop. */
+@layer base {
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--border) transparent;
+  }
+}
