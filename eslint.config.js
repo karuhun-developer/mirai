@@ -53,7 +53,7 @@ export default tseslint.config(
   {
     // Skrip perkakas jalan di Node, bukan di browser. Globals-nya ditulis
     // manual supaya root tidak perlu menarik paket `globals`.
-    files: ['scripts/**/*.mjs', '**/*.config.{js,mjs,ts}'],
+    files: ['**/scripts/**/*.mjs', '**/*.config.{js,mjs,ts}'],
     languageOptions: {
       globals: {
         process: 'readonly',
@@ -61,6 +61,7 @@ export default tseslint.config(
         URL: 'readonly',
         URLSearchParams: 'readonly',
         fetch: 'readonly',
+        setTimeout: 'readonly',
         __dirname: 'readonly',
         Buffer: 'readonly',
       },
