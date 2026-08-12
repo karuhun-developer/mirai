@@ -67,8 +67,8 @@ mesin pengembangan.
 | Fase | Isi                                              | Status |
 | ---- | ------------------------------------------------ | ------ |
 | 0    | Fondasi monorepo, shell layout, tooling          | ✅     |
-| 1    | Extension API, runtime sandbox, proxy, MangaDex  | ✅     |
-| 2    | Repo extension, manajemen, Komikcast + Otakudesu | ⬜     |
+| 1    | Extension API, runtime sandbox, proxy            | ✅     |
+| 2    | Repo extension, manajemen, Komikcast + Otakudesu | ✅     |
 | 3    | SQLite, Library offline-first, Updates           | ⬜     |
 | 4    | Reader manga                                     | ⬜     |
 | 5    | Player anime                                     | ⬜     |

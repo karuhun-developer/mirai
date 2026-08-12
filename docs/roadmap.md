@@ -33,19 +33,19 @@ tangan, Pinia, router, Capacitor 8, shell layout responsif, ESLint + Prettier +
 `extension-api` (kontrak), `extension-lib` (`HttpClient`, `ParsedHttpSource`,
 helper `linkedom`, `FilterList`, preferences), `extension-runtime` (sandbox
 Worker + RPC + loader), `apps/proxy` (Fastify `POST /fetch`, `GET /stream`
-dengan `Range`, allowlist, gerbang SSRF), adapter `CapacitorHttp`. Extension
-pertama **MangaDex** (API resmi) untuk memvalidasi kontrak.
+dengan `Range`, gerbang SSRF), adapter `CapacitorHttp`. Satu extension nyata
+untuk memvalidasi kontrak.
 
-**Selesai kalau:** test kontrak hijau, dan di browser Browse → MangaDex
+**Selesai kalau:** test kontrak hijau, dan di browser Browse → sebuah sumber
 menampilkan populer, pencarian jalan, detail + daftar chapter terbuka.
 → [features/extension-runtime.md](features/extension-runtime.md) ·
 [features/network-proxy.md](features/network-proxy.md)
 
-**Sisa utang:** MangaDex tidak terjangkau dari mesin pengembangan (DNS gagal /
-koneksi timeout), jadi pemetaan responsnya dibuktikan lewat fixture, bukan lewat
-respons asli. Daftar chapter dan halaman baca baru punya UI di Fase 3–4; di fase
-ini keduanya cuma terbukti lewat test. Sekali jalan di jaringan normal untuk
-menutupnya.
+**Catatan kemudian:** extension pertama fase ini adalah MangaDex, dan
+`api.mangadex.org` tidak pernah terjangkau dari mesin pengembangan ini — DNS-nya
+gagal total. Paketnya dihapus setelah Fase 2; yang membuktikan kontrak sekarang
+adalah Komikcast, Mangabat, Aniwatch, dan Otakudesu, yang semuanya diuji ke situs
+aslinya. Daftar chapter dan halaman baca baru punya UI di Fase 3–4.
 
 ## Fase 2 — Repo extension & manajemen ✅
 

@@ -73,20 +73,20 @@ try {
     await page.waitForURL('**/extensions')
     check('repo dev terdaftar', await page.getByText('Repo pengembangan').isVisible())
 
-    const row = page.locator('li', { hasText: 'MangaDex' }).first()
+    const row = page.locator('li', { hasText: 'Komikcast' }).first()
     await row.waitFor({ state: 'visible', timeout: 15_000 }).catch(() => {})
-    check('katalog repo menampilkan paket MangaDex', await row.isVisible())
+    check('katalog repo menampilkan paket Komikcast', await row.isVisible())
 
     // 6. Pemasangan: unduh bundel, jalankan di Worker, catat sebagai terpasang.
     //    Tombol "Copot" cuma muncul kalau ketiganya berhasil.
     await row.getByRole('button', { name: 'Pasang' }).click()
     const uninstall = row.getByRole('button', { name: 'Copot' })
     await uninstall.waitFor({ state: 'visible', timeout: 20_000 }).catch(() => {})
-    check('MangaDex terpasang', await uninstall.isVisible())
+    check('Komikcast terpasang', await uninstall.isVisible())
 
     // 7. Verifikasi utama Fase 2: extension bertahan melewati restart app.
     await page.reload({ waitUntil: 'networkidle' })
-    const afterReload = page.locator('li', { hasText: 'MangaDex' }).first()
+    const afterReload = page.locator('li', { hasText: 'Komikcast' }).first()
     await afterReload
       .getByRole('button', { name: 'Copot' })
       .waitFor({ state: 'visible', timeout: 20_000 })
@@ -96,23 +96,23 @@ try {
       await afterReload.getByRole('button', { name: 'Copot' }).isVisible(),
     )
 
-    // 8. Inilah bukti runtime extension benar-benar hidup: nama "MangaDex" cuma
+    // 8. Inilah bukti runtime extension benar-benar hidup: nama "Komikcast" cuma
     //    bisa muncul di Browse kalau bundel-nya di-import di dalam Worker lewat
     //    blob URL, factory-nya jalan, dan describe() balik ke host lewat RPC.
     await page.goto(`${BASE}/browse`, { waitUntil: 'networkidle' })
-    const mangadex = page.getByRole('link', { name: /MangaDex/ })
-    await mangadex.waitFor({ state: 'visible', timeout: 15_000 }).catch(() => {})
-    check('Browse menampilkan sumber MangaDex dari extension', await mangadex.isVisible())
-    check('label sumber menyebut bahasa dan jenis', await page.getByText('ALL · manga').isVisible())
+    const komikcast = page.getByRole('link', { name: /Komikcast/ })
+    await komikcast.waitFor({ state: 'visible', timeout: 15_000 }).catch(() => {})
+    check('Browse menampilkan sumber Komikcast dari extension', await komikcast.isVisible())
+    check('label sumber menyebut bahasa dan jenis', await page.getByText('ID · manga').isVisible())
 
     // 9. Halaman sumber harus mendarat di keadaan pasti — daftar atau pesan
-    //    error — bukan spinner abadi. Di mesin tanpa akses ke MangaDex yang
-    //    muncul memang error, dan itu tetap perilaku yang benar.
-    await mangadex.click()
-    await page.waitForURL('**/browse/mangadex')
+    //    error — bukan spinner abadi. Di mesin yang situsnya tak terjangkau
+    //    yang muncul memang error, dan itu tetap perilaku yang benar.
+    await komikcast.click()
+    await page.waitForURL('**/browse/komikcast')
     check(
       'judul halaman memakai nama sumber',
-      await page.getByRole('heading', { name: 'MangaDex' }).isVisible(),
+      await page.getByRole('heading', { name: 'Komikcast' }).isVisible(),
     )
     check('kotak pencarian tersedia', await page.getByLabel('Cari judul').isVisible())
 

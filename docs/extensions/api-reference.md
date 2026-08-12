@@ -294,7 +294,7 @@ Turunannya:
 Tersedia untuk turunan: `this.http`, `this.prefs`, `headers()`, `get(path)`,
 `fetchDocument(req)`.
 
-Source berbasis API (seperti MangaDex) tidak perlu base class ini —
+Source berbasis API JSON tidak perlu base class ini —
 `implements MangaSource` langsung lebih jujur.
 
 ---

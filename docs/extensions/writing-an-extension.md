@@ -1,6 +1,6 @@
 # Menulis Extension Mirai
 
-Mirai tidak membawa satu pun sumber bawaan. Semua sumber — MangaDex, Komikcast,
+Mirai tidak membawa satu pun sumber bawaan. Semua sumber — Komikcast, Mangabat,
 Otakudesu — adalah paket terpisah yang mengimplementasikan satu interface,
 dibundel jadi satu berkas ESM, lalu dijalankan di dalam Web Worker terisolasi.
 Polanya meniru [keiyoushi](https://github.com/keiyoushi/extensions-source):
@@ -27,13 +27,13 @@ extensions/src/<lang>/<slug>/
 
 ```json
 {
-  "pkg": "mangadex",
-  "name": "MangaDex",
-  "lang": "all",
+  "pkg": "komikcast",
+  "name": "Komikcast",
+  "lang": "id",
   "version": "1.0.0",
   "apiVersion": 1,
   "nsfw": false,
-  "hosts": ["api.mangadex.org", "uploads.mangadex.org"]
+  "hosts": ["v3.komikcast.fit", "be.komikcast.cc", "cdn.komikcast.fit"]
 }
 ```
 
@@ -329,7 +329,8 @@ Test extension memakai **stub `HttpClient` + fixture**, bukan jaringan sungguhan
 Test yang memanggil situs asli akan merah setiap kali situsnya rewel, dan yang
 sebenarnya ingin dibuktikan adalah pemetaan respons → model.
 
-Contoh lengkap: `extensions/test/mangadex.test.ts`.
+Taruh berkasnya di `extensions/test/<pkg>.test.ts`; `pnpm test` di root menyapu
+`extensions/**/test/**/*.test.ts`.
 
 ```ts
 const ctx: SourceContext = {

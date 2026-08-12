@@ -60,6 +60,18 @@ menautkan ke sana supaya changelog ini tetap ringkas.
   memastikan `baseUrl` tercakup, dan nanti untuk memberi tahu pengguna domain apa
   saja yang akan dihubungi sebuah paket.
 
+#### Removed
+
+- Extension **MangaDex** beserta test kontraknya. Sejak Fase 1 host-nya tidak
+  pernah sekali pun terjangkau dari jaringan tempat aplikasi ini dikembangkan —
+  `api.mangadex.org` gagal di tingkat DNS — jadi satu-satunya paket yang tidak
+  bisa diuji ke situs aslinya justru dijadikan rujukan di docs dan smoke test.
+  Perannya diambil alih Komikcast, Mangabat, Aniwatch, dan Otakudesu, yang
+  semuanya dipanggil ke situs sungguhan lewat `extensions/scripts/smoke.mjs`.
+  Akibatnya `extensions/test/` untuk sementara kosong: pengujian source kini
+  bersandar pada smoke ke situs asli, dan test berbasis fixture menunggu source
+  yang markup-nya sudah stabil.
+
 #### Changed
 
 - `/health` melaporkan `hostLimits`, bukan `allowedHosts`. `0` sekarang berarti
@@ -101,7 +113,7 @@ menautkan ke sana supaya changelog ini tetap ringkas.
 
 Fase 2 terverifikasi 2026-08-12: `pnpm typecheck`, `pnpm lint`, `pnpm
 format:check` bersih; `node scripts/smoke.mjs` lolos 15 pemeriksaan di 375px dan
-1440px, termasuk memasang MangaDex lewat UI dari repo `/ext-dev`, memuat ulang
+1440px, termasuk memasang Komikcast lewat UI dari repo `/ext-dev`, memuat ulang
 halaman, dan menemukannya masih terpasang serta bisa di-browse.
 
 ### Fase 1 — Extension API & runtime

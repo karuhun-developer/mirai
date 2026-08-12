@@ -27,7 +27,7 @@ import { DEFAULT_USER_AGENT } from './util.js'
  * Aniyomi: penulis extension cukup menyediakan pasangan `*Request` dan
  * `*Parse`, sisanya — header, fetch, parsing, penanganan error — sudah di sini.
  *
- * Source berbasis API JSON (mis. MangaDex) tidak wajib memakai kelas ini;
+ * Source berbasis API JSON tidak wajib memakai kelas ini;
  * mengimplementasikan `MangaSource`/`AnimeSource` langsung juga sah.
  */
 export abstract class ParsedHttpSource<T extends SEntry> implements CatalogueSource<T> {

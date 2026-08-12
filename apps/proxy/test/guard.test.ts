@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { assertAllowed, BlockedUrlError } from '../src/guard.ts'
 
-const guard = { allowedHosts: ['mangadex.org', 'api.mangadex.org'] }
+const guard = { allowedHosts: ['komikcast.cc', 'be.komikcast.cc'] }
 
 function blocked(url: string): string {
   try {
@@ -15,15 +15,13 @@ function blocked(url: string): string {
 
 describe('gerbang SSRF', () => {
   it('mengizinkan host yang dibatasi beserta subdomainnya', () => {
-    expect(assertAllowed('https://api.mangadex.org/manga', guard).hostname).toBe('api.mangadex.org')
-    expect(assertAllowed('https://uploads.mangadex.org/covers/x.jpg', guard).hostname).toBe(
-      'uploads.mangadex.org',
-    )
+    expect(assertAllowed('https://be.komikcast.cc/api', guard).hostname).toBe('be.komikcast.cc')
+    expect(assertAllowed('https://cdn.komikcast.cc/x.jpg', guard).hostname).toBe('cdn.komikcast.cc')
   })
 
   it('tidak tertipu host yang cuma berakhiran sama', () => {
-    expect(blocked('https://notmangadex.org/')).toContain('tidak ada di daftar')
-    expect(blocked('https://mangadex.org.jahat.test/')).toContain('tidak ada di daftar')
+    expect(blocked('https://notkomikcast.cc/')).toContain('tidak ada di daftar')
+    expect(blocked('https://komikcast.cc.jahat.test/')).toContain('tidak ada di daftar')
   })
 
   it('mencocokkan pola bintang tepat satu label', () => {
@@ -81,7 +79,7 @@ describe('gerbang SSRF', () => {
 
   it('menolak protokol selain http dan https', () => {
     expect(blocked('file:///etc/passwd')).toContain('Protokol')
-    expect(blocked('gopher://mangadex.org/')).toContain('Protokol')
+    expect(blocked('gopher://komikcast.cc/')).toContain('Protokol')
   })
 
   it('menolak URL yang tidak bisa di-parse', () => {

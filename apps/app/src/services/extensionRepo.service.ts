@@ -28,7 +28,7 @@ export interface RepoEntry {
   apiVersion: number
   nsfw: boolean
   hosts: string[]
-  /** Relatif terhadap URL repo, mis. `js/mangadex.js`. */
+  /** Relatif terhadap URL repo, mis. `js/komikcast.js`. */
   file: string
   icon?: string
   sources: RepoSourceInfo[]

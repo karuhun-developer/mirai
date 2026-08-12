@@ -87,7 +87,7 @@ string. `MediaResolver` cuma menerjemahkan URL: apa adanya di native, lewat
 | `packages/extension-runtime/src/sandbox.worker.ts`        | Sandbox: import blob, broker HTTP, matikan API jaringan        |
 | `packages/extension-runtime/src/host.ts`                  | `ExtensionInstance`, cek `apiVersion`, timeout 30 dtk, binding |
 | `packages/extension-runtime/src/http/`                    | Adapter Capacitor & proxy, rate limit, `MediaResolver`         |
-| `extensions/src/all/mangadex/`                            | Extension pertama — API resmi, membuktikan kontraknya          |
+| `extensions/src/{id,en}/*/`                               | Extension bawaan repo dev — bukti kontraknya generic           |
 | `extensions/scripts/build.ts`                             | esbuild → satu ESM per source + `index.min.json`               |
 | `apps/app/src/services/extensions.ts`                     | Baca index repo, unduh bundel, muat ke runtime                 |
 | `apps/app/src/stores/sources.ts`                          | Daftar source untuk UI                                         |
@@ -106,15 +106,13 @@ node scripts/smoke.mjs
 pnpm test
 ```
 
-Smoke memeriksa bahwa "MangaDex" muncul di Browse. Nama itu **cuma** bisa
+Smoke memeriksa bahwa "Komikcast" muncul di Browse. Nama itu **cuma** bisa
 muncul kalau index repo terbaca, bundel-nya ter-import di dalam Worker lewat
 blob URL, factory-nya jalan, dan `describe()` kembali ke host lewat RPC — jadi
 satu cek itu membuktikan seluruh rantai runtime.
 
-`pnpm test` menjalankan test kontrak MangaDex dengan stub `HttpClient` +
-fixture.
-
-> **Belum terverifikasi:** panggilan sungguhan ke `api.mangadex.org`. Dari mesin
-> pengembangan ini host tersebut tidak terjangkau (DNS gagal / koneksi timeout),
-> jadi kebenaran pemetaan dibuktikan lewat fixture, bukan lewat respons asli.
-> Perlu dijalankan sekali di jaringan yang bisa menjangkau MangaDex.
+Pemetaan tiap source ke situs aslinya diuji terpisah lewat
+`node extensions/scripts/smoke.mjs`, yang memanggil situs sungguhan. Hasil
+terakhir: Aniwatch, Komikcast, Mangabat, dan Otakudesu hijau; KunManga tertahan
+verifikasi Cloudflare — lihat
+[network-proxy.md](network-proxy.md#verifikasi-cloudflare).

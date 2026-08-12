@@ -33,9 +33,9 @@ mengambilkan kredensial instance dari dalam jaringannya sendiri.
 
 - **Tidak ada allowlist host.** `PROXY_ALLOWED_HOSTS` kosong — nilai bawaannya —
   berarti host publik mana pun boleh. Lihat [Kenapa tanpa allowlist](#kenapa-tanpa-allowlist).
-- **Kalau diisi**, kecocokannya bukan `endsWith` polos: `mangadex.org`
-  mengizinkan `cdn.mangadex.org` tetapi menolak `notmangadex.org` dan
-  `mangadex.org.jahat.test`. `*` mewakili tepat satu label DNS.
+- **Kalau diisi**, kecocokannya bukan `endsWith` polos: `komikcast.cc`
+  mengizinkan `be.komikcast.cc` tetapi menolak `notkomikcast.cc` dan
+  `komikcast.cc.jahat.test`. `*` mewakili tepat satu label DNS.
 - **Alamat internal ditolak** lebih dulu, selalu, dan tidak bisa dimatikan lewat
   env: loopback, `10./172.16-31./192.168./169.254./0.`, `localhost`, IPv6 `::1`,
   `fc00::/7`, `fe80::/10`.
@@ -92,7 +92,7 @@ dan menolak permintaan tanpa keduanya.
 `fetch()` Node membungkus semua kegagalan jaringan jadi satu pesan "fetch
 failed" yang tidak memberi tahu apa pun. Rantai `cause` dibuka sampai empat
 tingkat dan kode errornya ikut disertakan, jadi yang sampai ke layar berbunyi
-`fetch failed — getaddrinfo ENOTFOUND api.mangadex.org (ENOTFOUND)`. Selisih
+`fetch failed — getaddrinfo ENOTFOUND be.komikcast.cc (ENOTFOUND)`. Selisih
 antara "situsnya mati" dan "DNS-nya diblokir" menentukan langkah user
 berikutnya.
 
