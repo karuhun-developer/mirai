@@ -26,6 +26,11 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/pages/browse/BrowsePage.vue'),
   },
   {
+    path: '/browse/:sourceId',
+    name: 'browse-source',
+    component: () => import('@/pages/browse/SourceBrowsePage.vue'),
+  },
+  {
     path: '/more',
     name: 'more',
     component: () => import('@/pages/more/MorePage.vue'),

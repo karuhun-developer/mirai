@@ -17,6 +17,8 @@
     "@capacitor/network": "^8.0.1",
     "@capacitor/share": "^8.0.1",
     "@lucide/vue": "^1.31.0",
+    "@mirai/extension-api": "workspace:*",
+    "@mirai/extension-runtime": "workspace:*",
     "@vueuse/core": "^14.4.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
@@ -31,6 +33,7 @@
     "@capacitor/cli": "^8.5.0",
     "@tailwindcss/vite": "^4.3.3",
     "@tsconfig/node22": "^22.0.5",
+    "sirv": "^3.0.2",
     "tailwindcss": "^4.3.3"
   }
 }
