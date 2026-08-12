@@ -1,0 +1,17 @@
+{
+  "pkg": "aniwatch",
+  "name": "Aniwatch",
+  "lang": "en",
+  "version": "1.0.0",
+  "apiVersion": 1,
+  "nsfw": false,
+  "hosts": [
+    "aniwatch.co.at",
+    "i0.wp.com",
+    "1anime.site",
+    "megaplay.buzz",
+    "megap.*.top",
+    "lostproject.club",
+    "1oe.*.club"
+  ]
+}

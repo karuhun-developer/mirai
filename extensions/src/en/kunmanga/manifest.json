@@ -1,0 +1,9 @@
+{
+  "pkg": "kunmanga",
+  "name": "KunManga",
+  "lang": "en",
+  "version": "1.0.0",
+  "apiVersion": 1,
+  "nsfw": false,
+  "hosts": ["kunmanga.com"]
+}
