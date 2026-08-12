@@ -1,0 +1,17 @@
+{
+  "name": "@mirai/extension-runtime",
+  "private": true,
+  "version": "0.2.0",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "types": "./src/index.ts",
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@capacitor/core": "^8.5.0",
+    "@mirai/extension-api": "workspace:*"
+  }
+}
