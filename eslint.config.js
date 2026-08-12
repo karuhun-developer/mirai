@@ -18,6 +18,12 @@ export default tseslint.config(
       parserOptions: { parser: tseslint.parser },
     },
     rules: {
+      // `no-undef` sudah dimatikan typescript-eslint untuk berkas `.ts` karena
+      // TypeScript memeriksa identifier jauh lebih teliti — tapi override-nya
+      // tidak menyebut `.vue`, jadi blok `<script setup lang="ts">` tertinggal
+      // dan setiap `window`/`IntersectionObserver` dilaporkan tidak dikenal.
+      // Dimatikan di sini dengan alasan yang sama; `vue-tsc` yang menjaganya.
+      'no-undef': 'off',
       // Nama halaman/komponen kadang memang satu kata (Browse, Updates) — itu
       // sudah jelas dari foldernya, jadi aturan multi-word cuma bikin bising.
       'vue/multi-word-component-names': 'off',
