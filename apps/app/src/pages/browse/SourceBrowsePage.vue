@@ -7,10 +7,12 @@ import AppHeader from '@/components/layout/AppHeader.vue'
 import ChallengeNotice from '@/components/common/ChallengeNotice.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 import EntryGrid from '@/components/entry/EntryGrid.vue'
+import { fromSource } from '@/components/entry/grid'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useExtensionsStore } from '@/stores/extensions'
 import { challengeOf, type ChallengeInfo } from '@/services/challenge.service'
+import { favoriteIds, idOf, rememberCatalogue } from '@/services/entry.service'
 
 type Mode = 'popular' | 'latest' | 'search'
 
@@ -21,6 +23,8 @@ const sourceId = computed(() => String(route.params['sourceId'] ?? ''))
 const source = computed(() => store.byId(sourceId.value))
 
 const entries = ref<SEntry[]>([])
+/** Id entri yang ada di library; dipakai menandai kartu yang sudah difavoritkan. */
+const favorites = ref<Set<string>>(new Set())
 const page = ref(1)
 const hasNextPage = ref(false)
 const mode = ref<Mode>('popular')
@@ -58,6 +62,12 @@ async function fetchPage(next: boolean): Promise<void> {
     entries.value = next ? [...entries.value, ...result.entries] : result.entries
     page.value = targetPage
     hasNextPage.value = result.hasNextPage
+
+    // Hasil katalog ikut disimpan supaya membuka detailnya nanti — termasuk
+    // saat jaringan sudah mati — tetap menemukan barisnya. Entri yang cuma
+    // dilihat sekilas dibuang lagi oleh `pruneOrphans()`.
+    await rememberCatalogue(current.kind, current.id, result.entries)
+    favorites.value = await favoriteIds(entries.value.map((entry) => idOf(current.id, entry.url)))
   } catch (cause) {
     if (token !== requestToken) return
     const blocked = challengeOf(cause)
@@ -90,6 +100,17 @@ watch(sourceId, () => {
   searchTerm.value = ''
   void fetchPage(false)
 })
+
+const cards = computed(() =>
+  entries.value.map((entry) => {
+    const current = source.value
+    if (!current) return fromSource('manga', sourceId.value, entry)
+    return {
+      ...fromSource(current.kind, current.id, entry),
+      favorite: favorites.value.has(idOf(current.id, entry.url)),
+    }
+  }),
+)
 
 const tabs: { key: Mode; label: string }[] = [
   { key: 'popular', label: 'Populer' },
@@ -138,7 +159,7 @@ const tabs: { key: Mode; label: string }[] = [
       {{ error }}
     </p>
 
-    <EntryGrid v-if="entries.length > 0" :entries="entries" />
+    <EntryGrid v-if="cards.length > 0" :entries="cards" />
 
     <p v-if="busy" class="px-4 py-6 text-center text-sm text-muted-foreground">Memuat…</p>
 

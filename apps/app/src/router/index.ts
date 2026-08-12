@@ -31,6 +31,19 @@ const routes: RouteRecordRaw[] = [
     component: () => import('@/pages/browse/SourceBrowsePage.vue'),
   },
   {
+    // `url` entri adalah alamat di situs sumbernya — berisi garis miring, jadi
+    // parameternya `(.*)`. vue-router menyandi dan membacanya kembali utuh;
+    // lihat `router/links.ts`.
+    path: '/entry/:kind(anime|manga)/:sourceId/:url(.*)',
+    name: 'entry',
+    component: () => import('@/pages/entry/EntryDetailPage.vue'),
+  },
+  {
+    path: '/history',
+    name: 'history',
+    component: () => import('@/pages/history/HistoryPage.vue'),
+  },
+  {
     path: '/more',
     name: 'more',
     component: () => import('@/pages/more/MorePage.vue'),
