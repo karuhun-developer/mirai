@@ -7,7 +7,7 @@ hasilnya dicatat di [CHANGELOG.md](../CHANGELOG.md).
 | Fase | Versi | Isi                        | Status |
 | ---- | ----- | -------------------------- | ------ |
 | 0    | 0.1.0 | Fondasi monorepo           | ✅     |
-| 1    | 0.2.0 | Extension API & runtime    | ⬜     |
+| 1    | 0.2.0 | Extension API & runtime    | ✅     |
 | 2    | 0.3.0 | Repo extension & manajemen | ⬜     |
 | 3    | 0.4.0 | DB & Library offline-first | ⬜     |
 | 4    | 0.5.0 | Reader manga               | ⬜     |
@@ -28,7 +28,7 @@ tangan, Pinia, router, Capacitor 8, shell layout responsif, ESLint + Prettier +
 **Selesai kalau:** perintah mutu bersih dan app bisa dinavigasi di 375px maupun
 1440px. → [features/app-shell.md](features/app-shell.md)
 
-## Fase 1 — Extension API & runtime
+## Fase 1 — Extension API & runtime ✅
 
 `extension-api` (kontrak), `extension-lib` (`HttpClient`, `ParsedHttpSource`,
 helper `linkedom`, `FilterList`, preferences), `extension-runtime` (sandbox
@@ -38,6 +38,14 @@ pertama **MangaDex** (API resmi) untuk memvalidasi kontrak.
 
 **Selesai kalau:** test kontrak hijau, dan di browser Browse → MangaDex
 menampilkan populer, pencarian jalan, detail + daftar chapter terbuka.
+→ [features/extension-runtime.md](features/extension-runtime.md) ·
+[features/network-proxy.md](features/network-proxy.md)
+
+**Sisa utang:** MangaDex tidak terjangkau dari mesin pengembangan (DNS gagal /
+koneksi timeout), jadi pemetaan responsnya dibuktikan lewat fixture, bukan lewat
+respons asli. Daftar chapter dan halaman baca baru punya UI di Fase 3–4; di fase
+ini keduanya cuma terbukti lewat test. Sekali jalan di jaringan normal untuk
+menutupnya.
 
 ## Fase 2 — Repo extension & manajemen
 

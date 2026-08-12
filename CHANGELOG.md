@@ -11,6 +11,85 @@ menautkan ke sana supaya changelog ini tetap ringkas.
 
 ## [Unreleased]
 
+### Fase 1 — Extension API & runtime
+
+#### Added
+
+- `@mirai/extension-api` — kontrak yang dipegang extension pihak ketiga: model
+  (`SManga`, `SAnime`, `SChapter`, `SEpisode`, `SPage`, `SVideo`), interface
+  source, filter, preferences, dan `HttpClient`. **Nol dependensi**, dan
+  `types: []` supaya tipe Node tidak pernah bocor ke permukaan API. `API_VERSION`
+  dimulai dari `1`.
+- `@mirai/extension-lib` — perkakas penulis extension: `ParsedHttpSource` dan
+  turunan manga/anime, helper `linkedom`, builder & pembaca `FilterList`,
+  pembaca JSON `unknown`, util. Boleh gemuk: paket ini dibundel ke tiap
+  extension, bukan ke aplikasi.
+- `@mirai/extension-runtime` — sandbox Web Worker satu per extension dengan RPC,
+  pemeriksaan `apiVersion`, timeout 30 detik per panggilan, dan dua adapter HTTP
+  di balik satu interface. Lihat
+  [docs/features/extension-runtime.md](docs/features/extension-runtime.md).
+- `apps/proxy` — Fastify 5 dengan `POST /fetch` dan `GET /stream`. Gerbang SSRF
+  gagal-tertutup, redirect ditangani manual dengan pemeriksaan ulang tiap
+  lompatan, `Range` diteruskan apa adanya, body di-stream tidak pernah di-buffer.
+  Lihat [docs/features/network-proxy.md](docs/features/network-proxy.md).
+- Extension **MangaDex** (`extensions/src/all/mangadex/`) di atas API resminya —
+  extension pertama, sekaligus bukti bahwa kontraknya cukup untuk source berbasis
+  API tanpa perlu base class scraping.
+- Halaman **Browse**: daftar sumber terpasang, lalu Populer/Terbaru/Cari dengan
+  paginasi per sumber, grid cover responsif dengan badge belum-dibaca dan penanda
+  sudah-diunduh.
+- `extensions/scripts/build.ts` — esbuild membundel tiap source jadi satu ESM
+  plus `dist/index.min.json`. Saat `pnpm dev`, `extensions/dist` disajikan di
+  `/ext-dev` sebagai repo lokal, jadi extension bisa dicoba sebelum manajemen
+  repo sungguhan datang di Fase 2.
+- Panduan [menulis extension](docs/extensions/writing-an-extension.md) dan
+  [API reference](docs/extensions/api-reference.md).
+- Test: kontrak `extension-api`, helper `extension-lib`, gerbang SSRF proxy, dan
+  MangaDex dengan stub `HttpClient` + fixture. `tsconfig.test.json` memasukkan
+  test ke `pnpm typecheck` — tanpa itu test tidak pernah diperiksa tipenya sama
+  sekali, karena vitest hanya menjalankan.
+- Smoke test diperluas: Browse harus menampilkan "MangaDex". Nama itu hanya bisa
+  muncul kalau index repo terbaca, bundel-nya ter-import di dalam Worker lewat
+  blob URL, factory-nya jalan, dan `describe()` kembali ke host lewat RPC — satu
+  pemeriksaan yang membuktikan seluruh rantai runtime.
+
+#### Notes
+
+- Test gerbang SSRF menangkap satu celah sebelum kodenya sempat dipakai:
+  `::ffff:127.0.0.1` lolos ke pemeriksaan allowlist karena `new URL()`
+  menormalkannya jadi bentuk heksa `::ffff:7f00:1`, sedangkan pemeriksaan
+  IPv4-mapped hanya mengenali notasi titik. Kedua bentuk sekarang dikenali.
+- Pesan kegagalan proxy tidak berhenti di "fetch failed" — rantai `cause` dibuka
+  beserta kode errornya, dan sisi klien membedakan 403 (kebijakan proxy), 502
+  (sumber tidak terjangkau), dan proxy yang mati sama sekali. Tiga hal yang
+  menuntut tindakan berbeda dari user.
+- Kode extension diunduh **host**, lalu diserahkan ke worker sebagai string dan
+  di-`import` lewat blob URL. Worker tidak pernah mengambil kodenya sendiri:
+  `ctx.http` tetap satu-satunya jalur keluar, dan repo GitHub Pages tidak perlu
+  memasang header CORS.
+- Setelah modul dimuat, worker mematikan `fetch`, `XMLHttpRequest`, dan
+  `importScripts`. `fetch` diganti fungsi yang melempar sambil menunjuk
+  `ctx.http` — penulis extension harus tahu kenapa kodenya gagal, bukan
+  menemukan `undefined`.
+- `getJson()` sengaja mengembalikan `unknown`, bukan generic. Respons berasal
+  dari jaringan; `getJson<Manga>()` hanya kebohongan tipe yang berubah jadi crash
+  saat situsnya mengubah bentuk.
+- Store menyimpan extension di `shallowRef`: proxy reaktif Vue akan membungkus
+  instance yang memegang `Worker` dan merusak identitas kelasnya.
+- `esbuild: true` di `pnpm-workspace.yaml` `allowBuilds`. Tanpa postinstall-nya,
+  esbuild tidak mengunduh binary platform dan build extension gagal dengan
+  "You installed esbuild for another platform".
+
+Fase 1 terverifikasi 2026-08-12: `pnpm build`, `pnpm typecheck`, `pnpm lint`,
+`pnpm format:check` bersih; `pnpm test` 58 test hijau; `node scripts/smoke.mjs`
+lolos 20 pemeriksaan di dua lebar layar; gerbang SSRF dicoba langsung dengan
+curl (loopback, host di luar allowlist, `file:`) dan menolak ketiganya.
+
+**Tidak terverifikasi:** panggilan sungguhan ke `api.mangadex.org`. Host itu
+tidak terjangkau dari mesin pengembangan ini — DNS gagal atau koneksi timeout,
+sementara registry npm lewat — jadi pemetaan responsnya dibuktikan lewat fixture,
+bukan lewat respons asli. Perlu dijalankan sekali di jaringan normal.
+
 ### Fase 0 — Fondasi monorepo
 
 #### Added

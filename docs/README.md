@@ -17,16 +17,29 @@ jadi APK.
 
 ## Dokumen fitur
 
-| Fitur                   | Fase | Dokumen                                        |
-| ----------------------- | ---- | ---------------------------------------------- |
-| Shell layout & navigasi | 0    | [features/app-shell.md](features/app-shell.md) |
+| Fitur                      | Fase | Dokumen                                                        |
+| -------------------------- | ---- | -------------------------------------------------------------- |
+| Shell layout & navigasi    | 0    | [features/app-shell.md](features/app-shell.md)                 |
+| Runtime extension & Browse | 1    | [features/extension-runtime.md](features/extension-runtime.md) |
+| Proxy jaringan             | 1    | [features/network-proxy.md](features/network-proxy.md)         |
 
-Fitur fase berikutnya (extension runtime, library, reader, player, unduhan)
-mendapat dokumennya masing-masing saat dikerjakan.
+Fitur fase berikutnya (library, reader, player, unduhan) mendapat dokumennya
+masing-masing saat dikerjakan.
+
+## Menulis extension
+
+| Dokumen                                                                  | Isi                                      |
+| ------------------------------------------------------------------------ | ---------------------------------------- |
+| [extensions/writing-an-extension.md](extensions/writing-an-extension.md) | Panduan langkah demi langkah + checklist |
+| [extensions/api-reference.md](extensions/api-reference.md)               | Referensi tipe dan helper lengkap        |
 
 ## Mulai dari mana
 
 ```bash
 pnpm install
-pnpm dev     # http://localhost:5180
+cp apps/proxy/.env.example apps/proxy/.env
+
+pnpm --filter @mirai/extensions build   # bangun extension → extensions/dist
+pnpm dev                                # http://localhost:5180
+pnpm dev:proxy                          # http://127.0.0.1:5181 (wajib untuk build web)
 ```

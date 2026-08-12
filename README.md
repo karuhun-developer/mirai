@@ -18,13 +18,21 @@ Pinia · Capacitor 8 · SQLite · pnpm workspaces
 
 ```bash
 pnpm install
-pnpm dev            # http://localhost:5180
+cp apps/proxy/.env.example apps/proxy/.env
+
+pnpm --filter @mirai/extensions build   # extension → extensions/dist
+pnpm dev                                # http://localhost:5180
+pnpm dev:proxy                          # http://127.0.0.1:5181, di terminal lain
 ```
+
+Di build web semua request extension menempuh proxy, jadi tanpa `pnpm dev:proxy`
+halaman Browse memuat daftar sumbernya tapi tidak bisa mengambil katalog. Hasil
+build extension disajikan di `/ext-dev` sebagai repo lokal selama dev.
 
 | Perintah                            | Fungsi                                         |
 | ----------------------------------- | ---------------------------------------------- |
 | `pnpm dev`                          | Dev server app (port 5180, `strictPort`)       |
-| `pnpm dev:proxy`                    | Proxy CORS untuk build web (Fase 1)            |
+| `pnpm dev:proxy`                    | Proxy CORS + stream untuk build web            |
 | `pnpm build`                        | Build seluruh workspace                        |
 | `pnpm typecheck`                    | `vue-tsc` di seluruh workspace                 |
 | `pnpm lint` / `pnpm lint:fix`       | ESLint                                         |
@@ -59,7 +67,7 @@ mesin pengembangan.
 | Fase | Isi                                              | Status |
 | ---- | ------------------------------------------------ | ------ |
 | 0    | Fondasi monorepo, shell layout, tooling          | ✅     |
-| 1    | Extension API, runtime sandbox, proxy, MangaDex  | ⬜     |
+| 1    | Extension API, runtime sandbox, proxy, MangaDex  | ✅     |
 | 2    | Repo extension, manajemen, Komikcast + Otakudesu | ⬜     |
 | 3    | SQLite, Library offline-first, Updates           | ⬜     |
 | 4    | Reader manga                                     | ⬜     |
@@ -81,7 +89,14 @@ Rincian tiap fase: [docs/roadmap.md](docs/roadmap.md).
 | [docs/conventions.md](docs/conventions.md)   | Aturan koding yang wajib diikuti          |
 | [docs/roadmap.md](docs/roadmap.md)           | Fase 0–9 dan kriteria selesainya          |
 | [docs/features/](docs/features/)             | Satu dokumen per fitur                    |
+| [docs/extensions/](docs/extensions/)         | Cara menulis extension + API reference    |
 | [CHANGELOG.md](CHANGELOG.md)                 | Riwayat rilis                             |
+
+## Menulis extension
+
+Sumber adalah paket terpisah yang mengimplementasikan satu interface dan
+dijalankan di dalam Web Worker terisolasi. Mulai dari
+[docs/extensions/writing-an-extension.md](docs/extensions/writing-an-extension.md).
 
 ## Catatan
 
