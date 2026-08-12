@@ -9,6 +9,9 @@ export interface DownloadEntry extends DownloadRow {
   entry_title: string
   entry_kind: EntryKind
   entry_thumbnail: string | null
+  /** Cukup untuk menautkan barisnya kembali ke halaman detail judulnya. */
+  entry_url: string
+  source_id: string
 }
 
 /**
@@ -83,7 +86,8 @@ export class DownloadRepository {
   list(limit = 200): Promise<DownloadEntry[]> {
     return this.db.query<DownloadEntry>(
       `SELECT d.*, i.name AS item_name, i.number AS item_number,
-              e.title AS entry_title, e.kind AS entry_kind, e.thumbnail_url AS entry_thumbnail
+              e.title AS entry_title, e.kind AS entry_kind, e.thumbnail_url AS entry_thumbnail,
+              e.url AS entry_url, e.source_id AS source_id
          FROM download d
          JOIN item i ON i.id = d.item_id
          JOIN entry e ON e.id = d.entry_id

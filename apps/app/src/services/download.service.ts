@@ -142,16 +142,23 @@ export async function retry(job: DownloadRow): Promise<void> {
 }
 
 /**
- * Membatalkan satu pekerjaan sekaligus membuang berkas separuh jadinya.
+ * Membuang satu pekerjaan beserta berkasnya.
  *
- * Yang sudah `done` tidak lewat sini — itu urusan `removeDownload()`, yang
- * namanya jujur soal "menghapus chapter yang sudah tersimpan".
+ * Satu fungsi untuk "batalkan" dan "hapus" karena keduanya berarti hal yang
+ * persis sama di penyimpanan: hentikan kalau sedang jalan, buang direktorinya,
+ * lupakan barisnya. Yang berbeda cuma label tombolnya, dan itu urusan UI.
  */
-export async function cancel(job: DownloadRow): Promise<void> {
+export async function removeJob(job: DownloadRow): Promise<void> {
   stopping.add(job.id)
   await repos().downloads.remove(job.id)
   const context = await contextOf(job.item_id)
   if (context) await removeFiles(context.entry, context.item)
+  changed()
+}
+
+/** Membersihkan daftar dari yang sudah selesai. Berkasnya sengaja tetap ada. */
+export async function clearDone(): Promise<void> {
+  await repos().downloads.clearDone()
   changed()
 }
 

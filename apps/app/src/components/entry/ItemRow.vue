@@ -1,7 +1,15 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { Bookmark, Check, ChevronsDown } from '@lucide/vue'
-import type { ItemRow } from '@mirai/db'
+import {
+  Bookmark,
+  Check,
+  ChevronsDown,
+  CircleCheck,
+  Download,
+  LoaderCircle,
+  TriangleAlert,
+} from '@lucide/vue'
+import type { DownloadRow, ItemRow } from '@mirai/db'
 import { Button } from '@/components/ui/button'
 
 const props = defineProps<{
@@ -12,6 +20,10 @@ const props = defineProps<{
    * jelas diam.
    */
   openable?: boolean
+  /** Unduhan baru ada untuk manga; anime menyusul di fase berikutnya. */
+  downloadable?: boolean
+  /** Pekerjaan unduhan chapter ini, kalau ada di antrean. */
+  job?: DownloadRow | undefined
 }>()
 
 const emit = defineEmits<{
@@ -19,9 +31,33 @@ const emit = defineEmits<{
   toggleSeen: []
   toggleBookmark: []
   markUpTo: []
+  download: []
+  removeDownload: []
 }>()
 
 const seen = computed(() => props.item.seen === 1)
+const downloaded = computed(() => props.item.downloaded === 1)
+const state = computed(() => props.job?.state)
+const busy = computed(() => state.value === 'queued' || state.value === 'running')
+
+/**
+ * Satu tombol, empat arti — mengikuti keadaan yang paling mungkin dituju
+ * berikutnya: yang gagal diulang, yang tersimpan dihapus, yang belum diunduh
+ * diantre. Yang sedang berjalan tidak bisa diketuk; membatalkannya lewat
+ * halaman Unduhan, tempat progresnya terlihat penuh.
+ */
+const downloadLabel = computed(() => {
+  if (busy.value) return `Mengunduh ${props.job?.progress ?? 0}%`
+  if (state.value === 'failed') return 'Unduhan gagal, coba lagi'
+  if (downloaded.value) return 'Hapus unduhan'
+  return 'Unduh chapter ini'
+})
+
+function onDownload(): void {
+  if (busy.value) return
+  if (downloaded.value && state.value !== 'failed') emit('removeDownload')
+  else emit('download')
+}
 
 const subtitle = computed(() => {
   const parts: string[] = []
@@ -33,6 +69,9 @@ const subtitle = computed(() => {
   if (!seen.value && props.item.last_position > 0) {
     parts.push(`lanjut di ${props.item.last_position}`)
   }
+  if (busy.value) parts.push(`mengunduh ${props.job?.progress ?? 0}%`)
+  else if (state.value === 'failed') parts.push('unduhan gagal')
+  else if (downloaded.value) parts.push('tersimpan')
   return parts.join(' · ')
 })
 </script>
@@ -51,6 +90,21 @@ const subtitle = computed(() => {
       </p>
       <p v-if="subtitle" class="truncate text-xs text-muted-foreground">{{ subtitle }}</p>
     </component>
+
+    <Button
+      v-if="downloadable"
+      variant="ghost"
+      size="icon-sm"
+      data-testid="item-download"
+      :aria-label="downloadLabel"
+      :title="downloadLabel"
+      @click="onDownload()"
+    >
+      <LoaderCircle v-if="busy" class="size-4 animate-spin text-primary" />
+      <TriangleAlert v-else-if="state === 'failed'" class="size-4 text-destructive" />
+      <CircleCheck v-else-if="downloaded" class="size-4 fill-primary text-background" />
+      <Download v-else class="size-4" />
+    </Button>
 
     <Button
       variant="ghost"

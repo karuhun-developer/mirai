@@ -4,11 +4,13 @@ import { useRoute, useRouter } from 'vue-router'
 import {
   ArrowDownUp,
   BookOpen,
+  Download,
   FolderPlus,
   Heart,
   Play,
   RefreshCw,
   TriangleAlert,
+  Trash2,
 } from '@lucide/vue'
 import type { EntryKind, ItemRow as ItemRowType } from '@mirai/db'
 import AppHeader from '@/components/layout/AppHeader.vue'
@@ -20,6 +22,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { useCover } from '@/composables/useCover'
 import { playerLocation, readerLocation } from '@/router/links'
+import { useDownloadsStore } from '@/stores/downloads'
 import { useEntryStore } from '@/stores/entry'
 import { useExtensionsStore } from '@/stores/extensions'
 
@@ -27,6 +30,7 @@ const route = useRoute()
 const router = useRouter()
 const store = useEntryStore()
 const extensions = useExtensionsStore()
+const downloads = useDownloadsStore()
 
 const kind = computed<EntryKind>(() => (route.params['kind'] === 'anime' ? 'anime' : 'manga'))
 const sourceId = computed(() => String(route.params['sourceId'] ?? ''))
@@ -48,6 +52,23 @@ const statusLabel: Record<string, string> = {
 
 const itemLabel = computed(() => (kind.value === 'anime' ? 'Episode' : 'Chapter'))
 
+// Unduhan baru ada untuk manga; episode menyusul di fase berikutnya.
+const downloadable = computed(() => kind.value === 'manga')
+const pendingItems = computed(() =>
+  store.items.filter((item) => item.seen === 0 && item.downloaded === 0),
+)
+const downloadedCount = computed(() => store.items.filter((item) => item.downloaded === 1).length)
+
+async function removeOne(item: ItemRowType): Promise<void> {
+  if (store.entry) await downloads.remove(store.entry, item)
+  await store.reload()
+}
+
+async function removeAll(): Promise<void> {
+  if (store.entry) await downloads.removeEntry(store.entry)
+  await store.reload()
+}
+
 async function load(): Promise<void> {
   await extensions.ensureLoaded()
   await store.open(kind.value, sourceId.value, url.value, source.value)
@@ -66,6 +87,16 @@ async function saveCategories(ids: string[]): Promise<void> {
 onMounted(load)
 // Berpindah entri lewat tautan di halaman ini tidak me-mount ulang komponennya.
 watch([kind, sourceId, url], load)
+
+/**
+ * Tanda "tersimpan" ada di baris `item`, sementara yang berubah waktu unduhan
+ * selesai adalah baris `download`. Daftar di halaman ini dimuat sekali, jadi
+ * tanpa pengamat ini centangnya baru muncul setelah halaman dibuka ulang.
+ */
+watch(
+  () => downloads.jobs.filter((job) => job.state === 'done').length,
+  () => void store.reload(),
+)
 </script>
 
 <template>
@@ -200,6 +231,29 @@ watch([kind, sourceId, url], load)
 
     <div class="flex items-center gap-2 border-t border-border px-4 py-2">
       <p class="flex-1 text-sm font-medium">{{ itemLabel }}</p>
+
+      <Button
+        v-if="downloadable && pendingItems.length > 0"
+        variant="ghost"
+        size="sm"
+        :title="`Unduh ${pendingItems.length} chapter yang belum dibaca`"
+        @click="downloads.download(pendingItems)"
+      >
+        <Download class="size-4" />
+        Unduh {{ pendingItems.length }}
+      </Button>
+
+      <Button
+        v-if="downloadable && downloadedCount > 0"
+        variant="ghost"
+        size="icon-sm"
+        :aria-label="`Hapus ${downloadedCount} chapter terunduh`"
+        :title="`Hapus ${downloadedCount} chapter terunduh`"
+        @click="removeAll()"
+      >
+        <Trash2 class="size-4" />
+      </Button>
+
       <Button variant="ghost" size="sm" @click="store.markAll(true)">Tandai semua</Button>
       <Button variant="ghost" size="icon-sm" aria-label="Balik urutan" @click="store.toggleOrder()">
         <ArrowDownUp class="size-4" />
@@ -212,10 +266,14 @@ watch([kind, sourceId, url], load)
         :key="item.id"
         :item="item"
         openable
+        :downloadable="downloadable"
+        :job="downloads.byItem.get(item.id)"
         @open="open(item)"
         @toggle-seen="store.toggleSeen(item)"
         @toggle-bookmark="store.toggleBookmark(item)"
         @mark-up-to="store.markUpTo(item)"
+        @download="downloads.download([item])"
+        @remove-download="removeOne(item)"
       />
     </ul>
 
