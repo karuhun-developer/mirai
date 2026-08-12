@@ -58,6 +58,36 @@ export function compact<T extends object>(value: { [K in keyof T]: T[K] | undefi
   return result as T
 }
 
+/**
+ * Base64 → teks UTF-8.
+ *
+ * `atob()` sendirian mengembalikan string biner: tiap karakter adalah satu byte,
+ * jadi judul beraksara non-ASCII keluar sebagai mojibake. Byte-nya dilewatkan
+ * `TextDecoder` supaya hasilnya teks yang benar.
+ */
+export function decodeBase64(value: string): string {
+  const binary = atob(value)
+  const bytes = new Uint8Array(binary.length)
+  for (let index = 0; index < binary.length; index += 1) bytes[index] = binary.charCodeAt(index)
+  return new TextDecoder().decode(bytes)
+}
+
+export function encodeBase64(value: string): string {
+  return btoa(value)
+}
+
+/**
+ * Grup tangkap pertama sebuah regex, atau `undefined`.
+ *
+ * Dipakai untuk memungut nilai dari `<script>` inline — satu-satunya tempat
+ * banyak situs menaruh token dan URL video, dan tidak ada selector CSS yang
+ * bisa menjangkaunya.
+ */
+export function firstMatch(pattern: RegExp, input: string): string | undefined {
+  const match = pattern.exec(input)
+  return match?.[1]
+}
+
 /** Menjalankan `task` untuk tiap item dengan batas konkurensi, urutan hasil tetap. */
 export async function mapLimit<I, O>(
   items: readonly I[],

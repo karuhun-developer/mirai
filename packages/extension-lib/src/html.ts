@@ -52,6 +52,36 @@ export function attrOf(root: MElement, selector: string, name: string): string {
 }
 
 /**
+ * Elemen pertama yang teksnya memuat `needle` (tanpa peduli besar-kecil huruf).
+ *
+ * Pengganti `:has-text()`/`:contains()` yang tidak ada di CSS standar maupun di
+ * linkedom. Tema WordPress gemar menandai baris metadata cuma lewat teksnya —
+ * "Studio", "Status" — tanpa kelas yang bisa dipilih.
+ */
+export function findWithText(
+  root: MElement,
+  selector: string,
+  needle: string,
+): MElement | undefined {
+  const lowered = needle.toLowerCase()
+  return selectAll(root, selector).find((el) => text(el).toLowerCase().includes(lowered))
+}
+
+/**
+ * Nilai dari baris berbentuk "Label: nilai".
+ *
+ * Mengembalikan string kosong kalau labelnya tidak ada — metadata yang hilang
+ * bukan alasan untuk menggagalkan seluruh halaman detail.
+ */
+export function labeledValue(root: MElement, selector: string, label: string): string {
+  const found = findWithText(root, selector, label)
+  if (!found) return ''
+  const raw = text(found)
+  const colon = raw.indexOf(':')
+  return colon === -1 ? raw : raw.slice(colon + 1).trim()
+}
+
+/**
  * Lazy-load bikin `src` berisi placeholder; URL aslinya ada di salah satu atribut
  * data-*. Dicoba berurutan sampai ketemu yang terisi.
  */

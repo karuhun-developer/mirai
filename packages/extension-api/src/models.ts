@@ -65,7 +65,14 @@ export interface STrack {
   lang?: string
 }
 
-export type SVideoType = 'hls' | 'mp4' | 'dash'
+/**
+ * `'embed'` berarti source menyerah meresolusi dan menyerahkan halaman player
+ * pihak ketiga apa adanya. Situs anime memakai belasan host mirror yang tiap
+ * beberapa bulan ganti cara menyembunyikan URL-nya; tanpa jalur ini, satu-satunya
+ * pilihan adalah membuang mirror yang belum sempat ditulis resolver-nya — dan
+ * itu sering berarti episode tanpa video sama sekali.
+ */
+export type SVideoType = 'hls' | 'mp4' | 'dash' | 'embed'
 
 export interface SVideo {
   url: string

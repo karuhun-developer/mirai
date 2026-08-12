@@ -15,6 +15,15 @@ declare class URLSearchParams {
   toString(): string
 }
 
+/** Ada di Worker maupun Node; dipakai `decodeBase64`/`encodeBase64`. */
+declare function atob(data: string): string
+declare function btoa(data: string): string
+
+declare class TextDecoder {
+  constructor(label?: string)
+  decode(input?: ArrayBufferView): string
+}
+
 declare class URL {
   constructor(url: string, base?: string)
   readonly origin: string

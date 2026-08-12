@@ -5,7 +5,18 @@
  * bukan ke aplikasi. Kontraknya sendiri ada di @mirai/extension-api.
  */
 
-export { absoluteUrl, attr, attrOf, imageSrc, parseHtml, selectAll, text, textOf } from './html.js'
+export {
+  absoluteUrl,
+  attr,
+  attrOf,
+  findWithText,
+  imageSrc,
+  labeledValue,
+  parseHtml,
+  selectAll,
+  text,
+  textOf,
+} from './html.js'
 export type { MDocument, MElement } from './html.js'
 
 export {
@@ -31,7 +42,10 @@ export { arr, bool, get, isRecord, num, str, strList } from './json.js'
 
 export {
   compact,
+  decodeBase64,
   DEFAULT_USER_AGENT,
+  encodeBase64,
+  firstMatch,
   mapLimit,
   parseIsoDate,
   parseNumber,
