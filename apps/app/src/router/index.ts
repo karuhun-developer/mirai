@@ -47,6 +47,13 @@ const routes: RouteRecordRaw[] = [
     meta: { fullscreen: true },
   },
   {
+    // Idem `reader`: `itemId` episode berisi url sumber lengkap.
+    path: '/watch/:itemId(.*)',
+    name: 'player',
+    component: () => import('@/pages/player/PlayerPage.vue'),
+    meta: { fullscreen: true },
+  },
+  {
     path: '/history',
     name: 'history',
     component: () => import('@/pages/history/HistoryPage.vue'),

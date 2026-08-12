@@ -21,3 +21,8 @@ export function entryLocation(kind: EntryKind, sourceId: string, url: string): R
 export function readerLocation(itemId: string): RouteLocationRaw {
   return { name: 'reader', params: { itemId } }
 }
+
+/** Halaman tonton satu episode. Bentuk parameternya sama dengan `readerLocation`. */
+export function playerLocation(itemId: string): RouteLocationRaw {
+  return { name: 'player', params: { itemId } }
+}

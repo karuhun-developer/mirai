@@ -19,7 +19,7 @@ import ItemRow from '@/components/entry/ItemRow.vue'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { useCover } from '@/composables/useCover'
-import { readerLocation } from '@/router/links'
+import { playerLocation, readerLocation } from '@/router/links'
 import { useEntryStore } from '@/stores/entry'
 import { useExtensionsStore } from '@/stores/extensions'
 
@@ -53,12 +53,9 @@ async function load(): Promise<void> {
   await store.open(kind.value, sourceId.value, url.value, source.value)
 }
 
-/** Baca hanya untuk manga; episode anime menunggu pemutarnya di Fase 5. */
-const canRead = computed(() => kind.value === 'manga')
-
+/** Chapter dibuka di reader, episode di pemutar; keduanya sudah ada. */
 async function open(item: ItemRowType): Promise<void> {
-  if (!canRead.value) return
-  await router.push(readerLocation(item.id))
+  await router.push(kind.value === 'anime' ? playerLocation(item.id) : readerLocation(item.id))
 }
 
 async function saveCategories(ids: string[]): Promise<void> {
@@ -153,21 +150,11 @@ watch([kind, sourceId, url], load)
           </Button>
         </div>
 
-        <!--
-          Pemutar anime baru hadir di fase berikutnya; tombolnya tetap ditampilkan
-          dan menyebut episode yang akan dibuka supaya alurnya jelas, tapi
-          dinonaktifkan alih-alih mengarah ke rute yang belum ada.
-        -->
         <Button
           v-if="store.resume"
           size="sm"
           variant="ghost"
-          :disabled="!canRead"
-          :title="
-            canRead
-              ? `Lanjut baca ${store.resume.name}`
-              : `${itemLabel} berikutnya: ${store.resume.name} — pemutarnya menyusul`
-          "
+          :title="`Lanjut ${kind === 'anime' ? 'tonton' : 'baca'} ${store.resume.name}`"
           @click="store.resume && open(store.resume)"
         >
           <component :is="kind === 'anime' ? Play : BookOpen" />
@@ -224,7 +211,7 @@ watch([kind, sourceId, url], load)
         v-for="item in store.sorted"
         :key="item.id"
         :item="item"
-        :openable="canRead"
+        openable
         @open="open(item)"
         @toggle-seen="store.toggleSeen(item)"
         @toggle-bookmark="store.toggleBookmark(item)"
