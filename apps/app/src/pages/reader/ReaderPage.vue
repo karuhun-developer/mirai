@@ -204,7 +204,7 @@ onBeforeUnmount(() => {
       </template>
 
       <template v-else>
-        <p class="text-sm text-white/80">
+        <p class="text-sm text-white/80" data-testid="reader-error">
           {{ store.error ?? 'Chapter ini tidak punya halaman yang bisa ditampilkan.' }}
         </p>
       </template>

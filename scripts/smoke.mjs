@@ -85,6 +85,22 @@ function makeFixtureVideo() {
 
 const fixtureVideo = makeFixtureVideo()
 
+/**
+ * Tiga halaman manga tiruan: PNG 8×8 tiga warna sebagai data URL.
+ *
+ * Situs sumber manga tidak terjangkau dari mesin ini, jadi halamannya disuapkan
+ * lewat `window.__downloads`. Yang diuji tetap jalur sungguhannya — berkasnya
+ * benar-benar ditulis ke OPFS, dibaca lagi sebagai `blob:`, dan ditampilkan
+ * reader. Warnanya dibikin berbeda supaya tiap halaman punya alamat sendiri;
+ * `WebtoonView` memakai URL halaman sebagai `key`, dan tiga URL identik akan
+ * saling menimpa.
+ */
+const FIXTURE_PAGES = [
+  'iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAIAAABLbSncAAAAEUlEQVR42mO4Y2ODFTEMLQkAXrdVAaRBiusAAAAASUVORK5CYII=',
+  'iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAIAAABLbSncAAAAEUlEQVR42mOw2RKFFTEMLQkANShSgeWfpzMAAAAASUVORK5CYII=',
+  'iVBORw0KGgoAAAANSUhEUgAAAAgAAAAICAIAAABLbSncAAAAEUlEQVR42mNwy7uDFTEMLQkA7YJkAa1Ps+4AAAAASUVORK5CYII=',
+].map((data, index) => ({ index, imageUrl: `data:image/png;base64,${data}` }))
+
 const browser = await chromium.launch()
 
 try {
@@ -501,7 +517,143 @@ try {
       await page.waitForURL('**/entry/anime/otakudesu/**')
     }
 
-    // 12. Route tak dikenal jatuh ke halaman 404, bukan layar putih.
+    // 12. Fase 6 — mengunduh chapter, lalu membacanya tanpa jaringan.
+    //
+    //     Judul dan chapternya dipasang langsung ke SQLite dengan alasan yang
+    //     sama seperti blok anime di atas, dan daftar halamannya diganti tiruan
+    //     lewat `window.__downloads`. Yang tidak ditiru justru inti fasenya:
+    //     berkasnya benar-benar ditulis ke OPFS, tanda "terunduh" mendarat di
+    //     tabel, dan reader membacanya kembali waktu jalur ke sumber diputus.
+    const dbQuery = (sql, params = []) =>
+      page.evaluate(([text, values]) => globalThis.__db.query(text, values), [sql, params])
+
+    const mangaId = await page.evaluate(async (now) => {
+      const url = 'https://komikcast.li/komik/unduh-uji-smoke/'
+      const id = `komikcast::${url}`
+      await globalThis.__db.run(
+        `INSERT OR REPLACE INTO entry
+           (id, kind, source_id, url, title, favorite, added_at, items_at, updated_at)
+         VALUES (?, 'manga', 'komikcast', ?, 'Manga Unduh Uji Smoke', 1, ?, ?, ?)`,
+        [id, url, now, now, now],
+      )
+      for (const number of [1, 2, 3, 4]) {
+        const chapter = `https://komikcast.li/chapter/unduh-uji-smoke-${number}/`
+        await globalThis.__db.run(
+          `INSERT OR REPLACE INTO item
+             (id, entry_id, url, name, number, sort_index, added_at, updated_at)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+          [`${id}::${chapter}`, id, chapter, `Chapter ${number}`, number, number, now, now],
+        )
+      }
+      // `items_at` yang baru menahan sinkronisasi otomatis: halaman detail cuma
+      // menyegarkan daftar yang sudah basi, dan URL di atas tidak ada isinya.
+      await globalThis.__db.flush()
+      return id
+    }, Date.now())
+
+    await page.goto(`${BASE}/library/manga`, { waitUntil: 'networkidle' })
+    const mangaCard = page.locator('[data-testid="entry-grid"] a[href*="unduh-uji-smoke"]').first()
+    await mangaCard.waitFor({ state: 'visible', timeout: 15_000 }).catch(() => {})
+    check('manga tersimpan muncul di Library', await mangaCard.isVisible())
+
+    await mangaCard.click()
+    await page.waitForURL('**/entry/manga/komikcast/**')
+    const downloadButtons = page.locator('[data-testid="item-download"]')
+    await downloadButtons
+      .first()
+      .waitFor({ state: 'visible', timeout: 20_000 })
+      .catch(() => {})
+    check('tiap chapter punya tombol unduh', (await downloadButtons.count()) === 4)
+
+    // Jembatan unduhan dipasang saat modul antreannya termuat — yaitu waktu
+    // shell aplikasi menyalakan antrean, bukan waktu halaman ini dibuka.
+    await page.waitForFunction(() => globalThis.__downloads !== undefined, null, {
+      timeout: 20_000,
+    })
+    await page.evaluate((pages) => globalThis.__downloads.fixture(pages), FIXTURE_PAGES)
+
+    // Daftarnya menurun, jadi tiga baris teratas adalah chapter 4, 3, dan 2 —
+    // chapter 1 di baris terakhir sengaja ditinggalkan tanpa unduhan.
+    for (const at of [0, 1, 2]) await downloadButtons.nth(at).click()
+
+    const downloaded = await waitUntil(async () => {
+      const rows = await dbQuery(
+        "SELECT COUNT(*) AS n FROM download WHERE entry_id = ? AND state = 'done'",
+        [mangaId],
+      )
+      return rows[0]?.n === 3
+    }, 30_000)
+    check('tiga chapter selesai diunduh', downloaded)
+    check(
+      'chapter terunduh bertanda di tabel item',
+      (await dbQuery('SELECT id FROM item WHERE entry_id = ? AND downloaded = 1', [mangaId]))
+        .length === 3,
+    )
+
+    await page.goto(`${BASE}/downloads`, { waitUntil: 'networkidle' })
+    const doneRows = page.locator('li', { hasText: 'Manga Unduh Uji Smoke' })
+    await doneRows
+      .first()
+      .waitFor({ state: 'visible', timeout: 15_000 })
+      .catch(() => {})
+    check('halaman Unduhan menampilkan ketiganya', (await doneRows.count()) === 3)
+
+    // Inti verifikasi fase ini: jalur ke sumber diputus, lalu ketiga chapter
+    // harus tetap terbaca utuh dari berkas di perangkat. Reload lebih dulu
+    // supaya yang dibaca benar-benar berkas tersimpan, bukan sisa di memori.
+    await page.route('http://localhost:5181/**', (route) => route.abort())
+    await page.reload({ waitUntil: 'networkidle' })
+
+    await page.goto(`${BASE}/library/manga`, { waitUntil: 'networkidle' })
+    await mangaCard.waitFor({ state: 'visible', timeout: 15_000 }).catch(() => {})
+    await mangaCard.click()
+    await page.waitForURL('**/entry/manga/komikcast/**')
+
+    const chapterRows = page.locator('[data-testid="item-open"]')
+    await chapterRows
+      .first()
+      .waitFor({ state: 'visible', timeout: 20_000 })
+      .catch(() => {})
+
+    for (const at of [0, 1, 2]) {
+      await chapterRows.nth(at).click()
+      await page.waitForURL('**/read/**')
+
+      const images = page.locator('[data-testid="reader"] img')
+      const shown = await waitUntil(
+        async () => (await images.count()) === FIXTURE_PAGES.length,
+        20_000,
+      )
+      const sources = await images.evaluateAll((els) => els.map((el) => el.getAttribute('src')))
+      check(
+        `chapter terunduh ke-${at + 1} terbaca penuh tanpa jaringan`,
+        shown && sources.every((src) => (src ?? '').startsWith('blob:')),
+      )
+
+      await page.keyboard.press('Escape')
+      await page.waitForURL('**/entry/manga/komikcast/**')
+    }
+
+    // Yang belum diunduh tidak boleh diam-diam kosong: harus ada penjelasan.
+    await chapterRows.nth(3).click()
+    await page.waitForURL('**/read/**')
+    const readerError = page.locator('[data-testid="reader-error"]')
+    await readerError.waitFor({ state: 'visible', timeout: 30_000 }).catch(() => {})
+    const message = ((await readerError.textContent()) ?? '').trim()
+    check(
+      `chapter yang belum diunduh menjelaskan kenapa ("${message.slice(0, 60)}")`,
+      message !== '',
+    )
+    check(
+      'tombol coba lagi tersedia di layar kegagalan',
+      await page.getByRole('button', { name: 'Coba lagi' }).isVisible(),
+    )
+
+    await page.keyboard.press('Escape')
+    await page.waitForURL('**/entry/manga/komikcast/**')
+    await page.unroute('http://localhost:5181/**')
+
+    // 13. Route tak dikenal jatuh ke halaman 404, bukan layar putih.
     await page.goto(`${BASE}/rute-yang-tidak-ada`, { waitUntil: 'networkidle' })
     check('404 tampil', await page.getByText('Halaman tidak ditemukan').isVisible())
 
