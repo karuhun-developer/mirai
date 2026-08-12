@@ -1,0 +1,22 @@
+{
+  "name": "@mirai/db",
+  "private": true,
+  "version": "0.4.0",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "types": "./src/index.ts",
+  "scripts": {
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@capacitor-community/sqlite": "^8.1.1",
+    "@capacitor/core": "^8.5.0",
+    "@mirai/extension-api": "workspace:*",
+    "sql.js": "1.11.0"
+  },
+  "devDependencies": {
+    "@types/sql.js": "^1.4.11"
+  }
+}
