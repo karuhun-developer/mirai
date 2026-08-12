@@ -11,7 +11,7 @@ hasilnya dicatat di [CHANGELOG.md](../CHANGELOG.md).
 | 2    | 0.3.0 | Repo extension & manajemen | ✅     |
 | 3    | 0.4.0 | DB & Library offline-first | ✅     |
 | 4    | 0.5.0 | Reader manga               | ✅     |
-| 5    | 0.6.0 | Player anime               | ⬜     |
+| 5    | 0.6.0 | Player anime               | ✅     |
 | 6    | 0.7.0 | Unduh manga                | ⬜     |
 | 7    | 0.8.0 | Unduh anime                | ⬜     |
 | 8    | 0.9.0 | Build Android              | ⬜     |
