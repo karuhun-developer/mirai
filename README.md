@@ -57,8 +57,20 @@ Alasan pembagiannya ada di [docs/architecture.md](docs/architecture.md).
 
 ## Build Android
 
-Belum tersedia — Fase 8. Butuh Android SDK yang saat ini belum terpasang di
-mesin pengembangan.
+APK dibangun GitHub Actions, bukan di mesin lokal: buat Release ber-tag `vX.Y.Z`,
+dan `mirai-X.Y.Z.apk` menempel di Release itu beberapa menit kemudian. Versinya
+diturunkan dari tag (`versionCode = X*10000 + Y*100 + Z`).
+
+```bash
+pnpm cap:sync      # build web + salin ke apps/app/android
+pnpm android:open  # sync lalu buka Android Studio (helper WSL)
+pnpm android:icons # gambar ulang ikon & splash
+```
+
+Ketiganya butuh Android SDK, yang belum terpasang di mesin pengembangan — jadi
+**APK-nya belum pernah diuji di perangkat fisik**. Rinciannya, termasuk kenapa
+keystore debug ikut di-commit dan kenapa halaman luar dibuka di WebView aplikasi,
+ada di [docs/features/android.md](docs/features/android.md).
 
 ## Roadmap
 
@@ -72,7 +84,7 @@ mesin pengembangan.
 | 5    | Player anime                                     | ✅     |
 | 6    | Unduh manga                                      | ✅     |
 | 7    | Unduh anime (mp4 + HLS)                          | ✅     |
-| 8    | Build Android (APK)                              | ⬜     |
+| 8    | Build Android (APK)                              | ✅     |
 | 9    | Backup, tracker, polish                          | ⬜     |
 
 Rincian tiap fase: [docs/roadmap.md](docs/roadmap.md).

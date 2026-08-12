@@ -281,7 +281,9 @@ dan kegagalan menulis nanti tetap punya pesannya sendiri.
 
 ## Yang sengaja belum ada
 
-- **Notifikasi progres di Android.** Menyusul bersama build APK di Fase 8.
+- **Notifikasi progres di Android.** Tidak ikut Fase 8: notifikasi cuma masuk akal
+  kalau antreannya tetap jalan waktu aplikasi ditutup, dan itu butuh foreground
+  service. Keduanya satu paket pekerjaan — lihat [android.md](android.md).
 - **Hapus otomatis waktu ruang menipis.** Yang ada baru peringatan dan penolakan
   berangkat; tidak ada yang membuang unduhan lama sendiri.
 - **Hapus setelah ditonton.** Setelan itu baru berlaku untuk chapter; episode

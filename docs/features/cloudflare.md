@@ -1,7 +1,7 @@
 # Fitur: Verifikasi Cloudflare & User-Agent
 
-**Status:** ✅ Deteksi selesai (Fase 2) · ⚠️ Penyelesaian di WebView menunggu
-Fase 8 · **Route:** `/browse/:sourceId`, `/settings`
+**Status:** ✅ Selesai (deteksi di Fase 2 · WebView aplikasi di Fase 8) ·
+**Route:** `/browse/:sourceId`, `/settings`
 
 ## Tujuan
 
@@ -110,17 +110,26 @@ mengirim UA Chrome desktop, verifikasi yang sukses tetap berakhir ditolak.
   menyajikan halaman berbeda untuk UA WebView Android. Karena itu ia alat
   diagnosis, bukan setelan yang perlu disentuh kalau semuanya sudah jalan.
 
+### Di APK: WebView aplikasi, bukan Custom Tabs (Fase 8)
+
+Tombol **Selesaikan verifikasi** membuka halamannya lewat
+`browser.service.ts`, yang di APK memakai WebView milik aplikasi. Chrome Custom
+Tabs tidak dipakai sama sekali: penyimpanannya terpisah, jadi verifikasi yang
+selesai di sana tidak akan pernah terbaca `CapacitorHttp`. Detail teknisnya —
+termasuk `isIsolated: false`, yang tanpa itu WebView plugin jalan di proses
+terpisah dengan cookie jar sendiri — ada di [android.md](android.md).
+
+Setelah WebView-nya ditutup, `openChallenge()` selesai dan `ChallengeNotice`
+memancarkan `solved`; halaman pemanggilnya memuat ulang sendiri. `solved` cuma
+berarti "orangnya sudah kembali" — kalau ternyata masih tertahan, kartu yang
+sama muncul lagi, dan kalimat terakhirnya sudah mengatakan bahwa sumber itu
+mungkin memang tidak bisa dipakai.
+
 ## Yang belum ada
 
-Tombol **Selesaikan verifikasi** saat ini memanggil `window.open()`. Di APK itu
-belum cukup: Chrome Custom Tabs punya cookie jar terpisah, jadi verifikasi yang
-selesai di sana tidak terbaca `CapacitorHttp`. Yang dibutuhkan adalah WebView
-in-app — dan itu masuk **Fase 8**, bersama sisa pekerjaan Android, karena tidak
-ada gunanya menambah plugin native yang tidak bisa dijalankan sekali pun sampai
-Android SDK terpasang di mesin ini.
-
-Yang sudah bisa dipakai sekarang: pengenalannya, pesannya, setelan UA-nya, dan
-laporan `TERTAHAN` di smoke extension.
+Deteksinya berhenti di Cloudflare. Tantangan lain — DDoS-Guard, hCaptcha yang
+dipasang situsnya sendiri — jatuh sebagai `HttpError` biasa dan menampilkan
+pesan error apa adanya, bukan kartu verifikasi.
 
 ## Kode
 
@@ -132,6 +141,7 @@ laporan `TERTAHAN` di smoke extension.
 | `packages/extension-runtime/src/http/index.ts`       | Urutan pembungkus transport                               |
 | `packages/extension-runtime/src/protocol.ts`         | `challengeUrl` di `SerializedError` dan `SourceCallError` |
 | `apps/app/src/services/challenge.service.ts`         | `challengeOf()`, `openChallenge()`, batas per platform    |
+| `apps/app/src/services/browser.service.ts`           | WebView aplikasi + menunggu `browserClosed`               |
 | `apps/app/src/services/settings.service.ts`          | Setelan yang harus terbaca sebelum Pinia hidup            |
 | `apps/app/src/components/common/ChallengeNotice.vue` | Kartu tantangan                                           |
 | `apps/app/src/pages/settings/SettingsPage.vue`       | Setelan User-Agent                                        |
@@ -150,5 +160,6 @@ verifikasi beserta keterangan batas web, `/browse/komikcast` tidak ikut terkena,
 dan setelan User-Agent tersimpan melewati reload.
 
 > **Belum terverifikasi:** seluruh jalur APK — WebView, cookie jar bersama, dan
-> apakah `cf_clearance` benar-benar terpakai request berikutnya. Menunggu
-> Android SDK (Fase 8).
+> apakah `cf_clearance` benar-benar terpakai request berikutnya. Kodenya sudah
+> ada sejak Fase 8, tapi Android SDK belum terpasang di mesin ini, jadi belum
+> ada satu pun percobaan di perangkat.

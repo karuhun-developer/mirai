@@ -14,7 +14,7 @@ hasilnya dicatat di [CHANGELOG.md](../CHANGELOG.md).
 | 5    | 0.6.0 | Player anime               | ✅     |
 | 6    | 0.7.0 | Unduh manga                | ✅     |
 | 7    | 0.8.0 | Unduh anime                | ✅     |
-| 8    | 0.9.0 | Build Android              | ⬜     |
+| 8    | 0.9.0 | Build Android              | ✅     |
 | 9    | 1.0.0 | Backup, tracker, polish    | ⬜     |
 
 ---
@@ -191,18 +191,16 @@ terbukti** — menunggu Fase 8, bersama notifikasi progres. Hapus otomatis setel
 ditonton baru berlaku untuk chapter, DASH belum ditangani, dan belum ada yang
 membuang unduhan lama sendiri waktu ruang menipis.
 
-## Fase 8 — Build Android
+## Fase 8 — Build Android ✅
 
 `cap add android`, ikon/splash, permission, signing debug, `cap:sync`, helper
 buka Android Studio, workflow rilis APK. Ditambah **WebView in-app untuk
 verifikasi Cloudflare**: harus WebView aplikasi, bukan Custom Tabs, supaya
 `cf_clearance` masuk ke cookie jar yang dipakai `CapacitorHttp` — dan UA request
-disamakan dengan UA WebView. Lihat [features/cloudflare.md](features/cloudflare.md).
+disamakan dengan UA WebView. Lihat [features/android.md](features/android.md).
 
 **Selesai kalau:** APK terpasang di perangkat fisik dan alur browse → baca →
 unduh → tonton berjalan.
-
-⚠️ **Terblokir:** Android SDK belum terpasang di mesin pengembangan.
 
 **APK dibangun di GitHub Actions, bukan di mesin ini.** Polanya mengikuti
 `release-apk.yml` POS Kacaw: dipicu `release: [published]`, versinya diturunkan
@@ -214,9 +212,26 @@ menyelesaikan kendala SDK: rilis tetap bisa jalan walau mesin pengembangan tidak
 punya Android SDK — yang tersisa cuma memasang dan mencoba APK-nya di perangkat
 fisik.
 
+**Terverifikasi:** platform Android tergenerate dan `cap sync` mendeteksi tujuh
+plugin; 26 ikon dan splash dibuat `scripts/make-icons.mjs` (Playwright, bukan
+`sharp` — lihat dokumen fiturnya) lalu diperiksa satu per satu; keystore debug
+bersama membuat rilis berikutnya bisa dipasang menimpa yang lama; dan smoke web
+tetap hijau tiga kali berturut-turut setelah tombol host `embed` pindah dari
+`<a target="_blank">` ke `openExternal()`.
+
+**Sisa utang:** ⚠️ **semua yang butuh perangkat masih belum terbukti.** Android
+SDK belum terpasang di mesin pengembangan, jadi `./gradlew assembleDebug` belum
+pernah dijalankan sekali pun — build pertama yang benar-benar mengompilasinya
+adalah workflow rilis. Yang ikut menunggu: cookie jar bersama antara WebView dan
+`CapacitorHttp` (inti alur Cloudflare), playback HLS native, unduhan yang ditulis
+ke `Directory.Data`, dan driver SQLite native. Belum ada notifikasi progres
+unduhan — itu satu paket dengan foreground service, dan tanpa layanannya izin
+notifikasi cuma dialog yang dilatih untuk ditolak. Build rilis ber-tanda tangan
+dan iOS sengaja tidak dikerjakan.
+
 Sekalian di fase ini: host `embed` di pemutar dibuka lewat **WebView in-app**,
-bukan dilempar ke peramban luar seperti sekarang. Alasannya sama dengan
-verifikasi Cloudflare — cookie dan sesinya tetap di dalam aplikasi. Lihat
+bukan dilempar ke peramban luar. Alasannya sama dengan verifikasi Cloudflare —
+cookie dan sesinya tetap di dalam aplikasi. Lihat
 [features/player.md](features/player.md).
 
 ## Fase 9 — Backup, tracker, polish

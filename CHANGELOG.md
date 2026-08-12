@@ -11,6 +11,36 @@ menautkan ke sana supaya changelog ini tetap ringkas.
 
 ## [Unreleased]
 
+### Fase 8 — Build Android
+
+#### Added
+
+- **Platform Android + rilis APK otomatis.** Satu Release ber-tag `vX.Y.Z` di
+  GitHub memicu `release-apk.yml`, yang menurunkan `versionName` dan
+  `versionCode` (`X*10000 + Y*100 + Z`) dari tag itu, membangun seluruh
+  workspace dengan pnpm, `cap sync android`, lalu menempelkan
+  `mirai-X.Y.Z.apk` ke Release-nya. Lihat
+  [docs/features/android.md](docs/features/android.md).
+- **Keystore debug bersama yang ikut di-commit**, supaya tiap rilis bisa dipasang
+  menimpa rilis sebelumnya. Tanpa itu tanda tangannya berbeda tiap mesin dan
+  Android menuntut uninstall — yang berarti library, riwayat, dan seluruh
+  unduhan ikut hilang.
+- **Ikon dan splash Mirai** untuk semua kepadatan layar, digambar
+  `scripts/make-icons.mjs` memakai Playwright yang sudah ada di repo. Tidak ada
+  dependensi baru: `@capacitor/assets` akan menarik `sharp` beserta binary
+  native-nya untuk pekerjaan yang dijalankan dua kali seumur proyek.
+- **Halaman luar dibuka di WebView aplikasi**, bukan Chrome Custom Tabs. Ini yang
+  membuat alur verifikasi Cloudflare bekerja di APK: hanya WebView aplikasi yang
+  berbagi cookie jar dengan `CapacitorHttp`, jadi `cf_clearance` hasil verifikasi
+  ikut terpakai request berikutnya. Berlaku juga untuk host `embed` di pemutar,
+  yang sebelumnya dilempar ke peramban luar dan kehilangan sesinya di sana.
+  Lihat [docs/features/cloudflare.md](docs/features/cloudflare.md).
+- **Kembali dari WebView langsung memuat ulang.** Kartu verifikasi memancarkan
+  `solved` begitu WebView-nya ditutup, dan keempat halaman pemakainya mencoba
+  lagi sendiri — bukan menyuruh orangnya mencari tombol muat ulang kedua.
+- Perintah `pnpm cap:sync`, `pnpm android:open` (helper WSL → Android Studio),
+  dan `pnpm android:icons`.
+
 ### Fase 7 — Unduh anime
 
 #### Added

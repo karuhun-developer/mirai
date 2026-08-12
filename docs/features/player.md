@@ -1,6 +1,7 @@
 # Fitur: Player anime
 
-**Status:** ✅ Selesai (Fase 5 · pemutaran offline di Fase 7) · **Route:** `/watch/:itemId(.*)`
+**Status:** ✅ Selesai (Fase 5 · pemutaran offline di Fase 7 · host `embed` di
+WebView aplikasi sejak Fase 8) · **Route:** `/watch/:itemId(.*)`
 
 ## Tujuan
 
@@ -179,8 +180,13 @@ host `embed` baru dipilih kalau memang tidak ada pilihan lain.
 Menampilkannya di dalam `iframe` sudah dipertimbangkan dan ditolak: host semacam
 itu hampir selalu memasang `X-Frame-Options`/`frame-ancestors` yang membuat
 bingkainya kosong, dan yang tidak memasangnya pun menuntut `Referer` tertentu
-yang tidak bisa dipalsukan dari `iframe`. Di APK nanti tautannya dibuka di
-**WebView in-app**, bukan tab peramban luar — lihat "Yang sengaja belum ada".
+yang tidak bisa dipalsukan dari `iframe`.
+
+Sejak Fase 8 tombolnya memanggil `openExternal()`, bukan `<a target="_blank">`.
+Di APK itu berarti **WebView aplikasi**: peramban luar punya penyimpanan cookie
+sendiri, dan banyak host `embed` menolak memutar tanpa cookie sesi yang sudah
+dipegang aplikasi. Aturannya satu tempat dengan verifikasi Cloudflare — lihat
+[android.md](android.md). Di web perilakunya tidak berubah: tab baru.
 
 ### Setelan berlaku global
 
@@ -201,12 +207,6 @@ kembali ke halaman judulnya.
   adalah fungsi identitas di native, jadi WebView mengambil medianya sendiri
   lengkap dengan header lewat `CapacitorHttp` — tapi buktinya menunggu APK di
   Fase 8. Proxy tetap jalur yang dijamin bekerja di web.
-- **WebView in-app untuk host `embed`.** Di APK, membuka halaman player pihak
-  ketiga sebaiknya lewat WebView aplikasi (`@capacitor/browser` atau WebView
-  sendiri), bukan melempar ke peramban luar — sama alasannya dengan verifikasi
-  Cloudflare di [cloudflare.md](cloudflare.md): cookie dan sesi tetap di dalam
-  aplikasi. Sekarang tautannya masih `target="_blank"`, yang di APK berarti
-  peramban luar. Dikerjakan bersama Fase 8.
 - **Gestur usap untuk terang/volume/geser** ala pemutar Android. Papan ketik dan
   penggeser sudah cukup untuk web; gesturnya menunggu APK.
 - **Trek audio ganda (dub).** `SVideo.audios` sudah ada di kontrak extension,
@@ -226,6 +226,7 @@ kembali ke halaman judulnya.
 | `apps/app/src/services/hlsLoader.ts`                | Loader hls.js: ke proxy tanpa merusak URL relatif, dan ke berkas di perangkat   |
 | `apps/app/src/services/subtitle.ts`                 | SRT/ASS → WebVTT                                                                |
 | `apps/app/src/services/item.service.ts`             | Konteks item (entri, tetangga, nomor urut) — dipakai bersama reader             |
+| `apps/app/src/services/browser.service.ts`          | Membuka host `embed` di WebView aplikasi (APK) atau tab baru (web)              |
 | `apps/app/src/stores/player.ts`                     | Keadaan sesi tonton; satu-satunya tempat aturan progres & "selesai"             |
 | `apps/app/src/pages/player/PlayerPage.vue`          | Penyambung store ⇄ tampilan ⇄ layar perangkat; papan ketik                      |
 | `apps/app/src/components/player/VideoStage.vue`     | Satu-satunya komponen yang menyentuh elemen `<video>`                           |
