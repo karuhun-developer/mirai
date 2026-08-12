@@ -1,21 +1,31 @@
 import type { RemoteMangaSource } from '@mirai/extension-runtime'
-import type { ItemRow } from '@mirai/db'
+import type { EntryRow, ItemRow } from '@mirai/db'
 import { toSItem } from '@mirai/db'
 import { repos } from './db.service'
 import { transport } from './extensions.service'
+import { cleanupAfterRead, localPages, releaseLocalPages } from './download.service'
 
 /**
  * Reader manga: halaman satu chapter, progres bacanya, dan tetangganya.
  *
- * Batas yang berlaku sampai unduhan hadir di Fase 6: **daftar halaman selalu
- * datang dari jaringan.** Yang offline-first di sini cuma posisi baca dan
- * statusnya — itu ada di SQLite dan tidak pernah hilang.
+ * Chapter yang sudah diunduh dibaca dari berkas di perangkat; sisanya dari
+ * jaringan. Yang selalu lokal adalah posisi baca dan statusnya — itu di SQLite
+ * dan tidak pernah hilang.
  */
 
 export interface ReaderPage {
   index: number
   /** URL siap pasang ke `<img>`; di web sudah lewat proxy, di native apa adanya. */
   url: string
+}
+
+export interface ReaderPages {
+  pages: ReaderPage[]
+  /**
+   * Halamannya dari berkas lokal. Penting bagi pemanggil: di web alamatnya
+   * `blob:` yang menahan seluruh isi berkas di memori sampai dicabut.
+   */
+  local: boolean
 }
 
 // ── Setelan ──────────────────────────────────────────────────────────────────
@@ -66,15 +76,54 @@ export async function writeReaderPrefs(prefs: ReaderPrefs): Promise<void> {
 // ── Memuat ───────────────────────────────────────────────────────────────────
 
 /**
- * Daftar halaman dari source.
+ * Halaman satu chapter: dari perangkat kalau sudah diunduh, dari source kalau
+ * belum.
  *
+ * Lokal selalu didahulukan, bahkan waktu jaringannya sehat — itulah gunanya
+ * mengunduh. Chapter yang bertanda terunduh tapi berkasnya tidak ditemukan
+ * (browser membuang OPFS waktu ruang menipis, atau berkasnya dihapus dari luar)
+ * tandanya diturunkan di tempat, lalu diambil ulang dari jaringan seperti biasa
+ * — lebih baik daripada reader kosong yang bersikeras chapternya ada.
+ */
+export async function loadPages(
+  entry: EntryRow,
+  item: ItemRow,
+  source: RemoteMangaSource | undefined,
+): Promise<ReaderPages> {
+  if (item.downloaded === 1) {
+    const pages = await localPages(entry, item)
+    if (pages.length > 0) return { pages, local: true }
+    await repos().items.setDownloaded([item.id], false)
+  }
+
+  if (!source) {
+    throw new Error(
+      'Chapter ini belum diunduh, jadi halamannya harus diambil dari internet — dan extension sumbernya tidak terpasang atau sedang dimatikan.',
+    )
+  }
+
+  return { pages: await fetchPages(source, item), local: false }
+}
+
+/**
  * `headers` dari `SPage` ikut dititipkan ke resolver media: CDN gambar sering
  * menolak permintaan tanpa `Referer` yang benar, dan `<img>` tidak bisa
  * mengirim header sendiri — di web proxy yang memasangnya, di native
  * `CapacitorHttp` sudah bebas melakukannya.
  */
-export async function loadPages(source: RemoteMangaSource, item: ItemRow): Promise<ReaderPage[]> {
-  const pages = await source.getPageList(toSItem(item))
+async function fetchPages(source: RemoteMangaSource, item: ItemRow): Promise<ReaderPage[]> {
+  let pages
+  try {
+    pages = await source.getPageList(toSItem(item))
+  } catch (cause) {
+    // Offline dengan chapter yang belum diunduh adalah kegagalan yang paling
+    // sering terjadi di sini, dan pesan mentah dari lapisan HTTP ("Failed to
+    // fetch") tidak memberi tahu apa yang bisa dilakukan orangnya.
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+      throw new Error('Perangkat sedang offline dan chapter ini belum diunduh.', { cause })
+    }
+    throw cause
+  }
 
   return pages
     .filter((page) => typeof page.imageUrl === 'string' && page.imageUrl !== '')
@@ -82,6 +131,11 @@ export async function loadPages(source: RemoteMangaSource, item: ItemRow): Promi
       index,
       url: transport.media.toDisplayUrl(page.imageUrl, page.headers),
     }))
+}
+
+/** Melepas alamat `blob:` halaman lokal; wajib dipanggil waktu reader ditutup. */
+export function releasePages(pages: readonly ReaderPage[]): void {
+  releaseLocalPages(pages)
 }
 
 // ── Progres ──────────────────────────────────────────────────────────────────
@@ -108,4 +162,17 @@ export async function markFinished(item: ItemRow, total: number): Promise<void> 
   await items.markSeen([item.id], true)
   await items.setProgress(item.id, total, total)
   await history.record(item.id, item.entry_id, total)
+}
+
+/**
+ * Auto-hapus setelah dibaca, dijalankan waktu reader **ditutup** — bukan waktu
+ * halaman terakhir tercapai.
+ *
+ * Bedanya nyata di native: alamat berkas lokal di sana menunjuk berkas
+ * sungguhan, jadi menghapusnya selagi gambarnya masih terpasang di layar
+ * membuat halaman terakhir mendadak kosong tepat di detik terakhir membaca.
+ */
+export async function cleanupIfFinished(entry: EntryRow, item: ItemRow): Promise<void> {
+  if (item.seen !== 1 || item.downloaded !== 1) return
+  await cleanupAfterRead(entry, item)
 }

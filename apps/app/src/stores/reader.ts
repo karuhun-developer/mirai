@@ -3,10 +3,12 @@ import { defineStore } from 'pinia'
 import type { RemoteMangaSource, RemoteSource } from '@mirai/extension-runtime'
 import type { EntryRow, ItemRow } from '@mirai/db'
 import {
+  cleanupIfFinished,
   defaultReaderPrefs,
   loadPages,
   markFinished,
   readReaderPrefs,
+  releasePages,
   saveProgress,
   writeReaderPrefs,
   type ReaderPage,
@@ -34,6 +36,8 @@ export const useReaderStore = defineStore('reader', () => {
 
   const index = ref(0)
   const prefs = ref<ReaderPrefs>({ ...defaultReaderPrefs })
+  /** Halamannya dari berkas di perangkat — alamatnya harus dicabut waktu tutup. */
+  const offline = ref(false)
 
   const loading = ref(false)
   const error = ref<string | null>(null)
@@ -66,7 +70,7 @@ export const useReaderStore = defineStore('reader', () => {
     loading.value = true
     error.value = null
     challenge.value = null
-    pages.value = []
+    release()
     index.value = 0
 
     try {
@@ -82,15 +86,19 @@ export const useReaderStore = defineStore('reader', () => {
       position.value = context.position
       totalItems.value = context.total
 
+      // Sumbernya boleh tidak ada: chapter yang sudah diunduh dibaca tanpa
+      // extension sama sekali. Yang memutuskan itu `loadPages`, satu-satunya
+      // tempat yang tahu berkas lokalnya benar-benar ada atau tidak.
       const source = resolve(context.entry.source_id)
-      if (!source) {
-        throw new Error(
-          'Extension sumber chapter ini tidak terpasang atau sedang dimatikan, jadi halamannya tidak bisa diambil.',
-        )
-      }
-      if (source.kind !== 'manga') throw new Error('Sumber ini bukan sumber manga.')
+      if (source && source.kind !== 'manga') throw new Error('Sumber ini bukan sumber manga.')
 
-      pages.value = await loadPages(source as RemoteMangaSource, context.item)
+      const loaded = await loadPages(
+        context.entry,
+        context.item,
+        source as RemoteMangaSource | undefined,
+      )
+      pages.value = loaded.pages
+      offline.value = loaded.local
       if (pages.value.length === 0) throw new Error('Sumber tidak mengembalikan satu halaman pun.')
 
       // Lanjut di tempat terakhir — kecuali chapternya sudah tamat, yang mulai
@@ -149,12 +157,25 @@ export const useReaderStore = defineStore('reader', () => {
     await writeReaderPrefs(prefs.value)
   }
 
+  /**
+   * Melepas alamat `blob:` halaman lokal. Object URL menahan seluruh isi
+   * berkasnya di memori sampai dicabut — membiarkannya berarti membaca sepuluh
+   * chapter offline menumpuk ratusan megabita yang tidak pernah kembali.
+   */
+  function release(): void {
+    if (offline.value) releasePages(pages.value)
+    pages.value = []
+    offline.value = false
+  }
+
   /** Menutup reader: memastikan posisi terakhir sudah tersimpan. */
   async function close(): Promise<void> {
     const current = item.value
     if (current && pages.value.length > 0 && index.value < pages.value.length - 1) {
       await saveProgress(current, index.value, pages.value.length)
     }
+    if (entry.value && current) await cleanupIfFinished(entry.value, current)
+    release()
   }
 
   return {
@@ -167,6 +188,7 @@ export const useReaderStore = defineStore('reader', () => {
     totalItems,
     index,
     prefs,
+    offline,
     loading,
     error,
     challenge,
