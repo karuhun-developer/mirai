@@ -40,12 +40,25 @@ extensions/src/<lang>/<slug>/
 | Field        | Kegunaan                                                                    |
 | ------------ | --------------------------------------------------------------------------- |
 | `pkg`        | Nama berkas hasil build (`dist/js/<pkg>.js`) dan kunci di index repo        |
+| `version`    | SemVer. Dinaikkan tiap perbaikan; itu yang memunculkan tombol **Update**    |
 | `apiVersion` | Dicocokkan runtime dengan `API_VERSION`; beda = ditolak dengan pesan jelas  |
 | `hosts`      | **Allowlist proxy.** Host di luar daftar ini akan ditolak dengan 403 di web |
 
 `hosts` bukan formalitas: di build web setiap request menempuh `apps/proxy`, dan
 proxy menolak host yang tidak terdaftar. Lupa mencantumkan CDN gambar adalah
 penyebab paling umum "judulnya muncul tapi cover-nya kosong".
+
+Satu entri `hosts` juga mencakup subdomainnya — `example.com` mengizinkan
+`cdn.example.com`, tapi bukan `notexample.com`. Untuk CDN yang mengganti label
+domainnya berkala, `*` mewakili **tepat satu label**:
+
+```json
+"hosts": ["otakudesu.blog", "megap.*.top"]
+```
+
+`megap.*.top` menerima `megap.shiora.top` maupun `megap.norami.top`, tapi bukan
+`megap.a.b.top` dan bukan `evil.top`. Pakai seperlunya: `*` yang terlalu longgar
+memperlebar permukaan SSRF proxy.
 
 ---
 
@@ -229,12 +242,75 @@ pnpm dev                                # http://localhost:5180
 pnpm dev:proxy                          # perlu untuk build web
 ```
 
-Saat `pnpm dev`, `extensions/dist/` disajikan di `/ext-dev` sebagai repo
-extension lokal, jadi hasil build langsung muncul di halaman **Browse** tanpa
-perlu publish ke mana-mana.
+Saat `pnpm dev`, `extensions/dist/` disajikan di `/ext-dev` dan **terdaftar
+otomatis sebagai repo** di halaman Extension. Tidak ada paket yang dipasang
+otomatis: extension yang baru dibangun harus kamu **Pasang** sendiri, persis
+seperti yang dilakukan pengguna. Kalau dipasang otomatis, jalur "tambah repo →
+pasang → pakai" tidak pernah dicoba selama pengembangan.
 
 Jangan lupa menambahkan host baru ke `PROXY_ALLOWED_HOSTS` di
 `apps/proxy/.env` — daftar itu gagal-tertutup.
+
+### Apa yang diperiksa build
+
+`build.ts` tidak sekadar membundel. Tiap bundel hasil esbuild **dijalankan sekali
+di proses build** dengan konteks tiruan yang seluruh metode HTTP-nya melempar.
+Yang gagal di situ:
+
+- `export default` bukan fungsi, atau factory mengembalikan array kosong
+- source tanpa `id` atau `name`
+- `baseUrl` yang tidak tercakup `hosts[]` manifest
+- `id` source yang sama dipakai dua paket berbeda
+- constructor source yang melakukan HTTP — memasang extension tidak boleh
+  menembak jaringan sebelum pengguna meminta apa pun
+
+Semuanya kesalahan yang, kalau lolos, baru muncul sebagai layar kosong di HP
+pengguna setelah paketnya terlanjur terbit.
+
+### Uji ke situs sungguhan
+
+```bash
+node extensions/scripts/smoke.mjs             # semua paket
+node extensions/scripts/smoke.mjs komikcast   # satu paket
+```
+
+Menjalankan bundel hasil build — lengkap dengan linkedom di dalamnya — langsung
+ke situs aslinya: populer → detail → daftar chapter/episode → halaman/video.
+**Bukan bagian dari CI**, karena hasilnya bergantung pada situs pihak ketiga yang
+bisa mati atau pindah domain. Gunanya menjawab satu pertanyaan yang tidak bisa
+dijawab fixture: apakah selector-nya masih cocok dengan markup hari ini.
+
+Untuk jaringan yang memblokir sumber lewat DNS:
+
+```bash
+MIRAI_SMOKE_RESOLVE=v3.komikcast.fit=1.2.3.4 node extensions/scripts/smoke.mjs
+```
+
+---
+
+## Terbit
+
+`.github/workflows/publish-extensions.yml` membangun `extensions/dist` dan
+menerbitkannya ke GitHub Pages setiap kali `extensions/` atau paket
+`extension-api`/`extension-lib` berubah. Hasilnya adalah URL repo yang tinggal
+ditempel pengguna di halaman **Extension**.
+
+Menaikkan `version` di manifest sudah cukup untuk memunculkan tombol **Update**
+di aplikasi; tidak ada langkah rilis lain. Karena kunci cache bundel memuat
+versinya, lupa menaikkan `version` berarti perbaikanmu tidak pernah sampai ke
+pengguna yang sudah memasang paket itu.
+
+---
+
+## Situs dengan verifikasi Cloudflare
+
+Beberapa sumber menaruh tantangan Cloudflare di depan halamannya. Mirai tidak
+menyelesaikannya secara otomatis — bukan karena sulit, tapi karena memutari
+tantangan bot adalah pekerjaan yang akan kalah terus dan bikin aplikasi terlihat
+seperti scraper. Polanya sama dengan Aniyomi: tantangan itu **diselesaikan
+pengguna sendiri**, dan kalau tidak bisa, sumber itu memang tidak bisa dipakai.
+Yang jadi tanggung jawab extension cuma satu: gagal dengan pesan yang menyebut
+verifikasinya, bukan dengan "gagal mem-parse halaman".
 
 ---
 
@@ -265,8 +341,11 @@ cacat.
 ## Checklist sebelum merge
 
 - [ ] `id` unik dan final
+- [ ] `version` dinaikkan kalau ini perbaikan untuk paket yang sudah ada
 - [ ] `hosts[]` di manifest memuat **semua** domain, termasuk CDN gambar/video
 - [ ] Tidak ada `fetch`/`XMLHttpRequest` langsung
 - [ ] Field opsional dihilangkan lewat `compact()`, bukan diisi string kosong
 - [ ] Ada test dengan fixture
 - [ ] `pnpm typecheck && pnpm lint && pnpm test` hijau
+- [ ] `pnpm --filter @mirai/extensions build` lolos, dan smoke ke situs asli
+      pernah dijalankan sekali

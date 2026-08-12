@@ -354,6 +354,61 @@ memakai urutan asli dari source.
 
 ---
 
+## Index repo (`index.min.json`)
+
+Bentuk yang dihasilkan `extensions/scripts/build.ts` dan dibaca aplikasi saat
+sebuah repo ditambahkan. Ini kontrak juga — aplikasi memakainya untuk menampilkan
+paket **sebelum** kodenya diunduh.
+
+```ts
+interface RepoEntry {
+  pkg: string // = nama berkas: `js/<pkg>.js`
+  name: string
+  lang: string
+  version: string // SemVer; naiknya memunculkan tombol Update
+  apiVersion: number
+  nsfw: boolean
+  hosts: string[] // allowlist proxy
+  file: string // relatif terhadap URL repo
+  icon?: string // idem; SVG didahulukan
+  sources: RepoSourceInfo[]
+}
+
+interface RepoSourceInfo {
+  id: string
+  name: string
+  lang: string
+  kind: 'manga' | 'anime'
+  baseUrl: string
+  supportsLatest: boolean
+  nsfw: boolean // `isNsfw` source, di-OR dengan `nsfw` paket
+}
+```
+
+`sources[]` **tidak** ditulis tangan di manifest: build menjalankan factory sekali
+dengan preferensi bawaan lalu membaca sendiri source yang dihasilkan. Jadi
+isinya dijamin sama dengan yang nanti benar-benar berjalan, dan `baseUrl` di sini
+adalah domain default source.
+
+Aplikasi memvalidasi ulang seluruh index sebelum menyimpannya
+(`services/extensionRepo.service.ts`): server repo adalah pihak luar, dan
+`apiVersion` berupa teks atau `hosts` kosong ditolak dengan menyebut paket mana
+yang bermasalah. Lihat
+[docs/features/extension-manager.md](../features/extension-manager.md).
+
+### Daur hidup `apiVersion`
+
+`apiVersion` dicek **sebelum** bundel diunduh, dan ketidakcocokan mana pun
+menolak pemasangan — arahnya dibedakan supaya pengguna tahu siapa yang harus
+di-update: "Butuh Mirai yang lebih baru" versus "Extension usang".
+
+Menaikkan `API_VERSION` mematikan **semua** extension terpasang sekaligus, jadi
+tambahan yang tidak merusak (field opsional baru di model, helper baru di
+`extension-lib`) tidak menaikkannya. Yang menaikkan: menghapus atau mengubah arti
+anggota yang sudah ada di `@mirai/extension-api`.
+
+---
+
 ## Batas sandbox
 
 Yang **tidak ada** di dalam worker:
