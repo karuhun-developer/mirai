@@ -1,0 +1,17 @@
+{
+  "name": "@mirai/extensions",
+  "private": true,
+  "version": "0.2.0",
+  "type": "module",
+  "scripts": {
+    "build": "node --experimental-strip-types scripts/build.ts",
+    "typecheck": "tsc --noEmit -p tsconfig.json"
+  },
+  "dependencies": {
+    "@mirai/extension-api": "workspace:*",
+    "@mirai/extension-lib": "workspace:*"
+  },
+  "devDependencies": {
+    "esbuild": "^0.25.12"
+  }
+}

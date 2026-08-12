@@ -1,0 +1,9 @@
+{
+  "pkg": "mangadex",
+  "name": "MangaDex",
+  "lang": "all",
+  "version": "1.0.0",
+  "apiVersion": 1,
+  "nsfw": false,
+  "hosts": ["api.mangadex.org", "uploads.mangadex.org"]
+}
