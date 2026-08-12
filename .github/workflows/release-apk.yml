@@ -1,0 +1,89 @@
+name: Build APK on Release
+
+# Tiap Release di-publish di GitHub (tag vX.Y.Z) → APK dibangun dan ditempel ke
+# Release itu. Versi app diturunkan dari tag, bukan dari package.json: tag adalah
+# satu-satunya hal yang tidak bisa lupa di-bump waktu merilis.
+# versionName = X.Y.Z, versionCode = X*10000 + Y*100 + Z.
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build & attach APK
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Turunkan versi dari tag
+        id: version
+        run: |
+          tag="${GITHUB_REF_NAME}"
+          if [[ ! "$tag" =~ ^v([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
+            echo "::error::Tag '$tag' bukan format 'vX.Y.Z' (semver). Bikin Release dengan tag mis. v0.9.0."
+            exit 1
+          fi
+          major="${BASH_REMATCH[1]}"
+          minor="${BASH_REMATCH[2]}"
+          patch="${BASH_REMATCH[3]}"
+          name="${major}.${minor}.${patch}"
+          code=$(( major * 10000 + minor * 100 + patch ))
+          echo "name=$name" >> "$GITHUB_OUTPUT"
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+          echo "APK: mirai-$name.apk (versionCode=$code, versionName=$name)"
+
+      - uses: pnpm/action-setup@v4
+        with:
+          run_install: false
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22 # CLI Capacitor 8 butuh Node >= 22
+          cache: pnpm
+
+      - name: Setup JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21 # Modul capacitor-android di-compile dengan source release 21
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Pasang platform & build-tools
+        run: sdkmanager "platforms;android-36" "build-tools;36.0.0"
+
+      - run: pnpm install --frozen-lockfile
+
+      # Build seluruh workspace: `apps/app` mengimpor @mirai/db dan
+      # @mirai/extension-runtime sebagai paket workspace, jadi keduanya harus
+      # sudah punya dist sebelum Vite membangun app-nya.
+      - name: Build web
+        run: pnpm build
+
+      - name: Capacitor sync
+        run: pnpm --filter @mirai/app exec cap sync android
+
+      # Debug-signed dengan keystore yang ikut di-commit (lihat
+      # `apps/app/android/app/build.gradle`) supaya APK tiap rilis bisa dipasang
+      # menimpa rilis sebelumnya tanpa uninstall.
+      - name: Build APK (debug-signed)
+        working-directory: apps/app/android
+        run: |
+          ./gradlew assembleDebug \
+            -PappVersionCode=${{ steps.version.outputs.code }} \
+            -PappVersionName=${{ steps.version.outputs.name }}
+
+      - name: Ganti nama APK
+        run: |
+          mkdir -p dist
+          cp apps/app/android/app/build/outputs/apk/debug/app-debug.apk \
+            "dist/mirai-${{ steps.version.outputs.name }}.apk"
+
+      - name: Tempel APK ke Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/mirai-${{ steps.version.outputs.name }}.apk
