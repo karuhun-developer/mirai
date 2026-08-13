@@ -1,21 +1,26 @@
 # Roadmap
 
-Satu fase = satu rilis minor. Tiap fase ditutup dengan `pnpm build`,
-`pnpm typecheck`, `pnpm lint`, `pnpm format:check`, dan smoke test yang hijau;
-hasilnya dicatat di [CHANGELOG.md](../CHANGELOG.md).
+Tiap fase ditutup dengan `pnpm build`, `pnpm typecheck`, `pnpm lint`,
+`pnpm format:check`, dan smoke test yang hijau; hasilnya dicatat di
+[CHANGELOG.md](../CHANGELOG.md).
 
-| Fase | Versi | Isi                        | Status |
-| ---- | ----- | -------------------------- | ------ |
-| 0    | 0.1.0 | Fondasi monorepo           | ✅     |
-| 1    | 0.2.0 | Extension API & runtime    | ✅     |
-| 2    | 0.3.0 | Repo extension & manajemen | ✅     |
-| 3    | 0.4.0 | DB & Library offline-first | ✅     |
-| 4    | 0.5.0 | Reader manga               | ✅     |
-| 5    | 0.6.0 | Player anime               | ✅     |
-| 6    | 0.7.0 | Unduh manga                | ✅     |
-| 7    | 0.8.0 | Unduh anime                | ✅     |
-| 8    | 0.9.0 | Build Android              | ✅     |
-| 9    | 1.0.0 | Backup, tracker, polish    | ✅     |
+| Fase | Isi                        | Status |
+| ---- | -------------------------- | ------ |
+| 0    | Fondasi monorepo           | ✅     |
+| 1    | Extension API & runtime    | ✅     |
+| 2    | Repo extension & manajemen | ✅     |
+| 3    | DB & Library offline-first | ✅     |
+| 4    | Reader manga               | ✅     |
+| 5    | Player anime               | ✅     |
+| 6    | Unduh manga                | ✅     |
+| 7    | Unduh anime                | ✅     |
+| 8    | Build Android              | ✅     |
+| 9    | Backup, dwibahasa, polish  | ✅     |
+
+**Nomor fase bukan nomor versi.** Rencana awalnya satu fase = satu rilis minor
+(0.1.0 … 1.0.0), tapi tidak satu pun fase pernah benar-benar dirilis: semuanya
+selesai sebelum ada tag pertama. Rilis pertama dimulai dari **v0.0.1**,
+alasannya di [CHANGELOG.md](../CHANGELOG.md#kenapa-mulai-dari-001).
 
 ---
 

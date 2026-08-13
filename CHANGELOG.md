@@ -3,13 +3,31 @@
 Semua perubahan penting pada Mirai dicatat di sini.
 
 Format mengikuti [Keep a Changelog](https://keepachangelog.com/id/1.1.0/),
-versinya mengikuti [Semantic Versioning](https://semver.org/lang/id/). Satu fase
-roadmap = satu rilis minor.
+versinya mengikuti [Semantic Versioning](https://semver.org/lang/id/).
 
 Setiap fitur punya dokumennya sendiri di `docs/features/`. Entri di bawah
 menautkan ke sana supaya changelog ini tetap ringkas.
 
-## [Unreleased]
+## Kenapa mulai dari 0.0.1
+
+Sembilan fase roadmap selesai sebelum ada satu pun tag di repo ini, jadi rilis
+pertama membawa seluruhnya sekaligus. Nomornya tetap **0.0.1**, bukan 1.0.0,
+karena dua alasan:
+
+- **SemVer 0.x berarti "belum dijanjikan stabil".** APK-nya belum pernah dipasang
+  di perangkat fisik sekali pun — cookie jar bersama untuk Cloudflare, playback
+  HLS native, unduhan ke `Directory.Data`, dan driver SQLite native semuanya
+  masih belum terbukti di luar peramban. Menyebutnya 1.0.0 berarti menjanjikan
+  kontrak yang belum pernah diuji di tempat yang paling penting.
+- **`versionCode` Android tidak bisa turun.** Karena diturunkan dari tag
+  (`X*10000 + Y*100 + Z`), rilis 1.0.0 langsung mematok lantai di 10000 — semua
+  rilis 0.x sesudahnya tidak akan bisa dipasang menimpanya, dan itu tidak bisa
+  dibatalkan. Mulai dari 1 menyisakan seluruh ruang 0.x.
+
+Nomor fase di [docs/roadmap.md](docs/roadmap.md) karenanya bukan nomor versi;
+itu penanda urutan pengerjaan.
+
+## [0.0.1] - 2026-08-13
 
 ### Fase 9 — Backup, dwibahasa, polish
 

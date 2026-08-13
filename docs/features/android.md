@@ -41,11 +41,17 @@ pnpm android:open    # sync lalu buka Android Studio (khusus WSL)
 ### Versi datang dari tag, bukan dari `package.json`
 
 `versionName` dan `versionCode` diturunkan dari tag Release:
-`v0.9.0` → `versionName = "0.9.0"`, `versionCode = 0*10000 + 9*100 + 0 = 900`.
+`v0.0.1` → `versionName = "0.0.1"`, `versionCode = 0*10000 + 0*100 + 1 = 1`.
 
 Rumus `X*10000 + Y*100 + Z` menjaga urutan naik selama minor dan patch di bawah
 100 — cukup untuk seumur hidup proyek ini, dan jauh lebih mudah dibaca daripada
-nomor build yang berjalan sendiri. Tag yang bukan `vX.Y.Z` menghentikan workflow
+nomor build yang berjalan sendiri.
+
+**Itu juga alasan rilis pertama bernomor 0.0.1, bukan 1.0.0.** `versionCode`
+tidak boleh turun: sekali sebuah APK bernomor 10000 terpasang, tidak ada rilis
+0.x yang bisa menimpanya, dan itu tidak bisa dibatalkan. Mulai dari 1
+menyisakan seluruh ruang 0.x — lihat
+[CHANGELOG.md](../../CHANGELOG.md#kenapa-mulai-dari-001). Tag yang bukan `vX.Y.Z` menghentikan workflow
 dengan pesan yang menyebutkan formatnya, bukan membangun APK bernomor asal.
 
 Di sisi Gradle nilainya masuk sebagai property:
