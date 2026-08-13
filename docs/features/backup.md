@@ -32,11 +32,11 @@ sendiri dari sumbernya. Yang tidak bisa dibuat ulang cuma pilihan penggunanya.
 
 ### Apa yang ikut
 
-| Sumber | Ikut | Tidak ikut |
-|---|---|---|
-| SQLite | `entry` (favorit + yang punya riwayat), `category`, `entry_category`, `item` (yang punya keadaan pengguna), `history`, `setting` | `download`, `entry`/`item` sisa penjelajahan katalog |
-| `localStorage` | daftar repo, extension terpasang, setelan tiap paket, saklar NSFW | `mirai.settings` (User-Agent) |
-| Berkas | — | seluruh isi unduhan, bundel kode extension |
+| Sumber         | Ikut                                                                                                                             | Tidak ikut                                           |
+| -------------- | -------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------- |
+| SQLite         | `entry` (favorit + yang punya riwayat), `category`, `entry_category`, `item` (yang punya keadaan pengguna), `history`, `setting` | `download`, `entry`/`item` sisa penjelajahan katalog |
+| `localStorage` | daftar repo, extension terpasang, setelan tiap paket, saklar NSFW                                                                | `mirai.settings` (User-Agent)                        |
+| Berkas         | —                                                                                                                                | seluruh isi unduhan, bundel kode extension           |
 
 Tiga keputusan yang perlu alasannya:
 
@@ -85,13 +85,13 @@ Berkas backup adalah satu-satunya masukan di Mirai yang boleh menulis ke seluruh
 tabel sekaligus, jadi pembacaannya **memaafkan bagian yang hilang** tapi
 **menolak berkas yang salah**:
 
-| Keadaan | Hasil |
-|---|---|
-| Bukan JSON | Ditolak: "Berkasnya bukan JSON yang sah." |
-| JSON tapi bukan backup Mirai (`format` beda) | Ditolak: "Berkas ini bukan backup Mirai." |
-| `version` lebih besar dari yang dikenal | Ditolak, dengan saran memperbarui aplikasi |
-| Tabel atau bagian yang belum ada di versi lama | Dianggap kosong |
-| Extension tanpa `entry.file` | Dibuang — tidak ada yang tahu berkas mana yang harus diunduh |
+| Keadaan                                        | Hasil                                                        |
+| ---------------------------------------------- | ------------------------------------------------------------ |
+| Bukan JSON                                     | Ditolak: "Berkasnya bukan JSON yang sah."                    |
+| JSON tapi bukan backup Mirai (`format` beda)   | Ditolak: "Berkas ini bukan backup Mirai."                    |
+| `version` lebih besar dari yang dikenal        | Ditolak, dengan saran memperbarui aplikasi                   |
+| Tabel atau bagian yang belum ada di versi lama | Dianggap kosong                                              |
+| Extension tanpa `entry.file`                   | Dibuang — tidak ada yang tahu berkas mana yang harus diunduh |
 
 `BACKUP_VERSION` adalah versi **format**, bukan versi aplikasi. Naik hanya kalau
 berkas lama tidak lagi bisa dibaca apa adanya; menambah bidang baru yang boleh
@@ -100,14 +100,14 @@ dipulihkan setahun kemudian.
 
 ## Kode
 
-| Path | Isi |
-|---|---|
-| `packages/db/src/repositories/backup.ts` | `BackupRepository.dump()` / `.restore()`, saringan entri & item, `upsert()` |
-| `apps/app/src/services/backupFormat.ts` | Bentuk berkas, `parseBackup()`, `backupFileName()`, `summarize()` — murni, tanpa I/O |
-| `apps/app/src/services/backup.service.ts` | `createBackup()`, `exportBackup()`, `readBackup()`, `applyBackup()`; Share di native, unduhan biasa di web |
-| `apps/app/src/stores/backup.ts` | State tombol, berkas yang menunggu konfirmasi, muat ulang library + extension setelah restore |
-| `apps/app/src/pages/settings/SettingsPage.vue` | Bagian **Backup** |
-| `apps/app/test/backupFormat.test.ts` | Uji pembacaan berkas: rusak, asing, versi lebih baru, bagian hilang |
+| Path                                           | Isi                                                                                                        |
+| ---------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `packages/db/src/repositories/backup.ts`       | `BackupRepository.dump()` / `.restore()`, saringan entri & item, `upsert()`                                |
+| `apps/app/src/services/backupFormat.ts`        | Bentuk berkas, `parseBackup()`, `backupFileName()`, `summarize()` — murni, tanpa I/O                       |
+| `apps/app/src/services/backup.service.ts`      | `createBackup()`, `exportBackup()`, `readBackup()`, `applyBackup()`; Share di native, unduhan biasa di web |
+| `apps/app/src/stores/backup.ts`                | State tombol, berkas yang menunggu konfirmasi, muat ulang library + extension setelah restore              |
+| `apps/app/src/pages/settings/SettingsPage.vue` | Bagian **Backup**                                                                                          |
+| `apps/app/test/backupFormat.test.ts`           | Uji pembacaan berkas: rusak, asing, versi lebih baru, bagian hilang                                        |
 
 Lapisannya tetap satu arah. `backup.service.ts` tidak boleh memanggil store —
 memasang ulang extension berarti mengunduh bundel dan menghidupkan Worker, dan
