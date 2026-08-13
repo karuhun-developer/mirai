@@ -27,6 +27,21 @@ karena dua alasan:
 Nomor fase di [docs/roadmap.md](docs/roadmap.md) karenanya bukan nomor versi;
 itu penanda urutan pengerjaan.
 
+## [0.0.2] - 2026-08-13
+
+### Fixed
+
+- **`minSdkVersion` naik 24 → 26.** Build APK pertama yang benar-benar
+  dijalankan — workflow rilis `v0.0.1`, karena mesin pengembangan tidak punya
+  Android SDK — gagal di manifest merger: `@capacitor/inappbrowser`
+  mensyaratkan 26. Ini kegagalan build, bukan peringatan, dan jalan pintas
+  `tools:overrideLibrary` cuma memindahkannya jadi crash di perangkat pengguna.
+  Android 7.x tidak lagi didukung. Lihat
+  [docs/features/android.md](docs/features/android.md).
+
+`v0.0.1` karenanya tidak pernah menghasilkan APK; rilis pertama yang benar-benar
+membawa artefak adalah `v0.0.2`. Isinya sama persis, ditambah perbaikan di atas.
+
 ## [0.0.1] - 2026-08-13
 
 ### Fase 9 — Backup, dwibahasa, polish
@@ -82,12 +97,6 @@ itu penanda urutan pengerjaan.
 
 #### Fixed
 
-- **`minSdkVersion` naik 24 → 26.** Build APK pertama yang benar-benar
-  dijalankan (workflow rilis, karena mesin pengembangan tidak punya Android SDK)
-  gagal di manifest merger: `@capacitor/inappbrowser` mensyaratkan 26. Ini
-  kegagalan build, bukan peringatan, dan jalan pintas `tools:overrideLibrary`
-  cuma memindahkannya jadi crash di perangkat pengguna. Android 7.x tidak lagi
-  didukung. Lihat [docs/features/android.md](docs/features/android.md).
 - `tsconfig.test.json` sekarang membawa tipe `vite/client` dan alias `@/*`.
   Tanpa keduanya `@/i18n` tidak pernah ter-resolve dari proyek test, dan seluruh
   berkas yang menyeretnya diam-diam lolos dari pemeriksaan tipe — persis kelas
