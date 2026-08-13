@@ -1,9 +1,11 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import AppHeader from '@/components/layout/AppHeader.vue'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
+import { LOCALES, setLocale, type LocaleCode } from '@/i18n'
 import { browserUserAgent, settings } from '@/services/settings.service'
 import { transport } from '@/services/extensions.service'
 import { storageEstimate } from '@/services/storage.service'
@@ -11,6 +13,8 @@ import { humanBytes } from '@/services/storageQuota'
 import { summarize } from '@/services/backupFormat'
 import { useDownloadsStore } from '@/stores/downloads'
 import { useBackupStore } from '@/stores/backup'
+
+const { t, locale } = useI18n()
 
 const active = computed(() => settings.userAgent.trim() !== '')
 
@@ -26,11 +30,13 @@ const staged = computed(() => (backup.pending ? summarize(backup.pending) : null
 
 const stagedDate = computed(() =>
   backup.pending?.createdAt
-    ? new Date(backup.pending.createdAt).toLocaleString('id-ID', {
+    ? // Format tanggalnya mengikuti bahasa yang sedang dipakai, bukan bahasa
+      // perangkat: dua-duanya tampil di layar yang sama.
+      new Date(backup.pending.createdAt).toLocaleString(locale.value, {
         dateStyle: 'medium',
         timeStyle: 'short',
       })
-    : 'tanggal tidak diketahui',
+    : t('settings.backup.stagedUnknownDate'),
 )
 
 /**
@@ -67,23 +73,72 @@ function reset(): void {
 </script>
 
 <template>
-  <AppHeader title="Pengaturan" />
+  <AppHeader :title="t('settings.title')" />
 
   <div class="space-y-8 px-4 py-6 pb-24 md:pb-8">
     <section class="space-y-3">
       <div>
-        <h2 class="text-base font-medium">Unduhan</h2>
-        <p class="text-sm text-muted-foreground">
-          Chapter yang diunduh tersimpan di perangkat dan tetap terbaca tanpa internet.
+        <h2 class="text-base font-medium">{{ t('settings.appearance.heading') }}</h2>
+        <p class="text-sm text-muted-foreground">{{ t('settings.appearance.description') }}</p>
+      </div>
+
+      <div class="space-y-2 rounded-md border border-border p-4">
+        <p class="text-sm font-medium">{{ t('settings.appearance.language') }}</p>
+        <div class="flex flex-wrap gap-2 pt-1">
+          <!-- Pilihan "ikuti perangkat" tetap ada nilainya sendiri: menyamakannya
+               dengan salah satu bahasa membuat pengguna yang berpindah perangkat
+               terkunci di bahasa yang dulu kebetulan terpilih. -->
+          <Button
+            size="sm"
+            :variant="settings.locale === '' ? 'default' : 'outline'"
+            @click="settings.locale = ''"
+          >
+            {{ t('settings.appearance.systemLanguage') }}
+          </Button>
+          <Button
+            v-for="option in LOCALES"
+            :key="option.code"
+            size="sm"
+            :variant="settings.locale === option.code ? 'default' : 'outline'"
+            @click="setLocale(option.code as LocaleCode)"
+          >
+            {{ option.label }}
+          </Button>
+        </div>
+        <p class="pt-1 text-xs text-muted-foreground">
+          {{ t('settings.appearance.languageHint') }}
         </p>
+      </div>
+    </section>
+
+    <section class="space-y-3">
+      <div>
+        <h2 class="text-base font-medium">{{ t('settings.privacy.heading') }}</h2>
+      </div>
+
+      <div class="space-y-2 rounded-md border border-border p-4">
+        <div class="flex items-start justify-between gap-4">
+          <div class="min-w-0">
+            <p class="text-sm font-medium">{{ t('settings.privacy.incognito') }}</p>
+            <p class="text-sm text-muted-foreground">{{ t('settings.privacy.incognitoHint') }}</p>
+          </div>
+          <Switch v-model="settings.incognito" :aria-label="t('settings.privacy.incognito')" />
+        </div>
+        <p class="pt-1 text-xs text-muted-foreground">{{ t('settings.privacy.incognitoOff') }}</p>
+      </div>
+    </section>
+
+    <section class="space-y-3">
+      <div>
+        <h2 class="text-base font-medium">{{ t('settings.downloads.heading') }}</h2>
+        <p class="text-sm text-muted-foreground">{{ t('settings.downloads.description') }}</p>
       </div>
 
       <div class="space-y-4 rounded-md border border-border p-4">
         <div class="space-y-2">
-          <p class="text-sm font-medium">Unduhan berbarengan</p>
+          <p class="text-sm font-medium">{{ t('settings.downloads.concurrency') }}</p>
           <p class="text-sm text-muted-foreground">
-            Berapa chapter dikerjakan sekaligus. Halaman di dalam satu chapter selalu berurutan —
-            menembakkan puluhan permintaan sekaligus adalah cara tercepat diblokir situs sumbernya.
+            {{ t('settings.downloads.concurrencyHint') }}
           </p>
           <div class="flex gap-2 pt-1">
             <Button
@@ -100,33 +155,35 @@ function reset(): void {
 
         <div class="flex items-start justify-between gap-4 border-t border-border pt-4">
           <div class="min-w-0">
-            <p class="text-sm font-medium">Hapus setelah dibaca</p>
+            <p class="text-sm font-medium">{{ t('settings.downloads.deleteAfterRead') }}</p>
             <p class="text-sm text-muted-foreground">
-              Berkas chapter dibuang begitu reader ditutup dan chapternya sudah tamat. Menghemat
-              ruang kalau kebiasaannya mengunduh untuk sekali baca.
+              {{ t('settings.downloads.deleteAfterReadHint') }}
             </p>
           </div>
           <Switch
             :model-value="downloads.prefs.deleteAfterRead"
-            aria-label="Hapus setelah dibaca"
+            :aria-label="t('settings.downloads.deleteAfterRead')"
             @update:model-value="downloads.setPrefs({ deleteAfterRead: $event })"
           />
         </div>
 
         <div v-if="usage" class="space-y-2 border-t border-border pt-4">
           <p class="text-xs text-muted-foreground">
-            Terpakai {{ humanBytes(usage.used) }} dari kuota {{ humanBytes(usage.quota) }} yang
-            diberikan browser. Angkanya mencakup seluruh data Mirai di peramban ini, bukan cuma
-            unduhan.
+            {{
+              t('settings.downloads.usage', {
+                used: humanBytes(usage.used),
+                quota: humanBytes(usage.quota),
+              })
+            }}
           </p>
           <!-- Satu episode anime bisa ratusan megabita; peringatannya diulang di sini
                karena inilah halaman tempat orang mencari "kenapa penuh". -->
           <p
-            v-if="downloads.storage.message"
+            v-if="downloads.storage.messageKey"
             class="text-xs"
             :class="downloads.storage.level === 'full' ? 'text-destructive' : 'text-foreground'"
           >
-            {{ downloads.storage.message }}
+            {{ t(downloads.storage.messageKey!, { free: humanBytes(downloads.storage.free) }) }}
           </p>
         </div>
       </div>
@@ -134,21 +191,17 @@ function reset(): void {
 
     <section class="space-y-3">
       <div>
-        <h2 class="text-base font-medium">Backup</h2>
-        <p class="text-sm text-muted-foreground">
-          Menyalin library, kategori, progres baca, riwayat, dan daftar extension ke satu berkas
-          JSON. Berkas unduhan tidak ikut — ukurannya bisa gigabita, dan chapternya bisa diunduh
-          ulang.
-        </p>
+        <h2 class="text-base font-medium">{{ t('settings.backup.heading') }}</h2>
+        <p class="text-sm text-muted-foreground">{{ t('settings.backup.description') }}</p>
       </div>
 
       <div class="space-y-4 rounded-md border border-border p-4">
         <div class="flex flex-wrap gap-2">
           <Button size="sm" :disabled="backup.busy" @click="backup.exportNow()">
-            Buat backup
+            {{ t('settings.backup.export') }}
           </Button>
           <Button size="sm" variant="outline" :disabled="backup.busy" @click="pickFile">
-            Pulihkan dari berkas
+            {{ t('settings.backup.import') }}
           </Button>
           <input
             ref="filePicker"
@@ -163,29 +216,28 @@ function reset(): void {
              library yang sedang dipakai dan tidak punya tombol batal. -->
         <div v-if="staged" class="space-y-3 border-t border-border pt-4">
           <div>
-            <p class="text-sm font-medium">Backup dari {{ stagedDate }}</p>
+            <p class="text-sm font-medium">
+              {{ t('settings.backup.stagedTitle', { date: stagedDate }) }}
+            </p>
             <p class="text-sm text-muted-foreground">
-              {{ staged.entries }} judul · {{ staged.categories }} kategori ·
-              {{ staged.items }} chapter/episode · {{ staged.history }} riwayat ·
-              {{ staged.extensions }} extension
+              {{ t('settings.backup.stagedCounts', { ...staged }) }}
             </p>
             <p class="pt-1 text-xs text-muted-foreground">
-              Isinya digabung dengan yang sudah ada di perangkat ini. Tidak ada yang dihapus; judul
-              yang sama dimenangkan berkas backup.
+              {{ t('settings.backup.mergeNotice') }}
             </p>
           </div>
           <div class="flex flex-wrap gap-2">
             <Button size="sm" :disabled="backup.busy" @click="backup.confirm()">
-              Pulihkan sekarang
+              {{ t('settings.backup.confirm') }}
             </Button>
             <Button size="sm" variant="ghost" :disabled="backup.busy" @click="backup.discard()">
-              Batal
+              {{ t('common.cancel') }}
             </Button>
           </div>
         </div>
 
         <p v-if="backup.report" class="border-t border-border pt-4 text-sm text-foreground">
-          {{ backup.report.message }}
+          {{ backup.report }}
         </p>
         <p v-if="backup.error" class="border-t border-border pt-4 text-sm text-destructive">
           {{ backup.error }}
@@ -195,46 +247,40 @@ function reset(): void {
 
     <section class="space-y-3">
       <div>
-        <h2 class="text-base font-medium">Lanjutan</h2>
-        <p class="text-sm text-muted-foreground">
-          Setelan jaringan. Tidak perlu disentuh selama sumbernya jalan.
-        </p>
+        <h2 class="text-base font-medium">{{ t('settings.advanced.heading') }}</h2>
+        <p class="text-sm text-muted-foreground">{{ t('settings.advanced.description') }}</p>
       </div>
 
       <div class="space-y-2 rounded-md border border-border p-4">
-        <label for="user-agent" class="text-sm font-medium">User-Agent</label>
-        <p class="text-sm text-muted-foreground">
-          Menimpa identitas browser yang dikirim semua extension. Kosongkan untuk membiarkan tiap
-          extension memilih sendiri — itu bawaannya, dan biasanya yang paling benar. Gunanya kalau
-          sebuah situs menahan Mirai dengan verifikasi Cloudflare: izin hasil verifikasi hanya
-          berlaku untuk User-Agent yang menyelesaikannya, jadi keduanya harus sama persis.
-        </p>
+        <label for="user-agent" class="text-sm font-medium">
+          {{ t('settings.advanced.userAgent') }}
+        </label>
+        <p class="text-sm text-muted-foreground">{{ t('settings.advanced.userAgentHint') }}</p>
 
         <Input
           id="user-agent"
           v-model="settings.userAgent"
-          placeholder="Kosong — pakai bawaan extension"
-          aria-label="User-Agent"
+          :placeholder="t('settings.advanced.userAgentPlaceholder')"
+          :aria-label="t('settings.advanced.userAgent')"
         />
 
         <div class="flex flex-wrap items-center gap-2 pt-1">
           <Button size="sm" variant="outline" @click="useBrowserAgent">
-            Pakai UA browser ini
+            {{ t('settings.advanced.useBrowserAgent') }}
           </Button>
           <Button size="sm" variant="ghost" :disabled="!active" @click="reset">
-            Kembalikan ke bawaan
+            {{ t('settings.advanced.resetUserAgent') }}
           </Button>
         </div>
 
         <p class="pt-1 text-xs text-muted-foreground">
           {{
             active
-              ? 'Aktif. Berlaku untuk request berikutnya, tanpa perlu memuat ulang.'
-              : 'Nonaktif — extension memakai User-Agent-nya sendiri.'
+              ? t('settings.advanced.userAgentActive')
+              : t('settings.advanced.userAgentInactive')
           }}
           <template v-if="!transport.isNative">
-            Di versi web, request tetap dikirim proxy dari mesin lain, jadi mengganti User-Agent
-            saja tidak cukup untuk melewati verifikasi Cloudflare.
+            {{ t('settings.advanced.userAgentWebNote') }}
           </template>
         </p>
       </div>

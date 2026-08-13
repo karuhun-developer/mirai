@@ -31,15 +31,33 @@ export interface Settings {
    * kalau semuanya sudah jalan.
    */
   userAgent: string
+  /**
+   * Bahasa antarmuka. Kosong berarti "ikuti bahasa perangkat" — pilihan yang
+   * disengaja: yang tersimpan cuma keputusan sadar pengguna, sehingga membuka
+   * Mirai di perangkat berbahasa Inggris tidak memaksanya berbahasa Indonesia
+   * hanya karena itu bawaan aplikasinya.
+   */
+  locale: string
+  /**
+   * Mode incognito: riwayat dan progres tidak dicatat selama menyala. Tidak ikut
+   * disimpan ke `localStorage` — lihat `save()`.
+   */
+  incognito: boolean
 }
 
 function load(): Settings {
-  const empty: Settings = { userAgent: '' }
+  const empty: Settings = { userAgent: '', locale: '', incognito: false }
   try {
     const raw = localStorage.getItem(KEY)
     if (!raw) return empty
     const parsed = JSON.parse(raw) as Partial<Settings>
-    return { userAgent: typeof parsed.userAgent === 'string' ? parsed.userAgent : '' }
+    return {
+      userAgent: typeof parsed.userAgent === 'string' ? parsed.userAgent : '',
+      locale: typeof parsed.locale === 'string' ? parsed.locale : '',
+      // Sengaja tidak dibaca dari penyimpanan: incognito yang menyala diam-diam
+      // sejak dibuka adalah cara kehilangan riwayat tanpa sadar.
+      incognito: false,
+    }
   } catch {
     // Setelan rusak tidak boleh membuat app gagal dibuka.
     return empty
@@ -50,9 +68,11 @@ export const settings = reactive<Settings>(load())
 
 watch(
   () => ({ ...settings }),
-  (value) => {
+  ({ incognito: _incognito, ...persisted }) => {
     try {
-      localStorage.setItem(KEY, JSON.stringify(value))
+      // `incognito` tidak ikut disimpan: mode privat yang bertahan lintas sesi
+      // berarti berhari-hari riwayat hilang tanpa ada yang menyadari.
+      localStorage.setItem(KEY, JSON.stringify(persisted))
     } catch {
       // Kuota penuh atau mode privat: setelan hilang saat reload, app tetap jalan.
     }

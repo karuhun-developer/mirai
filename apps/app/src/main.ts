@@ -2,6 +2,7 @@ import { createApp } from 'vue'
 import { createPinia } from 'pinia'
 import App from './App.vue'
 import { router } from './router'
+import { i18n, setupI18n } from './i18n'
 import { setupDb } from './services/db.service'
 import './assets/index.css'
 
@@ -16,6 +17,9 @@ async function bootstrap(): Promise<void> {
 
   const app = createApp(App)
 
+  // i18n dipasang sebelum router: guard dan `meta.title` boleh menerjemahkan.
+  setupI18n()
+  app.use(i18n)
   app.use(createPinia())
   app.use(router)
   await router.isReady()
