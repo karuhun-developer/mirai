@@ -55,7 +55,7 @@ function packageCount(repoUrl: string): number {
       </Button>
     </form>
 
-    <p v-if="error" class="rounded-md bg-destructive/10 p-2 text-xs text-destructive">
+    <p v-if="error" role="alert" class="rounded-md bg-destructive/10 p-2 text-xs text-destructive">
       {{ error }}
     </p>
 

@@ -30,8 +30,12 @@ function refresh(): void {
 <template>
   <AppHeader :title="t('updates.title')" show-refresh @refresh="refresh" />
 
+  <!-- `role="status"` supaya kemajuan pemeriksaan ikut terdengar pembaca
+       layar; tanpa itu satu-satunya kabar bahwa app sedang bekerja adalah ikon
+       yang berputar. -->
   <div
     v-if="store.progress"
+    role="status"
     class="flex items-center gap-2 px-4 py-2 text-xs text-muted-foreground"
   >
     <RefreshCw class="size-3.5 animate-spin" />
@@ -43,6 +47,7 @@ function refresh(): void {
 
   <p
     v-else-if="store.report"
+    role="status"
     class="px-4 py-2 text-xs text-muted-foreground"
     data-testid="updates-report"
   >
@@ -55,7 +60,11 @@ function refresh(): void {
     </span>
   </p>
 
-  <p v-if="store.error" class="mx-4 mt-4 rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+  <p
+    v-if="store.error"
+    role="alert"
+    class="mx-4 mt-4 rounded-md bg-destructive/10 p-3 text-sm text-destructive"
+  >
     {{ store.error }}
   </p>
 

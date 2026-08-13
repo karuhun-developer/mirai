@@ -104,7 +104,8 @@ async function refresh(): Promise<void> {
     @drop-category="library.dropCategory($event)"
   />
 
-  <div v-if="updates.progress" class="px-4 py-2 text-xs text-muted-foreground">
+  <!-- Kemajuan penyegaran diumumkan, bukan cuma ditampilkan. -->
+  <div v-if="updates.progress" role="status" class="px-4 py-2 text-xs text-muted-foreground">
     {{ t('library.refreshing', updates.progress) }}
     <Button variant="ghost" size="sm" class="ml-2" @click="updates.cancel()">
       {{ t('common.cancel') }}
@@ -113,6 +114,7 @@ async function refresh(): Promise<void> {
 
   <p
     v-if="library.error"
+    role="alert"
     class="mx-4 mt-4 rounded-md bg-destructive/10 p-3 text-sm text-destructive"
   >
     {{ library.error }}

@@ -19,6 +19,7 @@ export const en: typeof id = {
     remove: 'Remove',
     back: 'Back',
     mainNav: 'Main navigation',
+    skipToContent: 'Skip to content',
     anime: 'Anime',
     manga: 'Manga',
     loading: 'Loading…',

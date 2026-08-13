@@ -76,6 +76,7 @@ const groups = computed(() => [
 
     <p
       v-if="store.error"
+      role="alert"
       class="mx-4 mb-4 rounded-md bg-destructive/10 p-3 text-sm text-destructive"
     >
       {{ store.error }}

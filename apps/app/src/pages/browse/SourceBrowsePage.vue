@@ -162,7 +162,11 @@ const tabs: { key: Mode; labelKey: string }[] = [
       @solved="fetchPage(false)"
     />
 
-    <p v-if="error" class="mx-4 mt-4 rounded-md bg-destructive/10 p-3 text-sm text-destructive">
+    <p
+      v-if="error"
+      role="alert"
+      class="mx-4 mt-4 rounded-md bg-destructive/10 p-3 text-sm text-destructive"
+    >
       {{ error }}
     </p>
 

@@ -17,6 +17,7 @@ export const id = {
     remove: 'Hapus',
     back: 'Kembali',
     mainNav: 'Navigasi utama',
+    skipToContent: 'Lompat ke konten',
     anime: 'Anime',
     manga: 'Manga',
     loading: 'Memuat…',

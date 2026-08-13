@@ -35,6 +35,7 @@ onMounted(() => void store.ensureLoaded())
   <template v-else>
     <p
       v-if="store.error"
+      role="alert"
       class="mx-4 mt-4 rounded-md bg-destructive/10 p-3 text-sm text-destructive"
     >
       {{ store.error }}

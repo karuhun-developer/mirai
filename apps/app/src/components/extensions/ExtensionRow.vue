@@ -61,7 +61,11 @@ async function save(prefs: Parameters<typeof store.savePreferences>[1]): Promise
           <Badge v-if="row.updatable" variant="secondary">{{ t('extensions.update') }}</Badge>
         </p>
         <p class="truncate text-xs text-muted-foreground">{{ subtitle }}</p>
-        <p v-if="row.incompatible" class="mt-1 flex items-center gap-1 text-xs text-destructive">
+        <p
+          v-if="row.incompatible"
+          role="alert"
+          class="mt-1 flex items-center gap-1 text-xs text-destructive"
+        >
           <TriangleAlert class="size-3.5 shrink-0" />
           {{ row.incompatible }}
         </p>

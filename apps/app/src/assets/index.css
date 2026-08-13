@@ -157,6 +157,26 @@
   padding-bottom: var(--safe-bottom);
 }
 
+@layer base {
+  /*
+   * Yang menyalakan "kurangi gerak" di sistemnya sering melakukannya karena
+   * animasi memicu pusing atau mual — bukan karena selera. Durasinya dipangkas
+   * jadi hampir nol, bukan dimatikan: transisi yang dihapus sepenuhnya membuat
+   * kode yang menunggu `transitionend` (mis. menutup lembar setelan) tergantung
+   * selamanya.
+   */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
+
 /* Scrollbar tipis; grid cover jadi tidak kehilangan lebar di desktop. */
 @layer base {
   * {

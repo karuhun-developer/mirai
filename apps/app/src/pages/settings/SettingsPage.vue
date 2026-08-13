@@ -239,7 +239,11 @@ function reset(): void {
         <p v-if="backup.report" class="border-t border-border pt-4 text-sm text-foreground">
           {{ backup.report }}
         </p>
-        <p v-if="backup.error" class="border-t border-border pt-4 text-sm text-destructive">
+        <p
+          v-if="backup.error"
+          role="alert"
+          class="border-t border-border pt-4 text-sm text-destructive"
+        >
           {{ backup.error }}
         </p>
       </div>
