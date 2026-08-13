@@ -22,6 +22,8 @@ export { loadSnapshot, saveSnapshot, dropSnapshot } from './persist.js'
 // yang butuh fungsinya (mis. test) mengimpor langsung dari `./drivers/*.js`.
 export type { SqlJsHandle, SqlJsOptions } from './drivers/sqljs.js'
 
+export { BackupRepository } from './repositories/backup.js'
+export type { DbSnapshot, RestoreCount } from './repositories/backup.js'
 export { BaseRepository } from './repositories/base.js'
 export type { BaseRow, ListOptions } from './repositories/base.js'
 export { EntryRepository } from './repositories/entries.js'

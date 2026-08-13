@@ -1,5 +1,6 @@
 import wasmUrl from 'sql.js/dist/sql-wasm.wasm?url'
 import {
+  BackupRepository,
   CategoryRepository,
   DownloadRepository,
   EntryRepository,
@@ -30,6 +31,7 @@ export interface Repos {
   downloads: DownloadRepository
   history: HistoryRepository
   settings: SettingsRepository
+  backup: BackupRepository
 }
 
 let cache: Repos | null = null
@@ -52,6 +54,7 @@ export function repos(): Repos {
     downloads: new DownloadRepository(getDb()),
     history: new HistoryRepository(getDb()),
     settings: new SettingsRepository(getDb()),
+    backup: new BackupRepository(getDb()),
   }
   return cache
 }

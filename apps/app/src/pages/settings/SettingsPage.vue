@@ -8,7 +8,9 @@ import { browserUserAgent, settings } from '@/services/settings.service'
 import { transport } from '@/services/extensions.service'
 import { storageEstimate } from '@/services/storage.service'
 import { humanBytes } from '@/services/storageQuota'
+import { summarize } from '@/services/backupFormat'
 import { useDownloadsStore } from '@/stores/downloads'
+import { useBackupStore } from '@/stores/backup'
 
 const active = computed(() => settings.userAgent.trim() !== '')
 
@@ -16,6 +18,38 @@ const downloads = useDownloadsStore()
 const usage = ref<{ used: number; quota: number } | null>(null)
 
 const CONCURRENCY = [1, 2, 3, 4]
+
+const backup = useBackupStore()
+const filePicker = ref<HTMLInputElement | null>(null)
+
+const staged = computed(() => (backup.pending ? summarize(backup.pending) : null))
+
+const stagedDate = computed(() =>
+  backup.pending?.createdAt
+    ? new Date(backup.pending.createdAt).toLocaleString('id-ID', {
+        dateStyle: 'medium',
+        timeStyle: 'short',
+      })
+    : 'tanggal tidak diketahui',
+)
+
+/**
+ * `<input type="file">` disembunyikan dan dipicu tombol: kontrol bawaannya
+ * membawa gaya sistem yang tidak bisa diseragamkan dengan tombol lain, dan di
+ * WebView Android tampilannya berbeda lagi.
+ */
+function pickFile(): void {
+  filePicker.value?.click()
+}
+
+async function onFilePicked(event: Event): Promise<void> {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  // Nilainya dikosongkan supaya memilih berkas yang sama dua kali tetap memicu
+  // `change` — jalur yang dipakai orang setelah percobaan pertama gagal.
+  input.value = ''
+  if (file) await backup.stage(file)
+}
 
 onMounted(async () => {
   await downloads.loadPrefs()
@@ -100,6 +134,67 @@ function reset(): void {
 
     <section class="space-y-3">
       <div>
+        <h2 class="text-base font-medium">Backup</h2>
+        <p class="text-sm text-muted-foreground">
+          Menyalin library, kategori, progres baca, riwayat, dan daftar extension ke satu berkas
+          JSON. Berkas unduhan tidak ikut — ukurannya bisa gigabita, dan chapternya bisa diunduh
+          ulang.
+        </p>
+      </div>
+
+      <div class="space-y-4 rounded-md border border-border p-4">
+        <div class="flex flex-wrap gap-2">
+          <Button size="sm" :disabled="backup.busy" @click="backup.exportNow()">
+            Buat backup
+          </Button>
+          <Button size="sm" variant="outline" :disabled="backup.busy" @click="pickFile">
+            Pulihkan dari berkas
+          </Button>
+          <input
+            ref="filePicker"
+            type="file"
+            accept="application/json,.json"
+            class="hidden"
+            @change="onFilePicked"
+          />
+        </div>
+
+        <!-- Isi berkas ditunjukkan sebelum ditulis: restore menggabungkan data ke
+             library yang sedang dipakai dan tidak punya tombol batal. -->
+        <div v-if="staged" class="space-y-3 border-t border-border pt-4">
+          <div>
+            <p class="text-sm font-medium">Backup dari {{ stagedDate }}</p>
+            <p class="text-sm text-muted-foreground">
+              {{ staged.entries }} judul · {{ staged.categories }} kategori ·
+              {{ staged.items }} chapter/episode · {{ staged.history }} riwayat ·
+              {{ staged.extensions }} extension
+            </p>
+            <p class="pt-1 text-xs text-muted-foreground">
+              Isinya digabung dengan yang sudah ada di perangkat ini. Tidak ada yang dihapus; judul
+              yang sama dimenangkan berkas backup.
+            </p>
+          </div>
+          <div class="flex flex-wrap gap-2">
+            <Button size="sm" :disabled="backup.busy" @click="backup.confirm()">
+              Pulihkan sekarang
+            </Button>
+            <Button size="sm" variant="ghost" :disabled="backup.busy" @click="backup.discard()">
+              Batal
+            </Button>
+          </div>
+        </div>
+
+        <p v-if="backup.report" class="border-t border-border pt-4 text-sm text-foreground">
+          {{ backup.report.message }}
+        </p>
+        <p v-if="backup.error" class="border-t border-border pt-4 text-sm text-destructive">
+          {{ backup.error }}
+        </p>
+      </div>
+    </section>
+
+    <section class="space-y-3">
+      <div>
         <h2 class="text-base font-medium">Lanjutan</h2>
         <p class="text-sm text-muted-foreground">
           Setelan jaringan. Tidak perlu disentuh selama sumbernya jalan.
@@ -143,14 +238,6 @@ function reset(): void {
           </template>
         </p>
       </div>
-    </section>
-
-    <section class="space-y-1">
-      <h2 class="text-base font-medium">Menyusul</h2>
-      <p class="text-sm text-muted-foreground">
-        Tema, backup, dan tracker masuk di fase berikutnya. Mode baca dan kualitas video sudah ada
-        di dalam reader dan pemutarnya masing-masing.
-      </p>
     </section>
   </div>
 </template>

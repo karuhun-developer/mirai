@@ -325,6 +325,25 @@ export const useExtensionsStore = defineStore('extensions', () => {
     if (state.value === 'idle') await init()
   }
 
+  /**
+   * Membaca ulang daftar dari `localStorage`.
+   *
+   * Dipakai setelah restore backup, satu-satunya jalur yang menulis daftar
+   * extension dari luar store. Yang sudah hidup tidak disentuh — mematikan lalu
+   * menghidupkan ulang Worker yang isinya sama cuma membuat halaman Browse
+   * berkedip kosong tanpa alasan.
+   */
+  async function reloadFromStorage(): Promise<void> {
+    repos.value = readRepos()
+    installed.value = readInstalled()
+    showNsfw.value = readShowNsfw()
+
+    await Promise.all(
+      installed.value.filter((record) => record.enabled && !loaded.value.has(record.pkg)).map(load),
+    )
+    await refreshAll()
+  }
+
   return {
     repos,
     installed,
@@ -342,6 +361,7 @@ export const useExtensionsStore = defineStore('extensions', () => {
     preferenceValues,
     init,
     ensureLoaded,
+    reloadFromStorage,
     refreshAll,
     refreshRepo,
     addRepo,
