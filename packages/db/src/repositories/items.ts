@@ -19,6 +19,16 @@ export interface SyncResult {
   added: number
 }
 
+/** Keadaan pengguna satu item, dilepas dari baris asalnya supaya bisa dipindah. */
+export interface ItemState {
+  /** Item **tujuan** yang akan menerima keadaan ini. */
+  id: string
+  seen: number
+  last_position: number
+  total_position: number | null
+  bookmark: number
+}
+
 /** Kolom yang boleh disegarkan dari source; sisanya milik progres pengguna. */
 const SOURCE_COLUMNS = [
   'name',
@@ -138,6 +148,38 @@ export class ItemRepository extends BaseRepository<ItemRow> {
 
   async setBookmark(id: string, bookmark: boolean): Promise<void> {
     await this.update(id, { bookmark: toFlag(bookmark) })
+  }
+
+  /**
+   * Menyalin keadaan pengguna ke item padanannya di source lain — dasar migrasi.
+   *
+   * Satu transaksi untuk seluruh daftar, bukan `markSeen()` + `setProgress()`
+   * per chapter: judul dengan 300 chapter berarti 600 penulisan snapshot yang
+   * masing-masing menyalin seluruh database di web.
+   *
+   * `downloaded` sengaja tidak ikut: berkasnya milik source lama dan tidak
+   * berpindah, jadi menandainya terunduh akan menjanjikan sesuatu yang tidak ada.
+   */
+  async transferState(states: readonly ItemState[]): Promise<void> {
+    if (states.length === 0) return
+    await this.db.transaction(async (tx) => {
+      for (const state of states) {
+        await tx.run(
+          `UPDATE item SET seen = ?, last_position = ?,
+                  total_position = COALESCE(?, total_position), bookmark = ?, updated_at = ?
+            WHERE id = ?`,
+          [
+            state.seen,
+            state.last_position,
+            state.total_position,
+            state.bookmark,
+            nowMs(),
+            state.id,
+          ],
+        )
+      }
+    })
+    await this.persisted(undefined)
   }
 
   /**

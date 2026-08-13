@@ -36,6 +36,29 @@ export class HistoryRepository {
     await this.persisted()
   }
 
+  /**
+   * Memindahkan jejak baca ke item padanannya di entri lain — dipakai migrasi.
+   *
+   * `read_at` aslinya ikut, bukan diganti jam sekarang: migrasi bukan peristiwa
+   * membaca, dan menstempel ulang seluruh chapter akan melempar judul yang
+   * terakhir dibuka setahun lalu ke puncak daftar Riwayat.
+   */
+  async transfer(pairs: readonly { from: string; to: string }[], entryId: string): Promise<void> {
+    if (pairs.length === 0) return
+    await this.db.transaction(async (tx) => {
+      for (const pair of pairs) {
+        await tx.run(
+          `INSERT INTO history (item_id, entry_id, read_at, position)
+           SELECT ?, ?, read_at, position FROM history WHERE item_id = ?
+           ON CONFLICT(item_id) DO UPDATE
+             SET read_at = excluded.read_at, position = excluded.position`,
+          [pair.to, entryId, pair.from],
+        )
+      }
+    })
+    await this.persisted()
+  }
+
   recent(limit = 100): Promise<HistoryEntry[]> {
     return this.db.query<HistoryEntry>(
       `SELECT h.*, i.name AS item_name, i.number AS item_number,
