@@ -10,7 +10,15 @@
     "noEmit": true,
     "composite": false,
     "lib": ["ES2023", "DOM"],
-    "types": ["node"],
-    "allowImportingTsExtensions": true
+    // `vite/client` wajib ikut: test mengimpor modul `src/` yang menyeret
+    // tetangganya, dan di antaranya ada `import.meta.env` serta impor aset
+    // `?url`. Keduanya cuma dikenal lewat tipe klien Vite.
+    "types": ["node", "vite/client"],
+    "allowImportingTsExtensions": true,
+    // Alias yang sama dengan `tsconfig.app.json`. Test mengimpor `src/` lewat
+    // path relatif, tapi berkas yang diimpornya memakai `@/`.
+    "paths": {
+      "@/*": ["./apps/app/src/*"]
+    }
   }
 }

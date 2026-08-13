@@ -55,8 +55,12 @@ export const i18n = createI18n({
  * `i18n.global.t` reaktif terhadap `locale`, jadi pesan yang **disimpan** di
  * state akan tetap berbahasa lama sampai dihitung ulang. Itu diterima: pesan
  * error selalu lahir dari aksi yang baru saja dijalankan.
+ *
+ * Tipenya ditulis eksplisit: kalau dibiarkan disimpulkan, tipenya menyebut
+ * tipe internal `@intlify/core-base` yang tidak bisa dinamai dari luar paket
+ * ini, dan `tsc` menolaknya dengan TS2883.
  */
-export const t = i18n.global.t
+export const t: typeof i18n.global.t = i18n.global.t
 
 export function setLocale(code: LocaleCode): void {
   settings.locale = code
