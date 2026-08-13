@@ -296,6 +296,24 @@ export const en: typeof id = {
     closeSettings: 'Close settings',
   },
 
+  migrate: {
+    action: 'Migrate',
+    title: 'Move to another source',
+    description:
+      'The title is searched in the target source, then reading progress, bookmarks, categories, and history move to the chapters with the same number.',
+    query: 'Title to search for',
+    noTargets:
+      'There is no other source of this kind yet. Install another extension first on the Extensions page.',
+    noResults: 'This source found no matching title. Try different keywords.',
+    removeOld: 'Delete the old title',
+    removeOldHint:
+      'Along with its downloads. If turned off, the old title is only removed from the library and keeps its progress.',
+    downloadsNotice:
+      'Downloaded files do not move — chapters on the new source have different pages, so they have to be downloaded again.',
+    confirm: 'Move',
+    running: 'Moving…',
+  },
+
   errors: {
     chapterMissing: 'This chapter is not in the database.',
     chapterGone: 'This chapter is no longer in the database.',
@@ -304,6 +322,7 @@ export const en: typeof id = {
     noVideos: 'The source returned no videos at all.',
     entryMissing: 'This entry was never stored, and its source extension is not installed.',
     entryNotSaved: 'The entry could not be stored in the database.',
+    migrateSame: 'This title already lives on that source.',
     repoExists: 'That repo is already in the list',
     repoUnreachable:
       'Cannot reach {url}. Check your connection, or that repo may not allow cross-origin access.',

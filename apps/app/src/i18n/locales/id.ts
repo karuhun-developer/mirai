@@ -293,6 +293,24 @@ export const id = {
     closeSettings: 'Tutup setelan',
   },
 
+  migrate: {
+    action: 'Migrasi',
+    title: 'Pindahkan ke source lain',
+    description:
+      'Judulnya dicari di source tujuan, lalu progres baca, penanda, kategori, dan riwayatnya ikut pindah ke chapter dengan nomor yang sama.',
+    query: 'Judul yang dicari',
+    noTargets:
+      'Belum ada source lain yang sejenis. Pasang extension lain dulu di halaman Extension.',
+    noResults: 'Source ini tidak menemukan judul yang cocok. Coba ubah kata kuncinya.',
+    removeOld: 'Hapus judul yang lama',
+    removeOldHint:
+      'Beserta unduhannya. Kalau dimatikan, judul lama cuma dicabut dari library dan progresnya tetap ada di sana.',
+    downloadsNotice:
+      'Berkas yang sudah diunduh tidak ikut pindah — chapter di source baru halamannya berbeda, jadi harus diunduh ulang.',
+    confirm: 'Pindahkan',
+    running: 'Memindahkan…',
+  },
+
   errors: {
     chapterMissing: 'Chapter ini tidak ada di database.',
     chapterGone: 'Chapter ini sudah tidak ada di database.',
@@ -301,6 +319,7 @@ export const id = {
     noVideos: 'Sumber tidak mengembalikan satu video pun.',
     entryMissing: 'Entri ini belum pernah disimpan dan extension sumbernya tidak terpasang.',
     entryNotSaved: 'Entri gagal disimpan ke database.',
+    migrateSame: 'Judul ini sudah ada di source itu.',
     repoExists: 'Repo itu sudah ada di daftar',
     repoUnreachable:
       'Tidak bisa menghubungi {url}. Cek koneksi, atau repo itu mungkin tidak mengizinkan akses lintas origin.',

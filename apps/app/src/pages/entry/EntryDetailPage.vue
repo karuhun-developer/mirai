@@ -10,6 +10,7 @@ import {
   Heart,
   Play,
   RefreshCw,
+  Shuffle,
   TriangleAlert,
   Trash2,
 } from '@lucide/vue'
@@ -18,6 +19,7 @@ import AppHeader from '@/components/layout/AppHeader.vue'
 import ChallengeNotice from '@/components/common/ChallengeNotice.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 import CategoryPicker from '@/components/entry/CategoryPicker.vue'
+import MigrateDialog from '@/components/entry/MigrateDialog.vue'
 import ItemRow from '@/components/entry/ItemRow.vue'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -26,6 +28,9 @@ import { playerLocation, readerLocation } from '@/router/links'
 import { useDownloadsStore } from '@/stores/downloads'
 import { useEntryStore } from '@/stores/entry'
 import { useExtensionsStore } from '@/stores/extensions'
+import { useMigrateStore } from '@/stores/migrate'
+import type { MigrationResult } from '@/services/migrate.service'
+import { entryLocation } from '@/router/links'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -33,6 +38,7 @@ const router = useRouter()
 const store = useEntryStore()
 const extensions = useExtensionsStore()
 const downloads = useDownloadsStore()
+const migrate = useMigrateStore()
 
 const kind = computed<EntryKind>(() => (route.params['kind'] === 'anime' ? 'anime' : 'manga'))
 const sourceId = computed(() => String(route.params['sourceId'] ?? ''))
@@ -42,6 +48,7 @@ const source = computed(() => extensions.byId(sourceId.value))
 const { src, failed } = useCover(() => store.entry?.thumbnail_url ?? null)
 
 const showCategories = ref(false)
+const showMigrate = ref(false)
 const expanded = ref(false)
 
 /**
@@ -90,6 +97,23 @@ async function load(): Promise<void> {
 /** Chapter dibuka di reader, episode di pemutar; keduanya sudah ada. */
 async function open(item: ItemRowType): Promise<void> {
   await router.push(kind.value === 'anime' ? playerLocation(item.id) : readerLocation(item.id))
+}
+
+function openMigrate(): void {
+  // Dialognya selalu mulai bersih: kandidat sisa judul sebelumnya di daftar yang
+  // sama adalah cara memindahkan progres ke judul yang salah.
+  migrate.reset()
+  showMigrate.value = true
+}
+
+/**
+ * Setelah pindah, halaman ini menunjuk entri yang mungkin sudah tidak ada lagi.
+ * `replace`, bukan `push`: tombol kembali tidak boleh mengantar orang balik ke
+ * judul yang barusan dihapusnya.
+ */
+async function migrated(result: MigrationResult): Promise<void> {
+  showMigrate.value = false
+  await router.replace(entryLocation(result.entry.kind, result.entry.source_id, result.entry.url))
 }
 
 async function saveCategories(ids: string[]): Promise<void> {
@@ -199,6 +223,17 @@ watch(
             <FolderPlus />
             {{ t('entry.categories') }}
           </Button>
+
+          <Button
+            v-if="store.entry.favorite === 1"
+            variant="outline"
+            size="sm"
+            :title="t('migrate.description')"
+            @click="openMigrate()"
+          >
+            <Shuffle />
+            {{ t('migrate.action') }}
+          </Button>
         </div>
 
         <Button
@@ -217,6 +252,14 @@ watch(
         </Button>
       </div>
     </section>
+
+    <MigrateDialog
+      v-if="showMigrate"
+      class="mx-4 mb-4"
+      :entry="store.entry"
+      @done="migrated($event)"
+      @close="showMigrate = false"
+    />
 
     <CategoryPicker
       v-if="showCategories"
