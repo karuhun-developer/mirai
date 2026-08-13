@@ -1,7 +1,10 @@
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n'
 import { RouterLink } from 'vue-router'
 import { Download, History, Puzzle, Settings, Info, ChevronRight } from '@lucide/vue'
 import AppHeader from '@/components/layout/AppHeader.vue'
+
+const { t } = useI18n()
 
 /**
  * Di mobile, tujuan yang tidak muat di lima slot BottomNav ditampung di sini.
@@ -9,21 +12,21 @@ import AppHeader from '@/components/layout/AppHeader.vue'
  * halaman ini tetap ada supaya deep link dari mana pun tidak buntu.
  */
 const links = [
+  { to: '/history', labelKey: 'nav.history', descriptionKey: 'more.history', icon: History },
+  { to: '/downloads', labelKey: 'nav.downloads', descriptionKey: 'more.downloads', icon: Download },
   {
-    to: '/history',
-    label: 'Riwayat',
-    description: 'Yang terakhir dibaca & ditonton',
-    icon: History,
+    to: '/extensions',
+    labelKey: 'nav.extensions',
+    descriptionKey: 'more.extensions',
+    icon: Puzzle,
   },
-  { to: '/downloads', label: 'Unduhan', description: 'Antrean & isi offline', icon: Download },
-  { to: '/extensions', label: 'Extension', description: 'Repo & sumber', icon: Puzzle },
-  { to: '/settings', label: 'Pengaturan', description: 'Tampilan & penyimpanan', icon: Settings },
-  { to: '/about', label: 'Tentang', description: 'Versi & lisensi', icon: Info },
+  { to: '/settings', labelKey: 'nav.settings', descriptionKey: 'more.settings', icon: Settings },
+  { to: '/about', labelKey: 'nav.about', descriptionKey: 'more.about', icon: Info },
 ]
 </script>
 
 <template>
-  <AppHeader title="Lainnya" />
+  <AppHeader :title="t('more.title')" />
 
   <ul class="mx-auto max-w-2xl divide-y divide-border">
     <li v-for="link in links" :key="link.to">
@@ -33,8 +36,8 @@ const links = [
       >
         <component :is="link.icon" class="size-5 shrink-0 text-muted-foreground" />
         <span class="flex-1">
-          <span class="block text-sm font-medium">{{ link.label }}</span>
-          <span class="block text-xs text-muted-foreground">{{ link.description }}</span>
+          <span class="block text-sm font-medium">{{ t(link.labelKey) }}</span>
+          <span class="block text-xs text-muted-foreground">{{ t(link.descriptionKey) }}</span>
         </span>
         <ChevronRight class="size-4 shrink-0 text-muted-foreground" />
       </RouterLink>

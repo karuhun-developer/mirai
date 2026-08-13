@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n'
 import { Switch } from '@/components/ui/switch'
 import type { PlayableVideo } from '@/services/playback'
 import type { PlayerPrefs } from '@/services/player.service'
@@ -12,6 +13,8 @@ import type { PlayerTrack } from '@/stores/player'
  * sebelum orang menemukan yang dicarinya. Setelan berlaku global seperti di
  * reader; kualitas dan takarir berlaku untuk episode yang sedang dibuka.
  */
+const { t } = useI18n()
+
 defineProps<{
   prefs: PlayerPrefs
   videos: PlayableVideo[]
@@ -33,10 +36,10 @@ const speeds = [0.75, 1, 1.25, 1.5, 2]
 /** Panjang opening yang lazim; 85 detik jadi bawaan karena paling sering pas. */
 const skips = [10, 30, 85, 90]
 
-const orientations: { value: PlayerPrefs['orientation']; label: string }[] = [
-  { value: 'free', label: 'Bebas' },
-  { value: 'portrait', label: 'Tegak' },
-  { value: 'landscape', label: 'Rebah' },
+const orientations: { value: PlayerPrefs['orientation']; labelKey: string }[] = [
+  { value: 'free', labelKey: 'player.orientationFree' },
+  { value: 'portrait', labelKey: 'player.orientationPortrait' },
+  { value: 'landscape', labelKey: 'player.orientationLandscape' },
 ]
 </script>
 
@@ -51,7 +54,7 @@ const orientations: { value: PlayerPrefs['orientation']; label: string }[] = [
       <div class="mx-auto h-1 w-10 rounded-full bg-border" />
 
       <section class="space-y-2">
-        <p class="text-sm font-medium">Kualitas &amp; host</p>
+        <p class="text-sm font-medium">{{ t('player.qualityHeading') }}</p>
         <div class="grid gap-2">
           <button
             v-for="(video, index) in videos"
@@ -71,12 +74,12 @@ const orientations: { value: PlayerPrefs['orientation']; label: string }[] = [
           </button>
         </div>
         <p class="text-xs text-muted-foreground">
-          Berganti kualitas melanjutkan dari posisi yang sama, bukan mengulang dari awal.
+          {{ t('player.qualityHint') }}
         </p>
       </section>
 
       <section v-if="tracks.length > 0" class="space-y-2">
-        <p class="text-sm font-medium">Takarir</p>
+        <p class="text-sm font-medium">{{ t('player.subtitles') }}</p>
         <div class="grid gap-2">
           <button
             type="button"
@@ -88,7 +91,7 @@ const orientations: { value: PlayerPrefs['orientation']; label: string }[] = [
             "
             @click="emit('selectTrack', -1)"
           >
-            Mati
+            {{ t('player.subtitlesOff') }}
           </button>
           <button
             v-for="(track, index) in tracks"
@@ -108,7 +111,7 @@ const orientations: { value: PlayerPrefs['orientation']; label: string }[] = [
       </section>
 
       <section class="space-y-2">
-        <p class="text-sm font-medium">Kecepatan</p>
+        <p class="text-sm font-medium">{{ t('player.speed') }}</p>
         <div class="flex gap-2">
           <button
             v-for="speed in speeds"
@@ -128,7 +131,7 @@ const orientations: { value: PlayerPrefs['orientation']; label: string }[] = [
       </section>
 
       <section class="space-y-2">
-        <p class="text-sm font-medium">Lompatan tombol lewati</p>
+        <p class="text-sm font-medium">{{ t('player.skipStep') }}</p>
         <div class="flex gap-2">
           <button
             v-for="value in skips"
@@ -149,9 +152,9 @@ const orientations: { value: PlayerPrefs['orientation']; label: string }[] = [
 
       <label class="flex items-center justify-between gap-4">
         <span class="min-w-0">
-          <span class="block text-sm font-medium">Lanjut sendiri</span>
+          <span class="block text-sm font-medium">{{ t('player.autoplayNext') }}</span>
           <span class="block text-xs text-muted-foreground">
-            Membuka episode berikutnya begitu yang ini habis.
+            {{ t('player.autoplayNextHint') }}
           </span>
         </span>
         <Switch
@@ -162,9 +165,9 @@ const orientations: { value: PlayerPrefs['orientation']; label: string }[] = [
 
       <label class="flex items-center justify-between gap-4">
         <span class="min-w-0">
-          <span class="block text-sm font-medium">Takarir menyala</span>
+          <span class="block text-sm font-medium">{{ t('player.subtitlesOn') }}</span>
           <span class="block text-xs text-muted-foreground">
-            Takarir pertama dipilih otomatis kalau episodenya punya.
+            {{ t('player.subtitlesOnHint') }}
           </span>
         </span>
         <Switch
@@ -175,9 +178,9 @@ const orientations: { value: PlayerPrefs['orientation']; label: string }[] = [
 
       <label class="flex items-center justify-between gap-4">
         <span class="min-w-0">
-          <span class="block text-sm font-medium">Layar penuh</span>
+          <span class="block text-sm font-medium">{{ t('player.fullscreen') }}</span>
           <span class="block text-xs text-muted-foreground">
-            Menyembunyikan bilah sistem selama menonton.
+            {{ t('player.fullscreenHint') }}
           </span>
         </span>
         <Switch
@@ -187,7 +190,7 @@ const orientations: { value: PlayerPrefs['orientation']; label: string }[] = [
       </label>
 
       <section class="space-y-2">
-        <p class="text-sm font-medium">Orientasi</p>
+        <p class="text-sm font-medium">{{ t('player.orientation') }}</p>
         <div class="grid grid-cols-3 gap-2">
           <button
             v-for="orientation in orientations"
@@ -202,12 +205,11 @@ const orientations: { value: PlayerPrefs['orientation']; label: string }[] = [
             :disabled="!native"
             @click="emit('update', { orientation: orientation.value })"
           >
-            {{ orientation.label }}
+            {{ t(orientation.labelKey) }}
           </button>
         </div>
         <p v-if="!native" class="text-xs text-muted-foreground">
-          Hanya berlaku di aplikasi Android; browser tidak mengizinkan aplikasi mengunci orientasi
-          layar.
+          {{ t('player.orientationWebNote') }}
         </p>
       </section>
 
@@ -217,7 +219,7 @@ const orientations: { value: PlayerPrefs['orientation']; label: string }[] = [
         data-testid="player-settings-close"
         @click="emit('close')"
       >
-        Tutup setelan
+        {{ t('player.closeSettings') }}
       </button>
     </div>
   </div>

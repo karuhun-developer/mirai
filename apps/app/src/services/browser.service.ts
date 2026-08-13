@@ -1,5 +1,6 @@
 import { Capacitor } from '@capacitor/core'
 import { DefaultWebViewOptions, InAppBrowser } from '@capacitor/inappbrowser'
+import { t } from '@/i18n'
 import { userAgentOverride } from './settings.service'
 
 /**
@@ -41,7 +42,7 @@ function webViewOptions(): typeof DefaultWebViewOptions {
     // Halaman `embed` justru dibuka untuk diputar; menahan autoplay di sini
     // berarti satu ketukan tambahan untuk sesuatu yang sudah diminta pengguna.
     mediaPlaybackRequiresUserAction: false,
-    closeButtonText: 'Tutup',
+    closeButtonText: t('common.close'),
     android: { ...DefaultWebViewOptions.android, isIsolated: false },
     // UA yang dipakai verifikasi harus sama dengan UA request extension,
     // kalau tidak `cf_clearance`-nya ditolak. Kosong = biarkan WebView memakai

@@ -1,6 +1,7 @@
 import type { RemoteMangaSource } from '@mirai/extension-runtime'
 import type { EntryRow, ItemRow } from '@mirai/db'
 import { toSItem } from '@mirai/db'
+import { t } from '@/i18n'
 import { repos } from './db.service'
 import { mediaUrl } from './extensions.service'
 import { cleanupAfterRead } from './download.service'
@@ -98,9 +99,7 @@ export async function loadPages(
   }
 
   if (!source) {
-    throw new Error(
-      'Chapter ini belum diunduh, jadi halamannya harus diambil dari internet — dan extension sumbernya tidak terpasang atau sedang dimatikan.',
-    )
+    throw new Error(t('errors.readerSourceMissing'))
   }
 
   return { pages: await fetchPages(source, item), local: false }
@@ -121,7 +120,7 @@ async function fetchPages(source: RemoteMangaSource, item: ItemRow): Promise<Rea
     // sering terjadi di sini, dan pesan mentah dari lapisan HTTP ("Failed to
     // fetch") tidak memberi tahu apa yang bisa dilakukan orangnya.
     if (typeof navigator !== 'undefined' && navigator.onLine === false) {
-      throw new Error('Perangkat sedang offline dan chapter ini belum diunduh.', { cause })
+      throw new Error(t('errors.offline'), { cause })
     }
     throw cause
   }

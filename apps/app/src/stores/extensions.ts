@@ -17,6 +17,7 @@ import {
   type RepoRecord,
 } from '@/services/extensionStorage.service'
 import { activate, compatibilityError, type LoadedExtension } from '@/services/extensions.service'
+import { t } from '@/i18n'
 
 export type LoadState = 'idle' | 'loading' | 'ready' | 'error'
 
@@ -190,7 +191,7 @@ export const useExtensionsStore = defineStore('extensions', () => {
   async function addRepo(input: string): Promise<void> {
     const url = normalizeRepoUrl(input)
     if (repos.value.some((repo) => repo.url === url)) {
-      throw new Error('Repo itu sudah ada di daftar')
+      throw new Error(t('errors.repoExists'))
     }
 
     // Index diambil **sebelum** disimpan: repo yang salah ketik langsung gagal

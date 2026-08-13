@@ -39,7 +39,11 @@ export const useDownloadsStore = defineStore('downloads', () => {
    * `estimate()` menyisir seluruh origin, dan memanggilnya tiap segmen yang turun
    * jauh lebih mahal daripada kabar yang telat beberapa detik.
    */
-  const storage = ref<StorageStatus>({ level: 'ok', free: Number.POSITIVE_INFINITY, message: null })
+  const storage = ref<StorageStatus>({
+    level: 'ok',
+    free: Number.POSITIVE_INFINITY,
+    messageKey: null,
+  })
 
   let booted = false
   let scheduled = false

@@ -1,13 +1,16 @@
 <script setup lang="ts">
 import { onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { Check, RefreshCw } from '@lucide/vue'
 import AppHeader from '@/components/layout/AppHeader.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 import ItemLine from '@/components/entry/ItemLine.vue'
 import { Button } from '@/components/ui/button'
+import { formatDateTime } from '@/i18n'
 import { useUpdatesStore } from '@/stores/updates'
 import { useExtensionsStore } from '@/stores/extensions'
 
+const { t } = useI18n()
 const store = useUpdatesStore()
 const extensions = useExtensionsStore()
 
@@ -22,14 +25,10 @@ onMounted(async () => {
 function refresh(): void {
   void store.refresh((sourceId) => extensions.byId(sourceId))
 }
-
-function when(value: number): string {
-  return new Date(value).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })
-}
 </script>
 
 <template>
-  <AppHeader title="Updates" show-refresh @refresh="refresh" />
+  <AppHeader :title="t('updates.title')" show-refresh @refresh="refresh" />
 
   <div
     v-if="store.progress"
@@ -37,9 +36,9 @@ function when(value: number): string {
   >
     <RefreshCw class="size-3.5 animate-spin" />
     <span class="flex-1 truncate">
-      {{ store.progress.done }}/{{ store.progress.total }} — {{ store.progress.title }}
+      {{ t('updates.progress', store.progress) }}
     </span>
-    <Button variant="ghost" size="sm" @click="store.cancel()">Batal</Button>
+    <Button variant="ghost" size="sm" @click="store.cancel()">{{ t('common.cancel') }}</Button>
   </div>
 
   <p
@@ -47,12 +46,12 @@ function when(value: number): string {
     class="px-4 py-2 text-xs text-muted-foreground"
     data-testid="updates-report"
   >
-    {{ store.report.checked }} judul diperiksa, {{ store.report.added }} item baru.
+    {{ t('updates.report', store.report) }}
     <span v-if="store.report.skipped.length > 0">
-      {{ store.report.skipped.length }} dilewati (extension tidak terpasang).
+      {{ t('updates.skipped', { count: store.report.skipped.length }) }}
     </span>
     <span v-if="store.report.failures.length > 0" class="text-destructive">
-      {{ store.report.failures.length }} gagal.
+      {{ t('updates.failed', { count: store.report.failures.length }) }}
     </span>
   </p>
 
@@ -70,13 +69,13 @@ function when(value: number): string {
       :entry-title="update.entry_title"
       :thumbnail-url="update.entry_thumbnail"
       :item-name="update.name"
-      :meta="when(update.added_at)"
+      :meta="formatDateTime(update.added_at)"
       :dimmed="update.seen === 1"
     >
       <Button
         variant="ghost"
         size="icon-sm"
-        :aria-label="update.seen === 1 ? 'Tandai belum dibaca' : 'Tandai sudah dibaca'"
+        :aria-label="update.seen === 1 ? t('updates.markUnread') : t('updates.markRead')"
         @click="store.markSeen(update, update.seen === 0)"
       >
         <Check class="size-4" :class="update.seen === 1 ? 'text-primary' : ''" />
@@ -87,9 +86,9 @@ function when(value: number): string {
   <EmptyState
     v-else-if="!store.loading"
     :icon="RefreshCw"
-    title="Belum ada update"
-    description="Chapter dan episode baru dari judul di library kamu akan muncul di sini setelah disegarkan."
+    :title="t('updates.emptyTitle')"
+    :description="t('updates.emptyDescription')"
   >
-    <Button variant="outline" @click="refresh">Segarkan sekarang</Button>
+    <Button variant="outline" @click="refresh">{{ t('updates.refreshNow') }}</Button>
   </EmptyState>
 </template>

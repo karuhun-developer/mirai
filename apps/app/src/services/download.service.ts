@@ -2,6 +2,7 @@ import type { SPage } from '@mirai/extension-api'
 import type { RemoteAnimeSource, RemoteMangaSource, RemoteSource } from '@mirai/extension-runtime'
 import type { DownloadEntry, DownloadRow, EntryRow, ItemRow } from '@mirai/db'
 import { toSItem } from '@mirai/db'
+import { t } from '@/i18n'
 import { repos } from './db.service'
 import { isLocalUrl, mediaUrl, transport } from './extensions.service'
 import { entryDir, itemDir, pageFileName, videoFileName } from './downloadPath'
@@ -17,7 +18,7 @@ import {
   storageEstimate,
   writeText,
 } from './storage.service'
-import { storageStatus, type StorageStatus } from './storageQuota'
+import { humanBytes, storageStatus, type StorageStatus } from './storageQuota'
 import { toVtt } from './subtitle'
 
 /**
@@ -245,16 +246,15 @@ async function run(job: DownloadRow): Promise<void> {
 
   try {
     const context = await contextOf(job.item_id)
-    if (!context) throw new Error('Chapter ini sudah tidak ada di database.')
+    if (!context) throw new Error(t('errors.chapterGone'))
 
     const { entry, item } = context
     const source = resolveSource(entry.source_id)
     if (!source) {
-      throw new Error(
-        'Extension sumber judul ini tidak terpasang atau sedang dimatikan, jadi isinya tidak bisa diambil.',
-      )
+      throw new Error(t('errors.sourceMissing'))
     }
-    if (source.kind !== entry.kind) throw new Error(`Sumber ini bukan sumber ${entry.kind}.`)
+    if (source.kind !== entry.kind)
+      throw new Error(t(entry.kind === 'anime' ? 'errors.sourceNotAnime' : 'errors.sourceNotManga'))
 
     await guardStorage()
 
@@ -292,7 +292,7 @@ async function downloadChapter(
   const dir = itemDir(entry, item)
   const listed = fixturePages ?? (await source.getPageList(toSItem(item)))
   const pages = listed.filter((page) => typeof page.imageUrl === 'string' && page.imageUrl !== '')
-  if (pages.length === 0) throw new Error('Sumber tidak mengembalikan satu halaman pun.')
+  if (pages.length === 0) throw new Error(t('errors.noPages'))
 
   checkStop(jobId)
 
@@ -344,16 +344,12 @@ async function downloadEpisode(
   const playable = videos.filter((video) => video.type !== 'embed')
 
   if (playable.length === 0) {
-    throw new Error(
-      videos.length === 0
-        ? 'Sumber tidak mengembalikan satu video pun.'
-        : 'Episode ini cuma tersedia lewat halaman pemutar pihak ketiga, yang tidak bisa diunduh.',
-    )
+    throw new Error(videos.length === 0 ? t('errors.noVideos') : t('errors.embedOnly'))
   }
 
   const { quality } = await readPlayerPrefs()
   const video = playable[pickVideo(playable, quality)] ?? playable[0]
-  if (!video) throw new Error('Tidak ada video yang bisa diunduh.')
+  if (!video) throw new Error(t('errors.noDownloadableVideo'))
 
   checkStop(jobId)
 
@@ -449,17 +445,17 @@ async function downloadHls(
     }))
 
     const chosen = variants[pickVideo(variants, quality)] ?? variants[0]
-    if (!chosen) throw new Error('Master playlist ini tidak menawarkan satu kualitas pun.')
+    if (!chosen) throw new Error(t('errors.noVariant'))
 
     url = chosen.url
     text = await fetchPlaylist(url, video.headers)
     // Master yang menunjuk master lagi bukan bentuk yang wajar; lebih baik gagal
     // dengan jelas daripada menelusuri rantai yang tidak ada ujungnya.
-    if (isMasterPlaylist(text)) throw new Error('Playlist HLS ini bertingkat terlalu dalam.')
+    if (isMasterPlaylist(text)) throw new Error(t('errors.playlistTooDeep'))
   }
 
   const plan = planPlaylist(text, url)
-  if (plan.resources.length === 0) throw new Error('Playlist HLS ini tidak berisi satu segmen pun.')
+  if (plan.resources.length === 0) throw new Error(t('errors.playlistEmpty'))
 
   // Melanjutkan yang terputus, aturannya sama dengan halaman manga: yang sudah
   // ada dilewati kecuali berkas terakhir, yang mungkin separuh tertulis. Yang
@@ -505,12 +501,12 @@ async function fetchPlaylist(
 ): Promise<string> {
   if (isLocalUrl(url)) {
     const response = await fetch(url)
-    if (!response.ok) throw new Error(`Playlist HLS gagal dibaca (HTTP ${response.status}).`)
+    if (!response.ok) throw new Error(t('errors.playlistRead', { status: response.status }))
     return response.text()
   }
 
   const response = await transport.http.get(url, headers)
-  if (!response.ok) throw new Error(`Playlist HLS gagal diambil (HTTP ${response.status}).`)
+  if (!response.ok) throw new Error(t('errors.playlistFetch', { status: response.status }))
   return response.body
 }
 
@@ -532,7 +528,9 @@ export async function storageState(): Promise<StorageStatus> {
  */
 async function guardStorage(): Promise<void> {
   const status = await storageState()
-  if (status.level === 'full') throw new Error(status.message ?? 'Ruang penyimpanan habis.')
+  if (status.level === 'full') {
+    throw new Error(t(status.messageKey ?? 'storage.full', { free: humanBytes(status.free) }))
+  }
 }
 
 function checkStop(jobId: string): void {

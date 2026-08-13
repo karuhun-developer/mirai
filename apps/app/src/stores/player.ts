@@ -16,6 +16,7 @@ import {
 import { isFinished, pickVideo, resumeAt, type PlayableVideo } from '@/services/playback'
 import { loadItemContext, reloadItem } from '@/services/item.service'
 import { challengeOf, type ChallengeInfo } from '@/services/challenge.service'
+import { t } from '@/i18n'
 
 /**
  * Keadaan satu sesi tonton.
@@ -101,7 +102,7 @@ export const usePlayerStore = defineStore('player', () => {
       prefs.value = await readPlayerPrefs()
 
       const context = await loadItemContext(itemId)
-      if (!context) throw new Error('Episode ini tidak ada di database.')
+      if (!context) throw new Error(t('errors.episodeMissing'))
 
       entry.value = context.entry
       item.value = context.item
@@ -114,7 +115,7 @@ export const usePlayerStore = defineStore('player', () => {
       // extension sama sekali. Yang memutuskan itu `resolveVideos`, satu-satunya
       // tempat yang tahu berkas lokalnya benar-benar ada atau tidak.
       const source = resolve(context.entry.source_id)
-      if (source && source.kind !== 'anime') throw new Error('Sumber ini bukan sumber anime.')
+      if (source && source.kind !== 'anime') throw new Error(t('errors.sourceNotAnime'))
 
       const resolved = await resolveVideos(
         context.entry,
@@ -123,7 +124,7 @@ export const usePlayerStore = defineStore('player', () => {
       )
       videos.value = resolved.videos
       offline.value = resolved.local
-      if (videos.value.length === 0) throw new Error('Sumber tidak mengembalikan satu video pun.')
+      if (videos.value.length === 0) throw new Error(t('errors.noVideos'))
 
       videoIndex.value = pickVideo(videos.value, prefs.value.quality)
       await useTracksOfCurrent()

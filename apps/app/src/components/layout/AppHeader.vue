@@ -1,6 +1,9 @@
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n'
 import { Search, SlidersHorizontal, RefreshCw } from '@lucide/vue'
 import { Button } from '@/components/ui/button'
+
+const { t } = useI18n()
 
 defineProps<{
   title: string
@@ -28,7 +31,7 @@ const emit = defineEmits<{
         v-if="showSearch"
         variant="ghost"
         size="icon"
-        aria-label="Cari"
+        :aria-label="t('common.search')"
         @click="emit('search')"
       >
         <Search />
@@ -37,7 +40,7 @@ const emit = defineEmits<{
         v-if="showFilter"
         variant="ghost"
         size="icon"
-        aria-label="Filter"
+        :aria-label="t('common.filter')"
         @click="emit('filter')"
       >
         <SlidersHorizontal />
@@ -46,7 +49,7 @@ const emit = defineEmits<{
         v-if="showRefresh"
         variant="ghost"
         size="icon"
-        aria-label="Muat ulang"
+        :aria-label="t('common.refresh')"
         @click="emit('refresh')"
       >
         <RefreshCw />

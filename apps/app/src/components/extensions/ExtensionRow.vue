@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { BookOpen, Clapperboard, Settings2, Trash2, TriangleAlert } from '@lucide/vue'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -7,6 +8,8 @@ import { Switch } from '@/components/ui/switch'
 import PreferenceForm from '@/components/extensions/PreferenceForm.vue'
 import { repoAssetUrl } from '@/services/extensionRepo.service'
 import { useExtensionsStore, type ExtensionView } from '@/stores/extensions'
+
+const { t } = useI18n()
 
 const props = defineProps<{ row: ExtensionView }>()
 
@@ -28,9 +31,11 @@ const kinds = computed(() => [...new Set(props.row.entry.sources.map((source) =>
 
 const subtitle = computed(() => {
   const languages = [...new Set(props.row.entry.sources.map((source) => source.lang))]
-  return `${languages.join(', ').toUpperCase()} · v${props.row.entry.version} · ${
-    props.row.entry.sources.length
-  } sumber`
+  return t('extensions.subtitle', {
+    langs: languages.join(', ').toUpperCase(),
+    version: props.row.entry.version,
+    count: props.row.entry.sources.length,
+  })
 })
 
 async function save(prefs: Parameters<typeof store.savePreferences>[1]): Promise<void> {
@@ -53,7 +58,7 @@ async function save(prefs: Parameters<typeof store.savePreferences>[1]): Promise
         <p class="flex items-center gap-2 truncate text-sm font-medium">
           {{ row.entry.name }}
           <Badge v-if="row.entry.nsfw" variant="destructive">18+</Badge>
-          <Badge v-if="row.updatable" variant="secondary">Update</Badge>
+          <Badge v-if="row.updatable" variant="secondary">{{ t('extensions.update') }}</Badge>
         </p>
         <p class="truncate text-xs text-muted-foreground">{{ subtitle }}</p>
         <p v-if="row.incompatible" class="mt-1 flex items-center gap-1 text-xs text-destructive">
@@ -72,14 +77,14 @@ async function save(prefs: Parameters<typeof store.savePreferences>[1]): Promise
           <Switch
             :model-value="row.installed.enabled"
             :disabled="busy || row.incompatible !== undefined"
-            :aria-label="`Aktifkan ${row.entry.name}`"
+            :aria-label="t('extensions.enable', { name: row.entry.name })"
             @update:model-value="store.setEnabled(pkg, $event)"
           />
           <Button
             v-if="schema.length > 0"
             variant="ghost"
             size="icon-sm"
-            :aria-label="`Setelan ${row.entry.name}`"
+            :aria-label="t('extensions.preferences', { name: row.entry.name })"
             @click="showPrefs = !showPrefs"
           >
             <Settings2 />
@@ -87,7 +92,7 @@ async function save(prefs: Parameters<typeof store.savePreferences>[1]): Promise
         </template>
 
         <Button v-if="row.updatable" size="sm" :disabled="busy" @click="store.update(pkg)">
-          {{ busy ? 'Memperbarui…' : 'Update' }}
+          {{ busy ? t('extensions.updating') : t('extensions.update') }}
         </Button>
         <Button
           v-else-if="!row.installed"
@@ -95,14 +100,14 @@ async function save(prefs: Parameters<typeof store.savePreferences>[1]): Promise
           :disabled="busy || row.incompatible !== undefined"
           @click="store.install(row.entry, row.repoUrl)"
         >
-          {{ busy ? 'Memasang…' : 'Pasang' }}
+          {{ busy ? t('extensions.installing') : t('extensions.install') }}
         </Button>
         <Button
           v-else
           variant="ghost"
           size="icon-sm"
           :disabled="busy"
-          :aria-label="`Copot ${row.entry.name}`"
+          :aria-label="t('extensions.uninstall', { name: row.entry.name })"
           @click="store.uninstall(pkg)"
         >
           <Trash2 />

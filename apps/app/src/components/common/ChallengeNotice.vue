@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n'
 import { ShieldAlert } from '@lucide/vue'
 import { RouterLink } from 'vue-router'
 import { Button } from '@/components/ui/button'
@@ -21,6 +22,8 @@ const props = defineProps<{ challenge: ChallengeInfo; sourceName: string }>()
  */
 const emit = defineEmits<{ solved: [] }>()
 
+const { t } = useI18n()
+
 async function open(): Promise<void> {
   await openChallenge(props.challenge.url)
   emit('solved')
@@ -32,33 +35,27 @@ async function open(): Promise<void> {
     <div class="flex items-start gap-3">
       <ShieldAlert class="mt-0.5 size-5 shrink-0 text-muted-foreground" />
       <div class="min-w-0 flex-1 space-y-2">
-        <p class="text-sm font-medium">{{ sourceName }} meminta verifikasi Cloudflare</p>
+        <p class="text-sm font-medium">{{ t('cloudflare.title', { source: sourceName }) }}</p>
 
-        <p class="text-sm text-muted-foreground">
-          Situsnya hidup, tapi menahan Mirai dengan pemeriksaan "verify you are human". Mirai tidak
-          memutari pemeriksaan itu — kamu yang menyelesaikannya sendiri, lalu kembali ke sini dan
-          muat ulang.
-        </p>
+        <p class="text-sm text-muted-foreground">{{ t('cloudflare.body') }}</p>
 
         <p v-if="!challenge.canSolve" class="text-sm text-muted-foreground">
-          <strong class="font-medium text-foreground">Di versi web ini tidak akan berhasil.</strong>
-          Permintaan dikirim lewat proxy dari mesin lain, sedangkan izin hasil verifikasi menempel
-          pada browser dan alamat IP yang menyelesaikannya. Pakai APK-nya, atau pilih sumber lain.
+          <strong class="font-medium text-foreground">{{
+            t('cloudflare.webWarningStrong')
+          }}</strong>
+          {{ t('cloudflare.webWarning') }}
         </p>
 
         <div class="flex flex-wrap items-center gap-2 pt-1">
           <Button size="sm" :variant="challenge.canSolve ? 'default' : 'outline'" @click="open">
-            {{ challenge.canSolve ? 'Selesaikan verifikasi' : 'Buka situsnya' }}
+            {{ challenge.canSolve ? t('cloudflare.solve') : t('cloudflare.openSite') }}
           </Button>
           <Button as-child size="sm" variant="ghost">
-            <RouterLink to="/settings">Ubah User-Agent</RouterLink>
+            <RouterLink to="/settings">{{ t('cloudflare.changeUserAgent') }}</RouterLink>
           </Button>
         </div>
 
-        <p class="text-xs text-muted-foreground">
-          Kalau setelah diselesaikan pun masih tertahan, sumber itu memang sedang tidak bisa
-          dipakai.
-        </p>
+        <p class="text-xs text-muted-foreground">{{ t('cloudflare.stillBlocked') }}</p>
       </div>
     </div>
   </div>

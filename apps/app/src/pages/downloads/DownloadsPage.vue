@@ -1,12 +1,15 @@
 <script setup lang="ts">
 import { onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { Download, Pause, Play, Trash2 } from '@lucide/vue'
 import AppHeader from '@/components/layout/AppHeader.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 import DownloadRow from '@/components/downloads/DownloadRow.vue'
 import { Button } from '@/components/ui/button'
+import { humanBytes } from '@/services/storageQuota'
 import { useDownloadsStore } from '@/stores/downloads'
 
+const { t } = useI18n()
 const store = useDownloadsStore()
 
 // Antreannya sudah jalan sejak app dibuka; halaman ini cuma memastikan yang
@@ -18,7 +21,7 @@ onMounted(() => {
 </script>
 
 <template>
-  <AppHeader title="Unduhan">
+  <AppHeader :title="t('downloads.title')">
     <template #tabs>
       <div v-if="store.jobs.length > 0" class="flex flex-wrap items-center gap-2 px-4 pb-3">
         <Button
@@ -29,7 +32,7 @@ onMounted(() => {
           @click="store.halted ? store.resume() : store.pause()"
         >
           <component :is="store.halted ? Play : Pause" class="size-4" />
-          {{ store.halted ? 'Lanjutkan' : 'Jeda' }}
+          {{ store.halted ? t('downloads.resume') : t('downloads.pause') }}
         </Button>
 
         <Button
@@ -39,11 +42,11 @@ onMounted(() => {
           @click="store.clearFinished()"
         >
           <Trash2 class="size-4" />
-          Bersihkan yang selesai
+          {{ t('downloads.clearFinished') }}
         </Button>
 
         <p class="text-xs text-muted-foreground">
-          {{ store.working }} berjalan · {{ store.finished.length }} tersimpan
+          {{ t('downloads.summary', { working: store.working, finished: store.finished.length }) }}
         </p>
       </div>
     </template>
@@ -58,7 +61,7 @@ onMounted(() => {
     datang sebelum unduhannya gagal di tengah — bukan sesudah.
   -->
   <p
-    v-if="store.storage.message"
+    v-if="store.storage.messageKey"
     class="mx-4 mt-4 rounded-md p-3 text-sm"
     :class="
       store.storage.level === 'full'
@@ -66,7 +69,7 @@ onMounted(() => {
         : 'bg-muted text-muted-foreground'
     "
   >
-    {{ store.storage.message }}
+    {{ t(store.storage.messageKey!, { free: humanBytes(store.storage.free) }) }}
   </p>
 
   <ul v-if="store.jobs.length > 0" class="divide-y divide-border pb-24 md:pb-8">
@@ -82,7 +85,7 @@ onMounted(() => {
   <EmptyState
     v-else
     :icon="Download"
-    title="Belum ada unduhan"
-    description="Chapter dan episode yang kamu unduh bisa dibuka tanpa internet — tombol unduhnya ada di setiap barisnya."
+    :title="t('downloads.emptyTitle')"
+    :description="t('downloads.emptyDescription')"
   />
 </template>

@@ -1,3 +1,4 @@
+import { t } from '@/i18n'
 import { transport } from './extensions.service'
 
 /**
@@ -54,7 +55,7 @@ export async function coverUrl(sourceUrl: string): Promise<string> {
   if (hit) return URL.createObjectURL(await hit.blob())
 
   const response = await fetch(display)
-  if (!response.ok) throw new Error(`Cover gagal diambil (${response.status})`)
+  if (!response.ok) throw new Error(t('errors.coverFetch', { status: response.status }))
 
   // Disimpan di bawah URL sumbernya sendiri lewat `Request` buatan supaya
   // kuncinya stabil, lalu klon-nya yang dipakai — body `Response` cuma bisa

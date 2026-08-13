@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n'
 import {
   ChevronLeft,
   ChevronRight,
@@ -20,6 +21,8 @@ import { formatTime } from '@/services/playback'
  * sebagai prop dan setiap tombol cuma memancarkan niat — supaya kendali dari
  * papan ketik dan dari layar sentuh menempuh jalan yang sama persis.
  */
+const { t } = useI18n()
+
 defineProps<{
   title: string
   episode: string
@@ -64,7 +67,7 @@ function onSeek(event: Event): void {
         variant="ghost"
         size="icon"
         class="text-white"
-        aria-label="Tutup"
+        :aria-label="t('player.close')"
         @click="emit('close')"
       >
         <X />
@@ -74,7 +77,9 @@ function onSeek(event: Event): void {
         <p class="truncate text-sm font-medium">{{ title }}</p>
         <p class="truncate text-xs text-white/70">
           {{ episode }}
-          <span v-if="totalItems > 0"> · {{ position }} dari {{ totalItems }}</span>
+          <span v-if="totalItems > 0">
+            · {{ t('player.position', { position, total: totalItems }) }}
+          </span>
         </p>
       </div>
 
@@ -83,7 +88,7 @@ function onSeek(event: Event): void {
         variant="ghost"
         size="icon"
         class="text-white"
-        aria-label="Layar kecil"
+        :aria-label="t('player.pip')"
         @click="emit('pip')"
       >
         <PictureInPicture2 />
@@ -93,7 +98,7 @@ function onSeek(event: Event): void {
         variant="ghost"
         size="icon"
         class="text-white"
-        aria-label="Setelan pemutar"
+        :aria-label="t('player.settings')"
         data-testid="player-settings-open"
         @click="emit('settings')"
       >
@@ -108,7 +113,7 @@ function onSeek(event: Event): void {
         size="icon"
         class="pointer-events-auto size-16 rounded-full bg-black/40 text-white disabled:opacity-100"
         :disabled="buffering"
-        :aria-label="playing ? 'Jeda' : 'Putar'"
+        :aria-label="playing ? t('player.pause') : t('player.play')"
         data-testid="player-toggle"
         @click="emit('toggle')"
       >
@@ -132,7 +137,7 @@ function onSeek(event: Event): void {
         step="1"
         :value="currentTime"
         :disabled="duration <= 0"
-        aria-label="Geser posisi tonton"
+        :aria-label="t('player.seek')"
         data-testid="player-seek"
         @input="onSeek"
       />
@@ -148,7 +153,7 @@ function onSeek(event: Event): void {
           variant="ghost"
           size="sm"
           class="text-white"
-          :aria-label="`Lewati ${skipSeconds} detik`"
+          :aria-label="t('player.skip', { seconds: skipSeconds })"
           data-testid="player-skip"
           @click="emit('skip')"
         >
@@ -160,11 +165,11 @@ function onSeek(event: Event): void {
           variant="ghost"
           size="sm"
           class="text-white"
-          aria-label="Ganti kualitas"
+          :aria-label="t('player.changeQuality')"
           data-testid="player-quality"
           @click="emit('settings')"
         >
-          {{ quality || 'Kualitas' }}
+          {{ quality || t('player.quality') }}
         </Button>
 
         <Button
@@ -172,7 +177,7 @@ function onSeek(event: Event): void {
           size="icon"
           class="text-white disabled:opacity-30"
           :disabled="!hasPrevious"
-          aria-label="Episode sebelumnya"
+          :aria-label="t('player.previousEpisode')"
           @click="emit('previous')"
         >
           <ChevronLeft />
@@ -183,7 +188,7 @@ function onSeek(event: Event): void {
           size="icon"
           class="text-white disabled:opacity-30"
           :disabled="!hasNext"
-          aria-label="Episode berikutnya"
+          :aria-label="t('player.nextEpisode')"
           data-testid="player-next"
           @click="emit('next')"
         >

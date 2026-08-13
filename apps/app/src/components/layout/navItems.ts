@@ -4,7 +4,8 @@ import { Clapperboard, BookOpen, RefreshCw, Compass, Ellipsis, type LucideProps 
 export interface NavItem {
   /** Nama route tujuan — bukan path, supaya perubahan URL tidak menyentuh nav. */
   to: string
-  label: string
+  /** Kunci terjemahan, bukan teksnya — nav harus ikut berganti bahasa. */
+  labelKey: string
   icon: FunctionalComponent<LucideProps>
   /**
    * Prefix path yang membuat item ini dianggap aktif. Perlu karena satu item nav
@@ -18,11 +19,11 @@ export interface NavItem {
  * dua-duanya membaca dari sini supaya tidak pernah beda isi.
  */
 export const navItems: NavItem[] = [
-  { to: '/library/anime', label: 'Anime', icon: Clapperboard, match: '/library/anime' },
-  { to: '/library/manga', label: 'Manga', icon: BookOpen, match: '/library/manga' },
-  { to: '/updates', label: 'Updates', icon: RefreshCw, match: '/updates' },
-  { to: '/browse', label: 'Browse', icon: Compass, match: '/browse' },
-  { to: '/more', label: 'Lainnya', icon: Ellipsis, match: '/more' },
+  { to: '/library/anime', labelKey: 'nav.anime', icon: Clapperboard, match: '/library/anime' },
+  { to: '/library/manga', labelKey: 'nav.manga', icon: BookOpen, match: '/library/manga' },
+  { to: '/updates', labelKey: 'nav.updates', icon: RefreshCw, match: '/updates' },
+  { to: '/browse', labelKey: 'nav.browse', icon: Compass, match: '/browse' },
+  { to: '/more', labelKey: 'nav.more', icon: Ellipsis, match: '/more' },
 ]
 
 export function isNavActive(currentPath: string, item: NavItem): boolean {

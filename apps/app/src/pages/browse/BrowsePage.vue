@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { RouterLink } from 'vue-router'
 import { BookOpen, Clapperboard, Compass } from '@lucide/vue'
 import AppHeader from '@/components/layout/AppHeader.vue'
@@ -7,26 +8,27 @@ import EmptyState from '@/components/common/EmptyState.vue'
 import { Button } from '@/components/ui/button'
 import { useExtensionsStore } from '@/stores/extensions'
 
+const { t } = useI18n()
 const store = useExtensionsStore()
 
 onMounted(() => void store.ensureLoaded())
 </script>
 
 <template>
-  <AppHeader title="Browse" show-refresh @refresh="store.refreshAll()" />
+  <AppHeader :title="t('browse.title')" show-refresh @refresh="store.refreshAll()" />
 
   <p v-if="store.state === 'loading'" class="px-4 py-6 text-sm text-muted-foreground">
-    Memuat extension…
+    {{ t('browse.loading') }}
   </p>
 
   <EmptyState
     v-else-if="store.sources.length === 0"
     :icon="Compass"
-    title="Belum ada sumber aktif"
-    description="Mirai tidak membawa sumber bawaan. Tambahkan repo extension dulu, lalu pasang sumber yang kamu mau."
+    :title="t('browse.emptyTitle')"
+    :description="t('browse.emptyDescription')"
   >
     <Button as-child>
-      <RouterLink to="/extensions">Buka Extension</RouterLink>
+      <RouterLink to="/extensions">{{ t('browse.openExtensions') }}</RouterLink>
     </Button>
   </EmptyState>
 

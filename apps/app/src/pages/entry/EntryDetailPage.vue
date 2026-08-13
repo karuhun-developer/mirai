@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import {
   ArrowDownUp,
@@ -26,6 +27,7 @@ import { useDownloadsStore } from '@/stores/downloads'
 import { useEntryStore } from '@/stores/entry'
 import { useExtensionsStore } from '@/stores/extensions'
 
+const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
 const store = useEntryStore()
@@ -42,16 +44,28 @@ const { src, failed } = useCover(() => store.entry?.thumbnail_url ?? null)
 const showCategories = ref(false)
 const expanded = ref(false)
 
-const statusLabel: Record<string, string> = {
-  ongoing: 'Berjalan',
-  completed: 'Tamat',
-  hiatus: 'Hiatus',
-  cancelled: 'Dibatalkan',
-  unknown: 'Tidak diketahui',
+/**
+ * Status dari extension datang sebagai kata kunci tetap (`ongoing`, `hiatus`, …),
+ * jadi bisa diterjemahkan. Nilai di luar daftar ini ditampilkan apa adanya —
+ * itu istilah situs sumbernya, bukan istilah Mirai.
+ */
+const STATUS_KEYS: Record<string, string> = {
+  ongoing: 'entry.statusOngoing',
+  completed: 'entry.statusCompleted',
+  hiatus: 'entry.statusHiatus',
+  cancelled: 'entry.statusCancelled',
+  unknown: 'entry.statusUnknown',
 }
 
-const itemLabel = computed(() => (kind.value === 'anime' ? 'Episode' : 'Chapter'))
-const itemWord = computed(() => itemLabel.value.toLowerCase())
+function statusLabel(status: string): string {
+  const key = STATUS_KEYS[status]
+  return key ? t(key) : status
+}
+
+const itemLabel = computed(() => (kind.value === 'anime' ? t('entry.episode') : t('entry.chapter')))
+const itemWord = computed(() =>
+  kind.value === 'anime' ? t('entry.unitEpisode') : t('entry.unitChapter'),
+)
 
 const pendingItems = computed(() =>
   store.items.filter((item) => item.seen === 0 && item.downloaded === 0),
@@ -99,7 +113,7 @@ watch(
 </script>
 
 <template>
-  <AppHeader :title="store.entry?.title ?? 'Memuat…'" />
+  <AppHeader :title="store.entry?.title ?? t('common.loading')" />
 
   <!-- Kalau entrinya sendiri gagal dibuka, yang tampil EmptyState di bawah;
        baris merah ini khusus kegagalan menyegarkan entri yang sudah tampil. -->
@@ -113,7 +127,7 @@ watch(
   <ChallengeNotice
     v-if="store.challenge"
     :challenge="store.challenge"
-    :source-name="source?.name ?? 'Sumber ini'"
+    :source-name="source?.name ?? t('browse.thisSource')"
     @solved="load()"
   />
 
@@ -141,13 +155,19 @@ watch(
           <span v-if="store.entry.author">{{ store.entry.author }}</span>
           <span v-if="store.entry.author && store.entry.status"> · </span>
           <span v-if="store.entry.status">
-            {{ statusLabel[store.entry.status] ?? store.entry.status }}
+            {{ statusLabel(store.entry.status) }}
           </span>
         </p>
 
         <p class="text-xs text-muted-foreground">
-          {{ source?.name ?? sourceId }} · {{ store.items.length }} {{ itemLabel.toLowerCase() }} ·
-          {{ store.unread }} belum dibaca
+          {{
+            t('entry.meta', {
+              source: source?.name ?? sourceId,
+              count: store.items.length,
+              unit: itemWord,
+              unread: store.unread,
+            })
+          }}
         </p>
 
         <div class="flex flex-wrap gap-2 pt-1">
@@ -157,7 +177,7 @@ watch(
             @click="store.toggleFavorite(source)"
           >
             <Heart :class="store.entry.favorite === 1 ? 'fill-current' : ''" />
-            {{ store.entry.favorite === 1 ? 'Di library' : 'Tambah ke library' }}
+            {{ store.entry.favorite === 1 ? t('entry.inLibrary') : t('entry.addToLibrary') }}
           </Button>
 
           <Button
@@ -167,7 +187,7 @@ watch(
             @click="source && store.refresh(source)"
           >
             <RefreshCw :class="store.refreshing ? 'animate-spin' : ''" />
-            {{ store.refreshing ? 'Menyegarkan…' : 'Segarkan' }}
+            {{ store.refreshing ? t('entry.refreshing') : t('entry.refresh') }}
           </Button>
 
           <Button
@@ -177,7 +197,7 @@ watch(
             @click="showCategories = !showCategories"
           >
             <FolderPlus />
-            Kategori
+            {{ t('entry.categories') }}
           </Button>
         </div>
 
@@ -185,11 +205,15 @@ watch(
           v-if="store.resume"
           size="sm"
           variant="ghost"
-          :title="`Lanjut ${kind === 'anime' ? 'tonton' : 'baca'} ${store.resume.name}`"
+          :title="
+            kind === 'anime'
+              ? t('entry.resumeWatch', { name: store.resume.name })
+              : t('entry.resumeRead', { name: store.resume.name })
+          "
           @click="store.resume && open(store.resume)"
         >
           <component :is="kind === 'anime' ? Play : BookOpen" />
-          Lanjut: {{ store.resume.name }}
+          {{ t('entry.resume', { name: store.resume.name }) }}
         </Button>
       </div>
     </section>
@@ -221,7 +245,7 @@ watch(
         class="mt-1 text-xs font-medium text-primary"
         @click="expanded = !expanded"
       >
-        {{ expanded ? 'Ringkas' : 'Selengkapnya' }}
+        {{ expanded ? t('entry.collapse') : t('entry.expand') }}
       </button>
     </section>
 
@@ -236,26 +260,37 @@ watch(
         v-if="pendingItems.length > 0"
         variant="ghost"
         size="sm"
-        :title="`Unduh ${pendingItems.length} ${itemWord} yang belum ${kind === 'anime' ? 'ditonton' : 'dibaca'}`"
+        :title="
+          kind === 'anime'
+            ? t('entry.downloadPendingWatch', { count: pendingItems.length })
+            : t('entry.downloadPendingRead', { count: pendingItems.length })
+        "
         @click="downloads.download(pendingItems)"
       >
         <Download class="size-4" />
-        Unduh {{ pendingItems.length }}
+        {{ t('entry.download', { count: pendingItems.length }) }}
       </Button>
 
       <Button
         v-if="downloadedCount > 0"
         variant="ghost"
         size="icon-sm"
-        :aria-label="`Hapus ${downloadedCount} ${itemWord} terunduh`"
-        :title="`Hapus ${downloadedCount} ${itemWord} terunduh`"
+        :aria-label="t('entry.removeDownloaded', { count: downloadedCount, unit: itemWord })"
+        :title="t('entry.removeDownloaded', { count: downloadedCount, unit: itemWord })"
         @click="removeAll()"
       >
         <Trash2 class="size-4" />
       </Button>
 
-      <Button variant="ghost" size="sm" @click="store.markAll(true)">Tandai semua</Button>
-      <Button variant="ghost" size="icon-sm" aria-label="Balik urutan" @click="store.toggleOrder()">
+      <Button variant="ghost" size="sm" @click="store.markAll(true)">
+        {{ t('entry.markAll') }}
+      </Button>
+      <Button
+        variant="ghost"
+        size="icon-sm"
+        :aria-label="t('entry.reverse')"
+        @click="store.toggleOrder()"
+      >
         <ArrowDownUp class="size-4" />
       </Button>
     </div>
@@ -278,14 +313,14 @@ watch(
     </ul>
 
     <p v-else-if="!store.refreshing" class="px-4 py-10 text-center text-sm text-muted-foreground">
-      Belum ada {{ itemLabel.toLowerCase() }} yang tersimpan.
+      {{ t('entry.emptyItems', { unit: itemWord }) }}
     </p>
   </template>
 
   <EmptyState
     v-else-if="!store.loading && store.error"
     :icon="TriangleAlert"
-    title="Entri tidak bisa dibuka"
-    description="Judul ini belum tersimpan di perangkat, dan extension sumbernya sedang tidak tersedia."
+    :title="t('entry.errorTitle')"
+    :description="t('entry.errorDescription')"
   />
 </template>

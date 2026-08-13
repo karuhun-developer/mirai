@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import {
   Bookmark,
   Check,
@@ -11,6 +12,9 @@ import {
 } from '@lucide/vue'
 import type { DownloadRow, ItemRow } from '@mirai/db'
 import { Button } from '@/components/ui/button'
+import { formatDate } from '@/i18n'
+
+const { t } = useI18n()
 
 const props = defineProps<{
   item: ItemRow
@@ -46,10 +50,10 @@ const busy = computed(() => state.value === 'queued' || state.value === 'running
  * halaman Unduhan, tempat progresnya terlihat penuh.
  */
 const downloadLabel = computed(() => {
-  if (busy.value) return `Mengunduh ${props.job?.progress ?? 0}%`
-  if (state.value === 'failed') return 'Unduhan gagal, coba lagi'
-  if (downloaded.value) return 'Hapus unduhan'
-  return `Unduh ${props.unit ?? 'chapter'} ini`
+  if (busy.value) return t('item.downloading', { progress: props.job?.progress ?? 0 })
+  if (state.value === 'failed') return t('item.downloadFailed')
+  if (downloaded.value) return t('item.removeDownload')
+  return t('item.download', { unit: props.unit ?? t('entry.unitChapter') })
 })
 
 function onDownload(): void {
@@ -61,16 +65,16 @@ function onDownload(): void {
 const subtitle = computed(() => {
   const parts: string[] = []
   if (props.item.date_upload !== null) {
-    parts.push(new Date(props.item.date_upload).toLocaleDateString('id-ID'))
+    parts.push(formatDate(props.item.date_upload))
   }
   if (props.item.scanlator) parts.push(props.item.scanlator)
   // Progres cuma disebut kalau ada dan belum selesai — "halaman 0" bukan kabar.
   if (!seen.value && props.item.last_position > 0) {
-    parts.push(`lanjut di ${props.item.last_position}`)
+    parts.push(t('item.resumeAt', { position: props.item.last_position }))
   }
-  if (busy.value) parts.push(`mengunduh ${props.job?.progress ?? 0}%`)
-  else if (state.value === 'failed') parts.push('unduhan gagal')
-  else if (downloaded.value) parts.push('tersimpan')
+  if (busy.value) parts.push(t('item.downloadingShort', { progress: props.job?.progress ?? 0 }))
+  else if (state.value === 'failed') parts.push(t('item.failedShort'))
+  else if (downloaded.value) parts.push(t('item.savedShort'))
   return parts.join(' · ')
 })
 </script>
@@ -107,7 +111,7 @@ const subtitle = computed(() => {
     <Button
       variant="ghost"
       size="icon-sm"
-      :aria-label="item.bookmark === 1 ? 'Hapus penanda' : 'Tandai'"
+      :aria-label="item.bookmark === 1 ? t('item.removeBookmark') : t('item.bookmark')"
       @click="emit('toggleBookmark')"
     >
       <Bookmark class="size-4" :class="item.bookmark === 1 ? 'fill-primary text-primary' : ''" />
@@ -121,7 +125,7 @@ const subtitle = computed(() => {
       v-if="!seen"
       variant="ghost"
       size="icon-sm"
-      aria-label="Tandai sampai sini sudah dibaca"
+      :aria-label="t('item.markUpTo')"
       @click="emit('markUpTo')"
     >
       <ChevronsDown class="size-4" />
@@ -130,7 +134,7 @@ const subtitle = computed(() => {
     <Button
       variant="ghost"
       size="icon-sm"
-      :aria-label="seen ? 'Tandai belum dibaca' : 'Tandai sudah dibaca'"
+      :aria-label="seen ? t('item.markUnread') : t('item.markRead')"
       @click="emit('toggleSeen')"
     >
       <Check class="size-4" :class="seen ? 'text-primary' : ''" />

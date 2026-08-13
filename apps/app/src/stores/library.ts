@@ -1,6 +1,7 @@
 import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
 import type { CategoryRow, EntryKind, LibraryEntry } from '@mirai/db'
+import { t } from '@/i18n'
 import {
   ALL_CATEGORIES,
   NO_CATEGORY,
@@ -58,7 +59,7 @@ export const useLibraryStore = defineStore('library', () => {
   const tabs = computed<CategoryTab[]>(() => {
     if (categories.value.length === 0) return []
     const rows: CategoryTab[] = [
-      { id: ALL_CATEGORIES, name: 'Semua', count: totalFavorites.value },
+      { id: ALL_CATEGORIES, name: t('library.allCategories'), count: totalFavorites.value },
       ...categories.value.map((category) => ({
         id: category.id,
         name: category.name,
@@ -66,7 +67,7 @@ export const useLibraryStore = defineStore('library', () => {
       })),
     ]
     if (uncategorized.value > 0) {
-      rows.push({ id: NO_CATEGORY, name: 'Tanpa kategori', count: uncategorized.value })
+      rows.push({ id: NO_CATEGORY, name: t('library.uncategorized'), count: uncategorized.value })
     }
     return rows
   })

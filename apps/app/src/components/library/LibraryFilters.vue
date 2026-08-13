@@ -1,11 +1,14 @@
 <script setup lang="ts">
 import { ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { Check, Plus, Trash2 } from '@lucide/vue'
 import type { CategoryRow, LibrarySort } from '@mirai/db'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
 import type { LibraryPrefs } from '@/services/library.service'
+
+const { t } = useI18n()
 
 const props = defineProps<{ prefs: LibraryPrefs; categories: CategoryRow[] }>()
 
@@ -17,11 +20,11 @@ const emit = defineEmits<{
 
 const newCategory = ref('')
 
-const sorts: { key: LibrarySort; label: string }[] = [
-  { key: 'title', label: 'Judul' },
-  { key: 'added', label: 'Ditambahkan' },
-  { key: 'last_read', label: 'Terakhir dibaca' },
-  { key: 'unread', label: 'Belum dibaca' },
+const sorts: { key: LibrarySort; labelKey: string }[] = [
+  { key: 'title', labelKey: 'library.filters.sortTitle' },
+  { key: 'added', labelKey: 'library.filters.sortAdded' },
+  { key: 'last_read', labelKey: 'library.filters.sortLastRead' },
+  { key: 'unread', labelKey: 'library.filters.sortUnread' },
 ]
 
 /**
@@ -46,7 +49,7 @@ function submitCategory(): void {
     <div class="mx-auto max-w-3xl space-y-4">
       <section>
         <p class="mb-2 text-xs font-medium uppercase tracking-wide text-muted-foreground">
-          Urutkan
+          {{ t('library.filters.sort') }}
         </p>
         <div class="flex flex-wrap gap-1">
           <Button
@@ -56,7 +59,7 @@ function submitCategory(): void {
             :variant="prefs.sort === sort.key ? 'secondary' : 'ghost'"
             @click="pickSort(sort.key)"
           >
-            {{ sort.label }}
+            {{ t(sort.labelKey) }}
             <span v-if="prefs.sort === sort.key" class="ml-1 text-xs">
               {{ prefs.descending ? '↓' : '↑' }}
             </span>
@@ -65,16 +68,18 @@ function submitCategory(): void {
       </section>
 
       <section class="space-y-2">
-        <p class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Saring</p>
+        <p class="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+          {{ t('library.filters.filter') }}
+        </p>
         <label class="flex items-center justify-between gap-4">
-          <span>Ada yang belum dibaca</span>
+          <span>{{ t('library.filters.unreadOnly') }}</span>
           <Switch
             :model-value="prefs.unreadOnly"
             @update:model-value="emit('update', { unreadOnly: $event })"
           />
         </label>
         <label class="flex items-center justify-between gap-4">
-          <span>Sudah diunduh</span>
+          <span>{{ t('library.filters.downloadedOnly') }}</span>
           <Switch
             :model-value="prefs.downloadedOnly"
             @update:model-value="emit('update', { downloadedOnly: $event })"
@@ -83,7 +88,9 @@ function submitCategory(): void {
       </section>
 
       <section class="space-y-2">
-        <p class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Kategori</p>
+        <p class="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+          {{ t('library.filters.categories') }}
+        </p>
 
         <ul
           v-if="categories.length > 0"
@@ -98,7 +105,7 @@ function submitCategory(): void {
             <Button
               variant="ghost"
               size="icon"
-              :aria-label="`Hapus kategori ${category.name}`"
+              :aria-label="t('library.filters.dropCategory', { name: category.name })"
               @click="emit('dropCategory', category.id)"
             >
               <Trash2 class="size-4" />
@@ -109,17 +116,22 @@ function submitCategory(): void {
         <form class="flex gap-2" @submit.prevent="submitCategory">
           <Input
             v-model="newCategory"
-            placeholder="Kategori baru…"
-            aria-label="Nama kategori baru"
+            :placeholder="t('library.filters.newCategory')"
+            :aria-label="t('library.filters.newCategoryLabel')"
           />
-          <Button type="submit" variant="outline" size="icon" aria-label="Tambah kategori">
+          <Button
+            type="submit"
+            variant="outline"
+            size="icon"
+            :aria-label="t('library.filters.addCategory')"
+          >
             <Plus class="size-4" />
           </Button>
         </form>
 
         <p class="text-xs text-muted-foreground">
           <Check class="mr-1 inline size-3" />
-          Menghapus kategori tidak menghapus judul di dalamnya.
+          {{ t('library.filters.dropHint') }}
         </p>
       </section>
     </div>

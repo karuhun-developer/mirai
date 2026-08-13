@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { Plus, TriangleAlert, Trash2 } from '@lucide/vue'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { useExtensionsStore } from '@/stores/extensions'
 
+const { t } = useI18n()
 const store = useExtensionsStore()
 
 const url = ref('')
@@ -34,16 +36,21 @@ function packageCount(repoUrl: string): number {
 
 <template>
   <section class="flex flex-col gap-3 px-4 py-4">
-    <h2 class="text-sm font-semibold">Repo extension</h2>
+    <h2 class="text-sm font-semibold">{{ t('extensions.repos.heading') }}</h2>
 
     <form class="flex gap-2" @submit.prevent="submit">
       <Input
         v-model="url"
         placeholder="https://contoh.github.io/extensions"
-        aria-label="URL repo extension"
+        :aria-label="t('extensions.repos.urlLabel')"
         inputmode="url"
       />
-      <Button type="submit" size="icon" :disabled="adding || !url.trim()" aria-label="Tambah repo">
+      <Button
+        type="submit"
+        size="icon"
+        :disabled="adding || !url.trim()"
+        :aria-label="t('extensions.repos.add')"
+      >
         <Plus />
       </Button>
     </form>
@@ -53,8 +60,7 @@ function packageCount(repoUrl: string): number {
     </p>
 
     <p v-if="store.repos.length === 0" class="text-xs text-muted-foreground">
-      Mirai tidak membawa sumber bawaan. Tempel URL repo extension di atas — isinya berupa
-      <code>index.min.json</code> beserta bundel di sebelahnya.
+      {{ t('extensions.repos.empty') }}
     </p>
 
     <ul v-else class="flex flex-col gap-1">
@@ -73,14 +79,14 @@ function packageCount(repoUrl: string): number {
             {{ store.repoError[repo.url] }}
           </span>
           <span v-else class="block truncate text-xs text-muted-foreground">
-            {{ packageCount(repo.url) }} paket
+            {{ t('extensions.repos.packageCount', { count: packageCount(repo.url) }) }}
           </span>
         </span>
 
         <Button
           variant="ghost"
           size="icon-sm"
-          :aria-label="`Hapus repo ${repo.name}`"
+          :aria-label="t('extensions.repos.remove', { name: repo.name })"
           @click="store.removeRepo(repo.url)"
         >
           <Trash2 />
@@ -89,8 +95,7 @@ function packageCount(repoUrl: string): number {
     </ul>
 
     <p v-if="store.repos.length > 0" class="text-xs text-muted-foreground">
-      Menghapus repo tidak mencopot extension yang sudah terpasang — kodenya sudah tersimpan lokal.
-      Yang hilang cuma jalur update-nya.
+      {{ t('extensions.repos.hint') }}
     </p>
   </section>
 </template>

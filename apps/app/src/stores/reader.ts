@@ -16,6 +16,7 @@ import {
 } from '@/services/reader.service'
 import { loadItemContext, reloadItem } from '@/services/item.service'
 import { challengeOf, type ChallengeInfo } from '@/services/challenge.service'
+import { t } from '@/i18n'
 
 /**
  * Keadaan satu sesi baca.
@@ -77,7 +78,7 @@ export const useReaderStore = defineStore('reader', () => {
       prefs.value = await readReaderPrefs()
 
       const context = await loadItemContext(itemId)
-      if (!context) throw new Error('Chapter ini tidak ada di database.')
+      if (!context) throw new Error(t('errors.chapterMissing'))
 
       entry.value = context.entry
       item.value = context.item
@@ -90,7 +91,7 @@ export const useReaderStore = defineStore('reader', () => {
       // extension sama sekali. Yang memutuskan itu `loadPages`, satu-satunya
       // tempat yang tahu berkas lokalnya benar-benar ada atau tidak.
       const source = resolve(context.entry.source_id)
-      if (source && source.kind !== 'manga') throw new Error('Sumber ini bukan sumber manga.')
+      if (source && source.kind !== 'manga') throw new Error(t('errors.sourceNotManga'))
 
       const loaded = await loadPages(
         context.entry,
@@ -99,7 +100,7 @@ export const useReaderStore = defineStore('reader', () => {
       )
       pages.value = loaded.pages
       offline.value = loaded.local
-      if (pages.value.length === 0) throw new Error('Sumber tidak mengembalikan satu halaman pun.')
+      if (pages.value.length === 0) throw new Error(t('errors.noPages'))
 
       // Lanjut di tempat terakhir — kecuali chapternya sudah tamat, yang mulai
       // dari awal lagi. Membuka ulang chapter yang sudah selesai hampir selalu

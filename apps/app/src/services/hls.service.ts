@@ -1,4 +1,5 @@
 import type HlsJs from 'hls.js'
+import { t } from '@/i18n'
 import { mediaUrl } from './extensions.service'
 import { createLocalLoader, createProxyLoader, type LoaderConstructor } from './hlsLoader'
 import type { PlayableVideo } from './playback'
@@ -48,7 +49,7 @@ export async function attachVideo(
     // Episode terunduh tidak punya jalan lain di sini: segmennya bukan alamat
     // jaringan, dan pemutar bawaan tidak bisa dititipi loader.
     if (video.local) {
-      onFatal('Browser ini tidak bisa memutar episode HLS yang terunduh.')
+      onFatal(t('errors.hlsUnsupportedLocal'))
       return { detach: () => {} }
     }
 
@@ -57,7 +58,7 @@ export async function attachVideo(
       return { detach: () => clearSource(el) }
     }
 
-    onFatal('Browser ini tidak bisa memutar HLS.')
+    onFatal(t('errors.hlsUnsupported'))
     return { detach: () => {} }
   }
 
@@ -124,8 +125,8 @@ function attachErrorHandling(Hls: typeof HlsJs, hls: HlsJs, onFatal: FatalHandle
     hls.destroy()
     onFatal(
       data.type === Hls.ErrorTypes.NETWORK_ERROR
-        ? 'Video tidak bisa diambil. Cek jaringan atau coba host lain.'
-        : `Video gagal diputar (${data.details}).`,
+        ? t('errors.videoNetwork')
+        : t('errors.videoFailed', { details: data.details }),
     )
   })
 }

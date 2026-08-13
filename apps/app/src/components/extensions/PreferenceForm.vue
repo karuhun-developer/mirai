@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import type { SourcePreference } from '@mirai/extension-api'
 import type { PreferenceSnapshot } from '@mirai/extension-runtime'
 import { Button } from '@/components/ui/button'
@@ -11,6 +12,8 @@ import { Switch } from '@/components/ui/switch'
  * deklaratif justru supaya extension tidak pernah mengirim komponen — app yang
  * memutuskan tampilannya, dan kode asing tidak menyentuh DOM sama sekali.
  */
+
+const { t } = useI18n()
 
 const props = defineProps<{
   schema: SourcePreference[]
@@ -135,8 +138,10 @@ const selectClass =
     </div>
 
     <div class="flex justify-end gap-2">
-      <Button type="button" variant="ghost" size="sm" @click="emit('cancel')">Batal</Button>
-      <Button type="submit" size="sm" :disabled="busy">Simpan</Button>
+      <Button type="button" variant="ghost" size="sm" @click="emit('cancel')">
+        {{ t('common.cancel') }}
+      </Button>
+      <Button type="submit" size="sm" :disabled="busy">{{ t('common.save') }}</Button>
     </div>
   </form>
 </template>

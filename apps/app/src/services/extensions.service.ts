@@ -7,6 +7,7 @@ import {
   type RemoteSource,
   type Transport,
 } from '@mirai/extension-runtime'
+import { t } from '@/i18n'
 import type { RepoEntry } from './extensionRepo.service'
 import { repoAssetUrl } from './extensionRepo.service'
 import type { InstalledRecord } from './extensionStorage.service'
@@ -67,9 +68,10 @@ export interface LoadedExtension {
  */
 export function compatibilityError(entry: RepoEntry): string | undefined {
   if (entry.apiVersion === API_VERSION) return undefined
+  const params = { wanted: entry.apiVersion, current: API_VERSION }
   return entry.apiVersion > API_VERSION
-    ? `Butuh Mirai yang lebih baru (apiVersion ${entry.apiVersion}, app ini ${API_VERSION})`
-    : `Extension usang (apiVersion ${entry.apiVersion}, app ini ${API_VERSION})`
+    ? t('extensions.tooNew', params)
+    : t('extensions.tooOld', params)
 }
 
 /**
@@ -83,7 +85,8 @@ export async function fetchBundle(repoUrl: string, entry: RepoEntry): Promise<st
 
   const url = repoAssetUrl(repoUrl, entry.file)
   const response = await fetch(url, { cache: 'no-cache' })
-  if (!response.ok) throw new Error(`Gagal mengunduh ${entry.pkg} dari ${url} (${response.status})`)
+  if (!response.ok)
+    throw new Error(t('errors.extensionDownload', { pkg: entry.pkg, url, status: response.status }))
 
   const code = await response.text()
   await writeBundle(entry.pkg, entry.version, code)

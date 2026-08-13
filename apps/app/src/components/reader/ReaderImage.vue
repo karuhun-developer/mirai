@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { ImageOff, LoaderCircle } from '@lucide/vue'
 import type { PageFit } from '@/services/reader.service'
 
@@ -14,6 +15,8 @@ import type { PageFit } from '@/services/reader.service'
  * ulang elemennya lewat `:key` — tanpa menambah parameter ke URL, yang di web
  * akan mengubah alamat proxy dan membatalkan cache-nya.
  */
+const { t } = useI18n()
+
 const props = defineProps<{
   src: string
   alt: string
@@ -87,13 +90,13 @@ const imageClass = computed(() => {
 
     <div v-if="failed" class="grid place-items-center gap-2 px-6 py-16 text-center">
       <ImageOff class="size-6 text-muted-foreground" />
-      <p class="text-sm text-muted-foreground">{{ alt }} gagal dimuat.</p>
+      <p class="text-sm text-muted-foreground">{{ t('reader.imageFailed', { alt }) }}</p>
       <button
         type="button"
         class="rounded-md bg-secondary px-3 py-1.5 text-sm font-medium"
         @click.stop="retry"
       >
-        Coba lagi
+        {{ t('common.retry') }}
       </button>
     </div>
   </div>

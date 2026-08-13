@@ -7,13 +7,15 @@ const MB = 1024 * 1024
 describe('storageStatus', () => {
   it('diam selama ruangnya masih lega', () => {
     expect(storageStatus({ used: 2 * GB, quota: 60 * GB }).level).toBe('ok')
-    expect(storageStatus({ used: 2 * GB, quota: 60 * GB }).message).toBeNull()
+    expect(storageStatus({ used: 2 * GB, quota: 60 * GB }).messageKey).toBeNull()
   })
 
   it('memperingatkan sebelum benar-benar mentok', () => {
     const status = storageStatus({ used: 58 * GB, quota: 60 * GB })
     expect(status.level).toBe('low')
-    expect(status.message).toContain('2.0 GB')
+    expect(status.messageKey).toBe('storage.low')
+    // Angkanya ikut diuji karena kalimat peringatannya menyebut sisa ruang.
+    expect(humanBytes(status.free)).toBe('2.0 GB')
   })
 
   it('menolak lanjut kalau sisanya tinggal sedikit', () => {

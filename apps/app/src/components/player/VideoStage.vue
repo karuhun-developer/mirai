@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { attachVideo, type AttachedVideo } from '@/services/hls.service'
 import type { PlayableVideo } from '@/services/playback'
 import type { PlayerTrack } from '@/stores/player'
@@ -12,6 +13,8 @@ import type { PlayerTrack } from '@/stores/player'
  * *elemennya* — pemisahan itu yang membuat berganti kualitas cukup mengganti
  * sumber tanpa store perlu tahu ada elemen DOM sama sekali.
  */
+const { t } = useI18n()
+
 const props = defineProps<{
   video: PlayableVideo | null
   /** Detik yang harus dipasang begitu metadata siap; -1 berarti tidak ada. */
@@ -117,8 +120,8 @@ function onError(): void {
   emit(
     'error',
     code === MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED
-      ? 'Format video ini tidak didukung browser. Coba host atau kualitas lain.'
-      : 'Video berhenti karena kesalahan pemutaran. Coba host atau kualitas lain.',
+      ? t('player.unsupportedFormat')
+      : t('player.playbackError'),
   )
 }
 

@@ -2,10 +2,21 @@ import { describe, expect, it } from 'vitest'
 import {
   BACKUP_FORMAT,
   BACKUP_VERSION,
+  BackupError,
   backupFileName,
   parseBackup,
   summarize,
 } from '../src/services/backupFormat.ts'
+
+/** Sebab kegagalan, bukan kalimatnya — kalimatnya milik katalog terjemahan. */
+function codeOf(text: string): string {
+  try {
+    parseBackup(text)
+  } catch (cause) {
+    return cause instanceof BackupError ? cause.code : `bukan BackupError: ${String(cause)}`
+  }
+  return 'tidak melempar'
+}
 
 /**
  * Yang diuji di sini adalah pembacaan berkas dari luar — satu-satunya masukan di
@@ -40,17 +51,21 @@ describe('parseBackup', () => {
   })
 
   it('menolak yang bukan JSON', () => {
-    expect(() => parseBackup('bukan json')).toThrow(/JSON/)
+    expect(codeOf('bukan json')).toBe('notJson')
   })
 
   it('menolak JSON yang bukan backup Mirai', () => {
-    expect(() => parseBackup('{"hello":"world"}')).toThrow(/bukan backup Mirai/)
+    expect(codeOf('{"hello":"world"}')).toBe('notMirai')
     // Larik JSON juga sah sebagai JSON, dan pernah lolos ke tahap berikutnya.
-    expect(() => parseBackup('[]')).toThrow(/bukan backup Mirai/)
+    expect(codeOf('[]')).toBe('notMirai')
   })
 
-  it('menolak format yang lebih baru daripada yang dikenal', () => {
-    expect(() => parseBackup(file({ version: BACKUP_VERSION + 1 }))).toThrow(/lebih baru/)
+  it('menolak format yang lebih baru daripada yang dikenal, dengan versinya', () => {
+    const file_ = file({ version: BACKUP_VERSION + 1 })
+    expect(codeOf(file_)).toBe('tooNew')
+    expect(() => parseBackup(file_)).toThrow(
+      expect.objectContaining({ params: { version: BACKUP_VERSION + 1 } }),
+    )
   })
 
   it('memaafkan tabel dan bagian yang hilang', () => {

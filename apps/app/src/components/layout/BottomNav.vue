@@ -1,15 +1,17 @@
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n'
 import { useRoute } from 'vue-router'
 import { cn } from '@/lib/utils'
 import { navItems, isNavActive } from './navItems'
 
 const route = useRoute()
+const { t } = useI18n()
 </script>
 
 <template>
   <nav
     class="pb-safe fixed inset-x-0 bottom-0 z-40 border-t border-border bg-card/95 backdrop-blur md:hidden"
-    aria-label="Navigasi utama"
+    :aria-label="t('common.mainNav')"
   >
     <ul class="flex">
       <li v-for="item in navItems" :key="item.to" class="flex-1">
@@ -31,7 +33,7 @@ const route = useRoute()
           >
             <component :is="item.icon" class="size-5" />
           </span>
-          {{ item.label }}
+          {{ t(item.labelKey) }}
         </RouterLink>
       </li>
     </ul>

@@ -17,6 +17,7 @@ import {
 } from '@/services/entry.service'
 import { categoriesOf, listCategories, setEntryCategories } from '@/services/library.service'
 import { challengeOf, type ChallengeInfo } from '@/services/challenge.service'
+import { t } from '@/i18n'
 
 /**
  * Halaman detail satu entri.
@@ -59,9 +60,7 @@ export const useEntryStore = defineStore('entry', () => {
 
       if (!bundle) {
         if (!source) {
-          throw new Error(
-            'Entri ini belum pernah disimpan dan extension sumbernya tidak terpasang.',
-          )
+          throw new Error(t('errors.entryMissing'))
         }
         // Tautan langsung ke judul yang belum pernah dibuka: barisnya dibuat
         // dulu dengan url sebagai judul sementara, lalu `getDetails()` yang
@@ -70,7 +69,7 @@ export const useEntryStore = defineStore('entry', () => {
         bundle = await loadEntry(id)
       }
 
-      if (!bundle) throw new Error('Entri gagal disimpan ke database.')
+      if (!bundle) throw new Error(t('errors.entryNotSaved'))
 
       entry.value = bundle.entry
       items.value = bundle.items

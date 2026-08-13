@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import ReaderImage from './ReaderImage.vue'
 import type { ReaderPage } from '@/services/reader.service'
 
@@ -14,6 +15,8 @@ import type { ReaderPage } from '@/services/reader.service'
  * menerus dan membuat gulirnya tersendat justru di perangkat yang paling butuh
  * mulus.
  */
+const { t } = useI18n()
+
 const props = defineProps<{
   pages: ReaderPage[]
   index: number
@@ -195,7 +198,7 @@ defineExpose({ jumpTo, scrollBy })
       <div v-for="(page, at) in pages" :key="page.url" :ref="(el) => setItem(el, at)">
         <ReaderImage
           :src="page.url"
-          :alt="`Halaman ${page.index + 1}`"
+          :alt="t('reader.page', { number: page.index + 1 })"
           fit="width"
           :eager="at <= index + preload"
         />

@@ -1,5 +1,8 @@
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n'
 import type { CategoryTab } from '@/stores/library'
+
+const { t } = useI18n()
 
 defineProps<{ tabs: CategoryTab[]; active: string }>()
 const emit = defineEmits<{ select: [id: string] }>()
@@ -14,7 +17,7 @@ const emit = defineEmits<{ select: [id: string] }>()
   <div
     class="flex gap-1 overflow-x-auto px-4 pb-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
     role="tablist"
-    aria-label="Kategori"
+    :aria-label="t('library.categories')"
   >
     <button
       v-for="tab in tabs"

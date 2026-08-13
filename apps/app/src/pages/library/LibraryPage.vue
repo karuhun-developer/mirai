@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useRoute, RouterLink } from 'vue-router'
 import { Library, SearchX } from '@lucide/vue'
 import type { EntryKind } from '@mirai/db'
@@ -15,6 +16,7 @@ import { useLibraryStore } from '@/stores/library'
 import { useUpdatesStore } from '@/stores/updates'
 import { useExtensionsStore } from '@/stores/extensions'
 
+const { t } = useI18n()
 const route = useRoute()
 const library = useLibraryStore()
 const updates = useUpdatesStore()
@@ -26,7 +28,7 @@ const extensions = useExtensionsStore()
  * menggandakan kode header, tab, dan grid.
  */
 const kind = computed<EntryKind>(() => (route.params['kind'] === 'anime' ? 'anime' : 'manga'))
-const title = computed(() => (kind.value === 'anime' ? 'Anime' : 'Manga'))
+const title = computed(() => (kind.value === 'anime' ? t('common.anime') : t('common.manga')))
 
 const showSearch = ref(false)
 const showFilters = ref(false)
@@ -78,8 +80,8 @@ async function refresh(): Promise<void> {
       <div v-if="showSearch" class="px-4 pb-3">
         <Input
           :model-value="library.search"
-          placeholder="Cari di library…"
-          aria-label="Cari di library"
+          :placeholder="t('library.searchPlaceholder')"
+          :aria-label="t('library.searchLabel')"
           @update:model-value="library.setSearch(String($event))"
         />
       </div>
@@ -103,9 +105,10 @@ async function refresh(): Promise<void> {
   />
 
   <div v-if="updates.progress" class="px-4 py-2 text-xs text-muted-foreground">
-    Menyegarkan {{ updates.progress.done }}/{{ updates.progress.total }} —
-    {{ updates.progress.title }}
-    <Button variant="ghost" size="sm" class="ml-2" @click="updates.cancel()">Batal</Button>
+    {{ t('library.refreshing', updates.progress) }}
+    <Button variant="ghost" size="sm" class="ml-2" @click="updates.cancel()">
+      {{ t('common.cancel') }}
+    </Button>
   </div>
 
   <p
@@ -120,18 +123,18 @@ async function refresh(): Promise<void> {
   <EmptyState
     v-else-if="untouched"
     :icon="Library"
-    :title="`Library ${title} masih kosong`"
-    description="Pasang extension lalu tandai judul sebagai favorit — isinya akan tetap ada walau kamu sedang offline."
+    :title="t('library.emptyTitle', { kind: title })"
+    :description="t('library.emptyDescription')"
   >
     <Button as-child>
-      <RouterLink to="/browse">Jelajahi sumber</RouterLink>
+      <RouterLink to="/browse">{{ t('library.browse') }}</RouterLink>
     </Button>
   </EmptyState>
 
   <EmptyState
     v-else-if="empty"
     :icon="SearchX"
-    title="Tidak ada yang cocok"
-    description="Coba ubah kata kunci, kategori, atau saringan yang sedang aktif."
+    :title="t('library.noMatchTitle')"
+    :description="t('library.noMatchDescription')"
   />
 </template>

@@ -16,8 +16,14 @@ export interface StorageStatus {
   level: StorageLevel
   /** Sisa ruang dalam byte. */
   free: number
-  /** Kalimat siap tampil; `null` kalau ruangnya masih lega. */
-  message: string | null
+  /**
+   * Kunci terjemahan peringatannya; `null` kalau ruangnya masih lega.
+   *
+   * Kunci, bukan kalimat jadi: modul ini sengaja bebas dependensi supaya
+   * ambangnya bisa diuji tanpa browser — dan memanggil i18n di sini berarti
+   * menyeret seluruh katalog ke dalam unit test aritmetika.
+   */
+  messageKey: string | null
 }
 
 /**
@@ -36,7 +42,7 @@ export function storageStatus(estimate: { used: number; quota: number } | null):
   // diperlakukan sebagai lega: menakut-nakuti tanpa angka lebih buruk daripada
   // diam, dan kegagalan menulis nanti tetap punya pesannya sendiri.
   if (!estimate || estimate.quota <= 0)
-    return { level: 'ok', free: Number.POSITIVE_INFINITY, message: null }
+    return { level: 'ok', free: Number.POSITIVE_INFINITY, messageKey: null }
 
   const free = Math.max(estimate.quota - estimate.used, 0)
 
@@ -44,7 +50,7 @@ export function storageStatus(estimate: { used: number; quota: number } | null):
     return {
       level: 'full',
       free,
-      message: `Ruang penyimpanan tinggal ${humanBytes(free)}. Hapus unduhan lama dulu sebelum mengunduh lagi.`,
+      messageKey: 'storage.full',
     }
   }
 
@@ -52,11 +58,11 @@ export function storageStatus(estimate: { used: number; quota: number } | null):
     return {
       level: 'low',
       free,
-      message: `Ruang tersisa ${humanBytes(free)} — satu episode bisa memakan ratusan MB.`,
+      messageKey: 'storage.low',
     }
   }
 
-  return { level: 'ok', free, message: null }
+  return { level: 'ok', free, messageKey: null }
 }
 
 /** Ukuran dalam satuan yang dibaca manusia; angka byte mentah tidak berarti apa-apa. */

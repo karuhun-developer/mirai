@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { useI18n } from 'vue-i18n'
 import { Switch } from '@/components/ui/switch'
 import type { PageFit, ReaderPrefs, ReadingMode } from '@/services/reader.service'
 
@@ -11,6 +12,8 @@ import type { PageFit, ReaderPrefs, ReadingMode } from '@/services/reader.servic
  * merepotkan. Kalau nanti terbukti perlu per judul, kuncinya tinggal ditambah
  * di `reader.service`.
  */
+const { t } = useI18n()
+
 defineProps<{
   prefs: ReaderPrefs
   /** Kunci orientasi cuma nyata di APK; di web tombolnya dimatikan. */
@@ -22,22 +25,22 @@ const emit = defineEmits<{
   close: []
 }>()
 
-const modes: { value: ReadingMode; label: string }[] = [
-  { value: 'ltr', label: 'Kiri → kanan' },
-  { value: 'rtl', label: 'Kanan → kiri' },
-  { value: 'webtoon', label: 'Gulir (webtoon)' },
+const modes: { value: ReadingMode; labelKey: string }[] = [
+  { value: 'ltr', labelKey: 'reader.modeLtr' },
+  { value: 'rtl', labelKey: 'reader.modeRtl' },
+  { value: 'webtoon', labelKey: 'reader.modeWebtoon' },
 ]
 
-const fits: { value: PageFit; label: string }[] = [
-  { value: 'width', label: 'Lebar' },
-  { value: 'height', label: 'Tinggi' },
-  { value: 'contain', label: 'Muat layar' },
+const fits: { value: PageFit; labelKey: string }[] = [
+  { value: 'width', labelKey: 'reader.fitWidth' },
+  { value: 'height', labelKey: 'reader.fitHeight' },
+  { value: 'contain', labelKey: 'reader.fitContain' },
 ]
 
-const orientations: { value: ReaderPrefs['orientation']; label: string }[] = [
-  { value: 'free', label: 'Bebas' },
-  { value: 'portrait', label: 'Tegak' },
-  { value: 'landscape', label: 'Rebah' },
+const orientations: { value: ReaderPrefs['orientation']; labelKey: string }[] = [
+  { value: 'free', labelKey: 'reader.orientationFree' },
+  { value: 'portrait', labelKey: 'reader.orientationPortrait' },
+  { value: 'landscape', labelKey: 'reader.orientationLandscape' },
 ]
 
 const preloads = [0, 2, 3, 5, 8]
@@ -53,7 +56,7 @@ const preloads = [0, 2, 3, 5, 8]
       <div class="mx-auto h-1 w-10 rounded-full bg-border" />
 
       <section class="space-y-2">
-        <p class="text-sm font-medium">Mode baca</p>
+        <p class="text-sm font-medium">{{ t('reader.mode') }}</p>
         <div class="grid grid-cols-3 gap-2">
           <button
             v-for="mode in modes"
@@ -67,14 +70,14 @@ const preloads = [0, 2, 3, 5, 8]
             "
             @click="emit('update', { mode: mode.value })"
           >
-            {{ mode.label }}
+            {{ t(mode.labelKey) }}
           </button>
         </div>
       </section>
 
       <!-- Gulir menerus selalu selebar layar; pilihan muat lain tidak berlaku. -->
       <section v-if="prefs.mode !== 'webtoon'" class="space-y-2">
-        <p class="text-sm font-medium">Ukuran halaman</p>
+        <p class="text-sm font-medium">{{ t('reader.fit') }}</p>
         <div class="grid grid-cols-3 gap-2">
           <button
             v-for="fit in fits"
@@ -88,13 +91,13 @@ const preloads = [0, 2, 3, 5, 8]
             "
             @click="emit('update', { fit: fit.value })"
           >
-            {{ fit.label }}
+            {{ t(fit.labelKey) }}
           </button>
         </div>
       </section>
 
       <section class="space-y-2">
-        <p class="text-sm font-medium">Halaman disiapkan di depan</p>
+        <p class="text-sm font-medium">{{ t('reader.preload') }}</p>
         <div class="flex gap-2">
           <button
             v-for="value in preloads"
@@ -112,16 +115,15 @@ const preloads = [0, 2, 3, 5, 8]
           </button>
         </div>
         <p class="text-xs text-muted-foreground">
-          Makin banyak makin mulus, tapi makin boros kuota — halaman yang tidak jadi dibaca tetap
-          terunduh.
+          {{ t('reader.preloadHint') }}
         </p>
       </section>
 
       <label class="flex items-center justify-between gap-4">
         <span class="min-w-0">
-          <span class="block text-sm font-medium">Ketuk sisi layar</span>
+          <span class="block text-sm font-medium">{{ t('reader.tapZones') }}</span>
           <span class="block text-xs text-muted-foreground">
-            Sisi kiri dan kanan berpindah halaman; tengah membuka menu.
+            {{ t('reader.tapZonesHint') }}
           </span>
         </span>
         <Switch
@@ -132,9 +134,9 @@ const preloads = [0, 2, 3, 5, 8]
 
       <label class="flex items-center justify-between gap-4">
         <span class="min-w-0">
-          <span class="block text-sm font-medium">Layar penuh</span>
+          <span class="block text-sm font-medium">{{ t('reader.fullscreen') }}</span>
           <span class="block text-xs text-muted-foreground">
-            Menyembunyikan bilah sistem selama membaca.
+            {{ t('reader.fullscreenHint') }}
           </span>
         </span>
         <Switch
@@ -144,7 +146,7 @@ const preloads = [0, 2, 3, 5, 8]
       </label>
 
       <section class="space-y-2">
-        <p class="text-sm font-medium">Orientasi</p>
+        <p class="text-sm font-medium">{{ t('reader.orientation') }}</p>
         <div class="grid grid-cols-3 gap-2">
           <button
             v-for="orientation in orientations"
@@ -159,12 +161,11 @@ const preloads = [0, 2, 3, 5, 8]
             :disabled="!native"
             @click="emit('update', { orientation: orientation.value })"
           >
-            {{ orientation.label }}
+            {{ t(orientation.labelKey) }}
           </button>
         </div>
         <p v-if="!native" class="text-xs text-muted-foreground">
-          Hanya berlaku di aplikasi Android; browser tidak mengizinkan aplikasi mengunci orientasi
-          layar.
+          {{ t('reader.orientationWebNote') }}
         </p>
       </section>
 
@@ -173,7 +174,7 @@ const preloads = [0, 2, 3, 5, 8]
         class="w-full rounded-md bg-secondary py-2 text-sm font-medium"
         @click="emit('close')"
       >
-        Tutup setelan
+        {{ t('reader.closeSettings') }}
       </button>
     </div>
   </div>

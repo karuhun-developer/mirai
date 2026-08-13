@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import { Capacitor } from '@capacitor/core'
 import { ArrowLeft, LoaderCircle } from '@lucide/vue'
@@ -27,6 +28,7 @@ import { useReaderStore } from '@/stores/reader'
  * (fullscreen + orientasi). Aturan yang menyangkut data — kapan chapter dianggap
  * selesai, di halaman berapa melanjutkan — semuanya di store, bukan di sini.
  */
+const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
 const store = useReaderStore()
@@ -199,22 +201,22 @@ onBeforeUnmount(() => {
         <ChallengeNotice
           class="text-left text-foreground"
           :challenge="store.challenge"
-          :source-name="store.entry?.title ?? 'Sumber ini'"
+          :source-name="store.entry?.title ?? t('browse.thisSource')"
           @solved="load()"
         />
       </template>
 
       <template v-else>
         <p class="text-sm text-white/80" data-testid="reader-error">
-          {{ store.error ?? 'Chapter ini tidak punya halaman yang bisa ditampilkan.' }}
+          {{ store.error ?? t('reader.noPages') }}
         </p>
       </template>
 
       <div class="flex justify-center gap-2">
-        <Button variant="secondary" size="sm" @click="load()">Coba lagi</Button>
+        <Button variant="secondary" size="sm" @click="load()">{{ t('common.retry') }}</Button>
         <Button variant="ghost" size="sm" class="text-white" @click="leave()">
           <ArrowLeft />
-          Kembali
+          {{ t('common.back') }}
         </Button>
       </div>
     </div>

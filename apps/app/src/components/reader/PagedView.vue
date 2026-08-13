@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import ReaderImage from './ReaderImage.vue'
 import { useZoomPan } from '@/composables/useZoomPan'
 import type { PageFit, ReaderPage } from '@/services/reader.service'
@@ -18,6 +19,8 @@ import type { PageFit, ReaderPage } from '@/services/reader.service'
  *    Halaman ke-3 tetap halaman ke-3 di RTL; yang berubah hanya sisi mana yang
  *    berarti "maju".
  */
+const { t } = useI18n()
+
 const props = defineProps<{
   pages: ReaderPage[]
   index: number
@@ -95,7 +98,7 @@ const nearby = computed(() => {
     >
       <ReaderImage
         :src="page.url"
-        :alt="`Halaman ${page.index + 1}`"
+        :alt="t('reader.page', { number: page.index + 1 })"
         :fit="fit"
         :eager="page.index === index"
       />

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { ChevronLeft, ChevronRight, Settings2, X } from '@lucide/vue'
 import { Button } from '@/components/ui/button'
 
@@ -10,6 +11,8 @@ import { Button } from '@/components/ui/button'
  * pada yang benar-benar butuh dilihat sambil membaca: keluar, judul, penggeser
  * halaman, dan lompat chapter.
  */
+const { t } = useI18n()
+
 const props = defineProps<{
   title: string
   chapter: string
@@ -57,7 +60,7 @@ const forwardIcon = computed(() => (props.rightToLeft ? ChevronLeft : ChevronRig
         variant="ghost"
         size="icon"
         class="text-white"
-        aria-label="Tutup"
+        :aria-label="t('reader.close')"
         @click="emit('close')"
       >
         <X />
@@ -67,7 +70,9 @@ const forwardIcon = computed(() => (props.rightToLeft ? ChevronLeft : ChevronRig
         <p class="truncate text-sm font-medium">{{ title }}</p>
         <p class="truncate text-xs text-white/70">
           {{ chapter }}
-          <span v-if="totalItems > 0"> · {{ position }} dari {{ totalItems }}</span>
+          <span v-if="totalItems > 0">
+            · {{ t('reader.position', { position, total: totalItems }) }}
+          </span>
         </p>
       </div>
 
@@ -75,7 +80,7 @@ const forwardIcon = computed(() => (props.rightToLeft ? ChevronLeft : ChevronRig
         variant="ghost"
         size="icon"
         class="text-white"
-        aria-label="Setelan reader"
+        :aria-label="t('reader.settings')"
         @click="emit('settings')"
       >
         <Settings2 />
@@ -91,7 +96,7 @@ const forwardIcon = computed(() => (props.rightToLeft ? ChevronLeft : ChevronRig
           size="icon"
           class="text-white disabled:opacity-30"
           :disabled="!hasPrevious"
-          aria-label="Chapter sebelumnya"
+          :aria-label="t('reader.previousChapter')"
           @click="emit('previous')"
         >
           <component :is="backIcon" />
@@ -105,7 +110,7 @@ const forwardIcon = computed(() => (props.rightToLeft ? ChevronLeft : ChevronRig
           :max="Math.max(total - 1, 0)"
           :value="index"
           :disabled="total <= 1"
-          aria-label="Geser halaman"
+          :aria-label="t('reader.seek')"
           @input="onSeek"
         />
 
@@ -114,7 +119,7 @@ const forwardIcon = computed(() => (props.rightToLeft ? ChevronLeft : ChevronRig
           size="icon"
           class="text-white disabled:opacity-30"
           :disabled="!hasNext"
-          aria-label="Chapter berikutnya"
+          :aria-label="t('reader.nextChapter')"
           @click="emit('next')"
         >
           <component :is="forwardIcon" />

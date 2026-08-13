@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useRoute } from 'vue-router'
 import { TriangleAlert } from '@lucide/vue'
 import type { SEntry } from '@mirai/extension-api'
@@ -16,6 +17,7 @@ import { favoriteIds, idOf, rememberCatalogue } from '@/services/entry.service'
 
 type Mode = 'popular' | 'latest' | 'search'
 
+const { t } = useI18n()
 const route = useRoute()
 const store = useExtensionsStore()
 
@@ -112,14 +114,14 @@ const cards = computed(() =>
   }),
 )
 
-const tabs: { key: Mode; label: string }[] = [
-  { key: 'popular', label: 'Populer' },
-  { key: 'latest', label: 'Terbaru' },
+const tabs: { key: Mode; labelKey: string }[] = [
+  { key: 'popular', labelKey: 'browse.popular' },
+  { key: 'latest', labelKey: 'browse.latest' },
 ]
 </script>
 
 <template>
-  <AppHeader :title="source?.name ?? 'Sumber'">
+  <AppHeader :title="source?.name ?? t('browse.sourceFallback')">
     <template #tabs>
       <div class="flex items-center gap-2 px-4 pb-3">
         <div class="flex gap-1">
@@ -131,11 +133,15 @@ const tabs: { key: Mode; label: string }[] = [
             :disabled="tab.key === 'latest' && source?.info.supportsLatest === false"
             @click="switchMode(tab.key)"
           >
-            {{ tab.label }}
+            {{ t(tab.labelKey) }}
           </Button>
         </div>
         <form class="flex-1" @submit.prevent="submitSearch">
-          <Input v-model="searchTerm" placeholder="Cari judul…" aria-label="Cari judul" />
+          <Input
+            v-model="searchTerm"
+            :placeholder="t('browse.searchPlaceholder')"
+            :aria-label="t('browse.searchPlaceholder')"
+          />
         </form>
       </div>
     </template>
@@ -144,15 +150,15 @@ const tabs: { key: Mode; label: string }[] = [
   <EmptyState
     v-if="!source && store.state === 'ready'"
     :icon="TriangleAlert"
-    title="Sumber tidak ditemukan"
-    :description="`Extension untuk ${sourceId} tidak terpasang.`"
+    :title="t('browse.notFoundTitle')"
+    :description="t('browse.notFoundDescription', { id: sourceId })"
   />
 
   <template v-else>
     <ChallengeNotice
       v-if="challenge"
       :challenge="challenge"
-      :source-name="source?.name ?? 'Sumber ini'"
+      :source-name="source?.name ?? t('browse.thisSource')"
       @solved="fetchPage(false)"
     />
 
@@ -162,17 +168,19 @@ const tabs: { key: Mode; label: string }[] = [
 
     <EntryGrid v-if="cards.length > 0" :entries="cards" />
 
-    <p v-if="busy" class="px-4 py-6 text-center text-sm text-muted-foreground">Memuat…</p>
+    <p v-if="busy" class="px-4 py-6 text-center text-sm text-muted-foreground">
+      {{ t('common.loading') }}
+    </p>
 
     <p
       v-else-if="entries.length === 0 && !error && !challenge"
       class="px-4 py-10 text-center text-sm text-muted-foreground"
     >
-      Tidak ada hasil.
+      {{ t('browse.noResults') }}
     </p>
 
     <div v-if="hasNextPage && !busy" class="flex justify-center px-4 pb-24 md:pb-8">
-      <Button variant="outline" @click="fetchPage(true)">Muat lebih banyak</Button>
+      <Button variant="outline" @click="fetchPage(true)">{{ t('browse.loadMore') }}</Button>
     </div>
   </template>
 </template>

@@ -2,6 +2,7 @@ import type { RemoteAnimeSource } from '@mirai/extension-runtime'
 import type { ItemRow } from '@mirai/db'
 import { toSItem } from '@mirai/db'
 import type { EntryRow } from '@mirai/db'
+import { t } from '@/i18n'
 import { repos } from './db.service'
 import { isLocalUrl, transport } from './extensions.service'
 import { localVideo, releaseLocalVideo } from './localMedia'
@@ -90,7 +91,7 @@ export async function resolveVideos(
         videos: [
           {
             url: local.url,
-            quality: 'Terunduh',
+            quality: t('player.downloadedQuality'),
             type: local.type,
             subtitles: local.subtitles.map((track) => ({
               url: track.url,
@@ -107,9 +108,7 @@ export async function resolveVideos(
   }
 
   if (!source) {
-    throw new Error(
-      'Episode ini belum diunduh, jadi videonya harus diambil dari internet — dan extension sumbernya tidak terpasang atau sedang dimatikan.',
-    )
+    throw new Error(t('errors.playerSourceMissing'))
   }
 
   return { videos: await loadVideos(source, item), local: false }
@@ -187,13 +186,13 @@ export async function loadSubtitle(track: PlayableTrack): Promise<string> {
 
 async function fetchLocalText(url: string): Promise<string> {
   const response = await fetch(url)
-  if (!response.ok) throw new Error(`Takarir gagal dibaca (${response.status})`)
+  if (!response.ok) throw new Error(t('errors.subtitleRead', { status: response.status }))
   return response.text()
 }
 
 async function fetchRemoteText(url: string): Promise<string> {
   const response = await transport.http.get(url)
-  if (!response.ok) throw new Error(`Takarir gagal diambil (${response.status})`)
+  if (!response.ok) throw new Error(t('errors.subtitleFetch', { status: response.status }))
   return response.body
 }
 

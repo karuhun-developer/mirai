@@ -1,7 +1,8 @@
 import { ref } from 'vue'
 import { defineStore } from 'pinia'
+import { t } from '@/i18n'
 import { applyBackup, exportBackup, readBackup } from '@/services/backup.service'
-import type { BackupFile } from '@/services/backupFormat'
+import { BackupError, type BackupFile } from '@/services/backupFormat'
 import { useExtensionsStore } from './extensions'
 import { useLibraryStore } from './library'
 
@@ -15,21 +16,15 @@ import { useLibraryStore } from './library'
  * sebelum restore dan pengguna menyimpulkan backup-nya tidak jalan.
  */
 
-/** Ringkasan yang ditampilkan setelah aksi selesai. */
-export interface BackupReport {
-  kind: 'export' | 'import'
-  message: string
-}
-
 export const useBackupStore = defineStore('backup', () => {
   const busy = ref(false)
   const error = ref<string | null>(null)
-  const report = ref<BackupReport | null>(null)
+  const report = ref<string | null>(null)
 
   /** Berkas yang sudah dibaca dan menunggu konfirmasi; `null` = tidak ada. */
   const pending = ref<BackupFile | null>(null)
 
-  async function run(work: () => Promise<BackupReport | null>): Promise<void> {
+  async function run(work: () => Promise<string | null>): Promise<void> {
     if (busy.value) return
     busy.value = true
     error.value = null
@@ -44,10 +39,7 @@ export const useBackupStore = defineStore('backup', () => {
   }
 
   async function exportNow(): Promise<void> {
-    await run(async () => {
-      const name = await exportBackup()
-      return { kind: 'export', message: `Backup tersimpan sebagai ${name}` }
-    })
+    await run(async () => t('settings.backup.exported', { name: await exportBackup() }))
   }
 
   /**
@@ -80,17 +72,22 @@ export const useBackupStore = defineStore('backup', () => {
       await useExtensionsStore().reloadFromStorage()
       await useLibraryStore().reload()
 
-      const extra = extensions.length > 0 ? `, ${extensions.length} extension dipasang ulang` : ''
-      return {
-        kind: 'import',
-        message: `${counts.entries} judul, ${counts.items} chapter/episode, dan ${counts.history} riwayat dipulihkan${extra}`,
-      }
+      const extra =
+        extensions.length > 0
+          ? t('settings.backup.restoredExtensions', { count: extensions.length })
+          : ''
+      return t('settings.backup.restored', { ...counts }) + extra
     })
   }
 
   return { busy, error, report, pending, exportNow, stage, discard, confirm }
 })
 
+/**
+ * Kegagalan membaca berkas punya sebab yang sudah dikenali; sisanya — gagal
+ * menulis database, penyimpanan penuh — cuma bisa ditampilkan apa adanya.
+ */
 function messageOf(cause: unknown): string {
+  if (cause instanceof BackupError) return t(`settings.backup.${cause.code}`, cause.params)
   return cause instanceof Error ? cause.message : String(cause)
 }

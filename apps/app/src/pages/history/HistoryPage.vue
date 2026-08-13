@@ -1,28 +1,29 @@
 <script setup lang="ts">
 import { onMounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { History, Trash2 } from '@lucide/vue'
 import AppHeader from '@/components/layout/AppHeader.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
 import ItemLine from '@/components/entry/ItemLine.vue'
 import { Button } from '@/components/ui/button'
+import { formatDateTime } from '@/i18n'
 import { useHistoryStore } from '@/stores/history'
 
+const { t } = useI18n()
 const store = useHistoryStore()
 
 onMounted(() => {
   void store.load()
 })
-
-function when(value: number): string {
-  return new Date(value).toLocaleString('id-ID', { dateStyle: 'medium', timeStyle: 'short' })
-}
 </script>
 
 <template>
-  <AppHeader title="Riwayat">
+  <AppHeader :title="t('history.title')">
     <template #tabs>
       <div v-if="store.items.length > 0" class="px-4 pb-3">
-        <Button variant="outline" size="sm" @click="store.clear()">Hapus semua riwayat</Button>
+        <Button variant="outline" size="sm" @click="store.clear()">
+          {{ t('history.clear') }}
+        </Button>
       </div>
     </template>
   </AppHeader>
@@ -41,12 +42,12 @@ function when(value: number): string {
       :entry-title="row.entry_title"
       :thumbnail-url="row.entry_thumbnail"
       :item-name="row.item_name"
-      :meta="when(row.read_at)"
+      :meta="formatDateTime(row.read_at)"
     >
       <Button
         variant="ghost"
         size="icon-sm"
-        aria-label="Hapus dari riwayat"
+        :aria-label="t('history.remove')"
         @click="store.remove(row.item_id)"
       >
         <Trash2 class="size-4" />
@@ -57,7 +58,7 @@ function when(value: number): string {
   <EmptyState
     v-else-if="!store.loading"
     :icon="History"
-    title="Riwayat masih kosong"
-    description="Chapter dan episode yang sudah kamu baca atau tonton akan tercatat di sini — seluruhnya tersimpan lokal."
+    :title="t('history.emptyTitle')"
+    :description="t('history.emptyDescription')"
   />
 </template>

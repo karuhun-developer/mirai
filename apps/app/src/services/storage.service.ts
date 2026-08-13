@@ -1,4 +1,5 @@
 import { Capacitor } from '@capacitor/core'
+import { t } from '@/i18n'
 
 /**
  * Berkas hasil unduhan.
@@ -55,7 +56,7 @@ async function opfsDir(path: string, create: boolean): Promise<FileSystemDirecto
 async function opfsWrite(path: string, data: Blob): Promise<void> {
   const at = path.lastIndexOf('/')
   const dir = await opfsDir(path.slice(0, at), true)
-  if (!dir) throw new Error(`Tidak bisa membuat direktori untuk ${path}`)
+  if (!dir) throw new Error(t('errors.dirFailed', { path }))
 
   const file = await dir.getFileHandle(path.slice(at + 1), { create: true })
   const stream = await file.createWritable()
@@ -143,12 +144,12 @@ export async function downloadFile(
   }
 
   const response = await fetch(resolvedUrl)
-  if (!response.ok) throw new Error(`HTTP ${response.status} saat mengambil berkas`)
+  if (!response.ok) throw new Error(t('errors.fileHttp', { status: response.status }))
 
   const blob = onProgress ? await readWithProgress(response, onProgress) : await response.blob()
   // Respons kosong hampir selalu berarti proxy meneruskan halaman error, dan
   // menyimpannya berarti chapter "terunduh" yang halamannya kosong melompong.
-  if (blob.size === 0) throw new Error('Berkas kosong')
+  if (blob.size === 0) throw new Error(t('errors.emptyFile'))
 
   await opfsWrite(path, blob)
   return { path, bytes: blob.size }

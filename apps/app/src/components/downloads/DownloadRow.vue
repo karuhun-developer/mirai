@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { RouterLink } from 'vue-router'
 import { RotateCw, Trash2 } from '@lucide/vue'
 import type { DownloadEntry } from '@mirai/db'
@@ -14,6 +15,8 @@ import { entryLocation } from '@/router/links'
  * satu hal yang tidak dimiliki keduanya: **bilah progres**. Untuk pekerjaan yang
  * berjalan menit-menitan, angka persen saja terasa seperti aplikasi yang diam.
  */
+const { t } = useI18n()
+
 const props = defineProps<{ job: DownloadEntry }>()
 
 defineEmits<{ retry: []; remove: [] }>()
@@ -23,21 +26,23 @@ const to = computed(() =>
   entryLocation(props.job.entry_kind, props.job.source_id, props.job.entry_url),
 )
 
-const label: Record<DownloadEntry['state'], string> = {
-  queued: 'Menunggu giliran',
-  running: 'Mengunduh',
-  done: 'Tersimpan',
-  paused: 'Terjeda',
-  failed: 'Gagal',
+const LABEL_KEYS: Record<DownloadEntry['state'], string> = {
+  queued: 'downloads.queued',
+  running: 'downloads.running',
+  done: 'downloads.done',
+  paused: 'downloads.paused',
+  failed: 'downloads.failed',
 }
 
 const running = computed(() => props.job.state === 'running')
 const failedJob = computed(() => props.job.state === 'failed')
 
 const meta = computed(() => {
-  if (failedJob.value) return props.job.error ?? 'Gagal'
-  if (running.value) return `Mengunduh · ${props.job.progress}%`
-  return label[props.job.state]
+  // Pesan error datang dari situs sumber atau dari sistem berkas; itu bukan
+  // string milik Mirai, jadi ditampilkan apa adanya.
+  if (failedJob.value) return props.job.error ?? t('downloads.failed')
+  if (running.value) return t('downloads.runningMeta', { progress: props.job.progress })
+  return t(LABEL_KEYS[props.job.state])
 })
 </script>
 
@@ -72,7 +77,7 @@ const meta = computed(() => {
         v-if="job.state === 'failed' || job.state === 'paused'"
         variant="ghost"
         size="icon-sm"
-        aria-label="Coba lagi"
+        :aria-label="t('common.retry')"
         @click="$emit('retry')"
       >
         <RotateCw class="size-4" />
@@ -83,7 +88,7 @@ const meta = computed(() => {
       <Button
         variant="ghost"
         size="icon-sm"
-        :aria-label="job.state === 'done' ? 'Hapus unduhan' : 'Batalkan'"
+        :aria-label="job.state === 'done' ? t('downloads.remove') : t('downloads.cancel')"
         @click="$emit('remove')"
       >
         <Trash2 class="size-4" />

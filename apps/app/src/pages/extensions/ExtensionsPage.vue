@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { Puzzle } from '@lucide/vue'
 import AppHeader from '@/components/layout/AppHeader.vue'
 import EmptyState from '@/components/common/EmptyState.vue'
@@ -9,6 +10,7 @@ import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
 import { useExtensionsStore, type ExtensionView } from '@/stores/extensions'
 
+const { t } = useI18n()
 const store = useExtensionsStore()
 const query = ref('')
 
@@ -31,17 +33,17 @@ const filtered = computed<ExtensionView[]>(() => {
  * berisi ratusan paket membuat extension terpasang sendiri jadi sulit dicari.
  */
 const groups = computed(() => [
-  { title: 'Update tersedia', rows: filtered.value.filter((row) => row.updatable) },
+  { title: t('extensions.groupUpdatable'), rows: filtered.value.filter((row) => row.updatable) },
   {
-    title: 'Terpasang',
+    title: t('extensions.groupInstalled'),
     rows: filtered.value.filter((row) => row.installed && !row.updatable),
   },
-  { title: 'Tersedia', rows: filtered.value.filter((row) => !row.installed) },
+  { title: t('extensions.groupAvailable'), rows: filtered.value.filter((row) => !row.installed) },
 ])
 </script>
 
 <template>
-  <AppHeader title="Extension" show-refresh @refresh="store.refreshAll()" />
+  <AppHeader :title="t('extensions.title')" show-refresh @refresh="store.refreshAll()" />
 
   <!--
     Lebar dibatasi di layar besar: daftar sebaris-per-paket yang direntangkan
@@ -51,18 +53,22 @@ const groups = computed(() => [
     <RepoManager />
 
     <section class="flex flex-col gap-3 px-4 pb-4">
-      <Input v-model="query" placeholder="Cari extension…" aria-label="Cari extension" />
+      <Input
+        v-model="query"
+        :placeholder="t('extensions.searchPlaceholder')"
+        :aria-label="t('extensions.searchPlaceholder')"
+      />
 
       <label class="flex items-center gap-3 text-sm">
         <Switch
           :model-value="store.showNsfw"
-          aria-label="Tampilkan sumber dewasa"
+          :aria-label="t('extensions.showNsfwLabel')"
           @update:model-value="store.setShowNsfw($event)"
         />
         <span class="min-w-0 flex-1">
-          Tampilkan sumber 18+
+          {{ t('extensions.showNsfw') }}
           <span class="block text-xs text-muted-foreground">
-            Saat dimatikan, paket bertanda dewasa disembunyikan dari halaman ini dan dari Browse.
+            {{ t('extensions.showNsfwHint') }}
           </span>
         </span>
       </label>
@@ -76,21 +82,21 @@ const groups = computed(() => [
     </p>
 
     <p v-if="store.state === 'loading'" class="px-4 py-6 text-sm text-muted-foreground">
-      Memuat extension…
+      {{ t('extensions.loading') }}
     </p>
 
     <EmptyState
       v-else-if="store.view.length === 0"
       :icon="Puzzle"
-      title="Belum ada extension"
-      description="Tambahkan repo di atas, lalu pasang sumber yang kamu mau."
+      :title="t('extensions.emptyTitle')"
+      :description="t('extensions.emptyDescription')"
     />
 
     <template v-else>
       <section v-for="group in groups" :key="group.title" class="px-4 pb-4">
         <template v-if="group.rows.length > 0">
           <h2 class="mb-2 text-sm font-semibold text-muted-foreground">
-            {{ group.title }} ({{ group.rows.length }})
+            {{ t('extensions.groupCount', { title: group.title, count: group.rows.length }) }}
           </h2>
           <ul class="flex flex-col gap-2">
             <ExtensionRow v-for="row in group.rows" :key="row.entry.pkg" :row="row" />

@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
 import { Capacitor } from '@capacitor/core'
 import { ArrowLeft, ExternalLink, LoaderCircle } from '@lucide/vue'
@@ -26,6 +27,7 @@ import { usePlayerStore } from '@/stores/player'
  * `VideoStage` memegang elemen videonya, dan halaman ini cuma menyambungkan
  * keduanya dengan layar perangkat, papan ketik, dan navigasi antar-episode.
  */
+const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
 const store = usePlayerStore()
@@ -230,16 +232,15 @@ onBeforeUnmount(() => {
       data-testid="player-embed"
     >
       <p class="text-sm text-white/80">
-        Host ini ({{ store.current?.quality }}) cuma menyediakan halaman pemutarnya sendiri, bukan
-        berkas video. Bukalah halamannya, atau pilih host lain dari setelan.
+        {{ t('player.embedNotice', { quality: store.current?.quality ?? '' }) }}
       </p>
       <div class="flex justify-center gap-2">
         <Button variant="secondary" size="sm" @click="openEmbed()">
           <ExternalLink />
-          Buka pemutarnya
+          {{ t('player.openEmbed') }}
         </Button>
         <Button variant="ghost" size="sm" class="text-white" @click="settings = true">
-          Pilih host lain
+          {{ t('player.pickAnotherHost') }}
         </Button>
       </div>
     </div>
@@ -254,18 +255,18 @@ onBeforeUnmount(() => {
         v-if="store.challenge"
         class="text-left text-foreground"
         :challenge="store.challenge"
-        :source-name="store.entry?.title ?? 'Sumber ini'"
+        :source-name="store.entry?.title ?? t('browse.thisSource')"
         @solved="load()"
       />
       <p v-else class="text-sm text-white/80">
-        {{ store.error ?? 'Episode ini tidak punya video yang bisa diputar.' }}
+        {{ store.error ?? t('player.noVideos') }}
       </p>
 
       <div class="flex justify-center gap-2">
-        <Button variant="secondary" size="sm" @click="load()">Coba lagi</Button>
+        <Button variant="secondary" size="sm" @click="load()">{{ t('common.retry') }}</Button>
         <Button variant="ghost" size="sm" class="text-white" @click="leave()">
           <ArrowLeft />
-          Kembali
+          {{ t('common.back') }}
         </Button>
       </div>
     </div>

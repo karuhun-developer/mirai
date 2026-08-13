@@ -9,6 +9,8 @@
  * hal yang tidak diniatkan.
  */
 
+import { t } from '@/i18n'
+
 export interface RepoSourceInfo {
   id: string
   name: string
@@ -43,7 +45,7 @@ const INDEX_FILE = 'index.min.json'
  */
 export function normalizeRepoUrl(input: string): string {
   const trimmed = input.trim()
-  if (!trimmed) throw new Error('URL repo kosong')
+  if (!trimmed) throw new Error(t('errors.repoUrlEmpty'))
 
   const withoutIndex = trimmed.replace(new RegExp(`/?${INDEX_FILE}$`), '')
   const url = withoutIndex.replace(/\/+$/, '')
@@ -56,11 +58,11 @@ export function normalizeRepoUrl(input: string): string {
   try {
     parsed = new URL(url)
   } catch {
-    throw new Error(`Bukan URL yang sah: ${trimmed}`)
+    throw new Error(t('errors.repoUrlInvalid', { url: trimmed }))
   }
 
   if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') {
-    throw new Error(`Protokol ${parsed.protocol} tidak didukung untuk repo extension`)
+    throw new Error(t('errors.repoProtocol', { protocol: parsed.protocol }))
   }
 
   return url
@@ -87,20 +89,17 @@ export async function fetchRepoIndex(repoUrl: string): Promise<RepoEntry[]> {
     // Kegagalan CORS dan kegagalan jaringan sama-sama muncul sebagai TypeError
     // tanpa detail, jadi keduanya disebut di pesan; `cause` dibawa supaya
     // aslinya masih terlihat di konsol.
-    throw new Error(
-      `Tidak bisa menghubungi ${url}. ` +
-        'Cek koneksi, atau repo itu mungkin tidak mengizinkan akses lintas origin.',
-      { cause },
-    )
+    throw new Error(t('errors.repoUnreachable', { url }), { cause })
   }
 
-  if (!response.ok) throw new Error(`Repo menjawab ${response.status} untuk ${INDEX_FILE}`)
+  if (!response.ok)
+    throw new Error(t('errors.repoStatus', { status: response.status, file: INDEX_FILE }))
 
   let data: unknown
   try {
     data = await response.json()
   } catch {
-    throw new Error(`${INDEX_FILE} bukan JSON yang sah — apa URL-nya benar repo extension?`)
+    throw new Error(t('errors.repoNotJson', { file: INDEX_FILE }))
   }
 
   return parseIndex(data)
@@ -109,7 +108,7 @@ export async function fetchRepoIndex(repoUrl: string): Promise<RepoEntry[]> {
 // --- Validasi ---------------------------------------------------------------
 
 function parseIndex(data: unknown): RepoEntry[] {
-  if (!Array.isArray(data)) throw new Error(`${INDEX_FILE} harus berupa daftar paket`)
+  if (!Array.isArray(data)) throw new Error(t('errors.repoNotList', { file: INDEX_FILE }))
   return data.map((raw, position) => parseEntry(raw, position))
 }
 

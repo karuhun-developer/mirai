@@ -75,8 +75,25 @@ export function backupFileName(at: Date): string {
 }
 
 /**
- * Membaca teks jadi `BackupFile`, atau melempar dengan alasan yang bisa
- * ditunjukkan apa adanya ke pengguna.
+ * Sebab kegagalan pembacaan, bukan kalimatnya.
+ *
+ * Berkas dibaca di modul yang tidak tahu bahasa apa pun — kalimatnya disusun
+ * pemanggil lewat `settings.backup.<code>`. Kalau kalimatnya dirakit di sini,
+ * pesan error jadi satu-satunya bagian antarmuka yang tidak ikut berganti
+ * bahasa.
+ */
+export class BackupError extends Error {
+  constructor(
+    readonly code: 'notJson' | 'notMirai' | 'tooNew',
+    readonly params: Record<string, number> = {},
+  ) {
+    super(code)
+    this.name = 'BackupError'
+  }
+}
+
+/**
+ * Membaca teks jadi `BackupFile`, atau melempar `BackupError` dengan sebabnya.
  *
  * Pembacaan yang **memaafkan bagian yang hilang** tapi **menolak berkas yang
  * salah**: tabel yang tidak ada dianggap kosong, karena backup dari versi lama
@@ -89,18 +106,16 @@ export function parseBackup(text: string): BackupFile {
   try {
     raw = JSON.parse(text)
   } catch {
-    throw new Error('Berkasnya bukan JSON yang sah.')
+    throw new BackupError('notJson')
   }
 
   if (!isRecord(raw) || raw['format'] !== BACKUP_FORMAT) {
-    throw new Error('Berkas ini bukan backup Mirai.')
+    throw new BackupError('notMirai')
   }
 
   const version = typeof raw['version'] === 'number' ? raw['version'] : 0
   if (version > BACKUP_VERSION) {
-    throw new Error(
-      `Backup ini dibuat Mirai yang lebih baru (format v${version}). Perbarui aplikasinya dulu.`,
-    )
+    throw new BackupError('tooNew', { version })
   }
 
   const db = isRecord(raw['db']) ? raw['db'] : {}
@@ -111,7 +126,8 @@ export function parseBackup(text: string): BackupFile {
     format: BACKUP_FORMAT,
     version,
     createdAt: typeof raw['createdAt'] === 'number' ? raw['createdAt'] : 0,
-    app: typeof raw['app'] === 'string' ? raw['app'] : 'tidak diketahui',
+    // Nilai data, bukan teks antarmuka: tidak diterjemahkan.
+    app: typeof raw['app'] === 'string' ? raw['app'] : 'unknown',
     db: {
       entry: rows(db['entry']),
       category: rows(db['category']),

@@ -1,10 +1,13 @@
 <script setup lang="ts">
 import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { RouterLink } from 'vue-router'
 import { Heart } from '@lucide/vue'
 import { useCover } from '@/composables/useCover'
 import { entryLocation } from '@/router/links'
 import type { GridEntry } from './grid'
+
+const { t } = useI18n()
 
 const props = defineProps<{ entry: GridEntry }>()
 
@@ -43,7 +46,7 @@ const to = computed(() => entryLocation(props.entry.kind, props.entry.sourceId, 
       <span
         v-if="entry.downloaded"
         class="absolute right-1.5 top-1.5 size-2.5 rounded-full bg-downloaded"
-        aria-label="Sudah diunduh"
+        :aria-label="t('entry.downloadedBadge')"
       />
       <!--
         Penanda favorit cuma dipakai di Browse: di Library semuanya favorit, jadi
@@ -53,7 +56,7 @@ const to = computed(() => entryLocation(props.entry.kind, props.entry.sourceId, 
       <span
         v-if="entry.favorite"
         class="absolute bottom-1.5 right-1.5 grid size-5 place-items-center rounded-full bg-background/80"
-        aria-label="Ada di library"
+        :aria-label="t('entry.inLibraryBadge')"
       >
         <Heart class="size-3 fill-primary text-primary" />
       </span>
