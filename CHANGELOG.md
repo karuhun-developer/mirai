@@ -82,6 +82,12 @@ itu penanda urutan pengerjaan.
 
 #### Fixed
 
+- **`minSdkVersion` naik 24 → 26.** Build APK pertama yang benar-benar
+  dijalankan (workflow rilis, karena mesin pengembangan tidak punya Android SDK)
+  gagal di manifest merger: `@capacitor/inappbrowser` mensyaratkan 26. Ini
+  kegagalan build, bukan peringatan, dan jalan pintas `tools:overrideLibrary`
+  cuma memindahkannya jadi crash di perangkat pengguna. Android 7.x tidak lagi
+  didukung. Lihat [docs/features/android.md](docs/features/android.md).
 - `tsconfig.test.json` sekarang membawa tipe `vite/client` dan alias `@/*`.
   Tanpa keduanya `@/i18n` tidak pernah ter-resolve dari proyek test, dan seluruh
   berkas yang menyeretnya diam-diam lolos dari pemeriksaan tipe — persis kelas

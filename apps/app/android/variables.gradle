@@ -1,5 +1,9 @@
 ext {
-    minSdkVersion = 24
+    // 26, bukan 24 bawaan Capacitor: @capacitor/inappbrowser mensyaratkan 26 dan
+    // manifest merger menolak build kalau lebih rendah. WebView in-app itu bukan
+    // pelengkap — dia jalur verifikasi Cloudflare, satu-satunya yang berbagi
+    // cookie jar dengan CapacitorHttp. Yang dikorbankan cuma Android 7.x.
+    minSdkVersion = 26
     compileSdkVersion = 36
     targetSdkVersion = 36
     androidxActivityVersion = '1.11.0'

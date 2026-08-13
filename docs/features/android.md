@@ -142,6 +142,15 @@ UA-nya mengikuti setelan **User-Agent** di Pengaturan, karena `cf_clearance`
 hanya berlaku untuk UA yang menyelesaikan tantangan — lihat
 [cloudflare.md](cloudflare.md).
 
+Konsekuensinya `minSdkVersion` naik dari 24 ke **26**: `@capacitor/inappbrowser`
+mensyaratkan 26, dan manifest merger menggagalkan build kalau lebih rendah —
+bukan peringatan, tapi `BUILD FAILED`. Jalan pintasnya ada
+(`tools:overrideLibrary`), tapi itu memaksa library yang memanggil API Android 8
+berjalan di Android 7 dan mengubah kegagalan build jadi crash di tangan
+pengguna. Yang hilang cuma Android 7.x; WebView-nya sendiri bukan pelengkap,
+dia satu-satunya jalur verifikasi Cloudflare yang berbagi cookie dengan
+`CapacitorHttp`.
+
 ### Kembali dari WebView langsung memuat ulang
 
 `openChallenge()` menunggu `browserClosed` sebelum selesai, dan
@@ -188,7 +197,7 @@ tanpa Filesystem, tanpa WebView.
 | `apps/app/capacitor.config.ts`                        | `appId`, `CapacitorHttp.enabled`, `allowMixedContent`       |
 | `apps/app/android/app/build.gradle`                   | `-PappVersionCode`/`-PappVersionName`, signingConfig debug  |
 | `apps/app/android/debug.keystore`                     | Tanda tangan bersama supaya rilis bisa saling menimpa       |
-| `apps/app/android/variables.gradle`                   | minSdk 24 · compileSdk 36 · targetSdk 36                    |
+| `apps/app/android/variables.gradle`                   | minSdk 26 · compileSdk 36 · targetSdk 36                    |
 | `apps/app/android/app/src/main/AndroidManifest.xml`   | Izin `INTERNET`, `usesCleartextTraffic`                     |
 | `apps/app/android/app/src/main/res/values/colors.xml` | Menimpa warna Material bawaan library capacitor-android     |
 | `apps/app/android/app/src/main/res/values/styles.xml` | Latar gelap antara splash dan WebView                       |
