@@ -16,12 +16,12 @@ progresnya di sana, lengkap dengan status (`reading`, `completed`) dan skor.
 
 ## Kenapa ditunda
 
-| Hambatan                     | Isinya                                                                                                                        |
-| ---------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
-| Butuh **client ID** OAuth    | Keduanya mewajibkan aplikasi didaftarkan atas nama seseorang; tidak ada kredensial yang bisa dibuat dari dalam repo ini       |
-| Butuh **redirect URI** tetap | Web di `localhost` dan APK memakai skema berbeda; keduanya harus didaftarkan lebih dulu di dasbor masing-masing layanan       |
-| Butuh **akun pihak ketiga**  | Tidak ada cara memverifikasinya tanpa akun sungguhan di kedua layanan — dan tanpa verifikasi, fiturnya cuma diklaim jalan     |
-| Butuh **pencocokan judul**   | Judul di situs sumber jarang sama persis dengan judul di MAL/AniList; pencocokan otomatis meleset di sekuel dan judul alterna |
+| Hambatan                     | Isinya                                                                                                                           |
+| ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| Butuh **client ID** OAuth    | Keduanya mewajibkan aplikasi didaftarkan atas nama seseorang; tidak ada kredensial yang bisa dibuat dari dalam repo ini          |
+| Butuh **redirect URI** tetap | Web di `localhost` dan APK memakai skema berbeda; keduanya harus didaftarkan lebih dulu di dasbor masing-masing layanan          |
+| Butuh **akun pihak ketiga**  | Tidak ada cara memverifikasinya tanpa akun sungguhan di kedua layanan — dan tanpa verifikasi, fiturnya cuma diklaim jalan        |
+| Butuh **pencocokan judul**   | Judul di situs sumber jarang sama persis dengan judul di MAL/AniList; pencocokan otomatis meleset di sekuel dan judul alternatif |
 
 Tiga yang pertama bukan soal kode: apa pun yang ditulis di sini tidak bisa diuji
 di mesin pengembangan sampai kredensialnya ada. Menulisnya tanpa itu berarti
