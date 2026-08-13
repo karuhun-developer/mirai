@@ -5,7 +5,9 @@ import type { EntryRow } from '@mirai/db'
 import { t } from '@/i18n'
 import { repos } from './db.service'
 import { isLocalUrl, transport } from './extensions.service'
+import { recordHistory } from './history.service'
 import { localVideo, releaseLocalVideo } from './localMedia'
+import { settings } from './settings.service'
 import type { PlayableTrack, PlayableVideo } from './playback'
 import { toVtt } from './subtitle'
 
@@ -208,11 +210,14 @@ export async function saveProgress(
   seconds: number,
   duration: number,
 ): Promise<void> {
+  // Sama alasannya dengan reader: posisi tonton yang tertinggal di daftar
+  // episode adalah jejak juga, jadi incognito menghentikannya di sini.
+  if (settings.incognito) return
   const position = Math.floor(Math.max(seconds, 0))
   const total = Number.isFinite(duration) && duration > 0 ? Math.floor(duration) : undefined
 
   await repos().items.setProgress(item.id, position, total)
-  await repos().history.record(item.id, item.entry_id, position)
+  await recordHistory(item.id, item.entry_id, position)
 }
 
 /**
@@ -221,12 +226,13 @@ export async function saveProgress(
  * kalau orangnya berhenti di menit 22 dari 24, di situlah ia berhenti.
  */
 export async function markWatched(item: ItemRow, seconds: number, duration: number): Promise<void> {
-  const { items, history } = repos()
+  if (settings.incognito) return
+  const { items } = repos()
   const position = Math.floor(Math.max(seconds, 0))
 
   await items.markSeen([item.id], true)
   await items.setProgress(item.id, position, Math.floor(duration) || undefined)
-  await history.record(item.id, item.entry_id, position)
+  await recordHistory(item.id, item.entry_id, position)
 }
 
 // ── Jalur uji ────────────────────────────────────────────────────────────────

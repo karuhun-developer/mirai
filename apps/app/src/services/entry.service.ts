@@ -3,6 +3,7 @@ import type { RemoteSource } from '@mirai/extension-runtime'
 import type { CategoryRow, EntryKind, EntryRow, ItemRow, SyncResult } from '@mirai/db'
 import { entryId, toSEntry } from '@mirai/db'
 import { repos } from './db.service'
+import { recordHistory } from './history.service'
 
 /**
  * Satu entri: baris library-nya, daftar chapter/episode-nya, dan cara
@@ -123,7 +124,9 @@ export async function setFavorite(
 export async function setSeen(item: ItemRow, seen: boolean): Promise<void> {
   const { items, history } = repos()
   await items.markSeen([item.id], seen)
-  if (seen) await history.record(item.id, item.entry_id, item.last_position)
+  // Menandai sudah dibaca adalah permintaan eksplisit, jadi incognito tidak
+  // membatalkannya — yang ditahan `recordHistory()` cuma jejaknya.
+  if (seen) await recordHistory(item.id, item.entry_id, item.last_position)
   else await history.remove(item.id)
 }
 
@@ -135,7 +138,7 @@ export async function setSeen(item: ItemRow, seen: boolean): Promise<void> {
 export async function setSeenUpTo(all: ItemRow[], target: ItemRow): Promise<void> {
   const older = all.filter((item) => rank(item) <= rank(target)).map((item) => item.id)
   await repos().items.markSeen(older, true)
-  await repos().history.record(target.id, target.entry_id, target.last_position)
+  await recordHistory(target.id, target.entry_id, target.last_position)
 }
 
 /** Urutan pembacaan: nomor kalau ada, kalau tidak urutan asli dari source. */

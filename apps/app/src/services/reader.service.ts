@@ -5,6 +5,8 @@ import { t } from '@/i18n'
 import { repos } from './db.service'
 import { mediaUrl } from './extensions.service'
 import { cleanupAfterRead } from './download.service'
+import { recordHistory } from './history.service'
+import { settings } from './settings.service'
 import { localPages, releaseLocalPages } from './localMedia'
 
 /**
@@ -145,8 +147,12 @@ export function releasePages(pages: readonly ReaderPage[]): void {
  * app di tengah chapter tetap meninggalkan jejak — tidak ada tombol "simpan".
  */
 export async function saveProgress(item: ItemRow, page: number, total: number): Promise<void> {
+  // Incognito membungkam pencatatan otomatis seluruhnya, bukan cuma riwayatnya:
+  // posisi baca yang tetap tersimpan sama saja memberi tahu siapa pun yang
+  // membuka daftar chapter bahwa judul ini dibaca sampai halaman sekian.
+  if (settings.incognito) return
   await repos().items.setProgress(item.id, page, total)
-  await repos().history.record(item.id, item.entry_id, page)
+  await recordHistory(item.id, item.entry_id, page)
 }
 
 /**
@@ -158,10 +164,11 @@ export async function saveProgress(item: ItemRow, page: number, total: number): 
  * jelas-jelas sudah dibaca tetap bertanda belum.
  */
 export async function markFinished(item: ItemRow, total: number): Promise<void> {
-  const { items, history } = repos()
+  if (settings.incognito) return
+  const { items } = repos()
   await items.markSeen([item.id], true)
   await items.setProgress(item.id, total, total)
-  await history.record(item.id, item.entry_id, total)
+  await recordHistory(item.id, item.entry_id, total)
 }
 
 /**
