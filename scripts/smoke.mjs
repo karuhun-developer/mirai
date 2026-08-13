@@ -181,7 +181,11 @@ try {
     // newPage() membuat context sendiri, jadi tiap viewport mulai dari
     // localStorage kosong — pemasangan extension di bawah benar-benar diuji
     // dari nol, bukan mewarisi hasil putaran sebelumnya.
-    const page = await browser.newPage({ viewport })
+    //
+    // `locale` dipatok: tanpa setelan tersimpan Mirai mengikuti bahasa
+    // perangkat, dan Chromium bawaan Playwright berbahasa Inggris — seluruh
+    // selektor di bawah yang menyebut teks Indonesia akan meleset.
+    const page = await browser.newPage({ viewport, locale: 'id-ID' })
 
     // 1. Boot: `/` harus mendarat di library anime, bukan layar kosong.
     await page.goto(BASE, { waitUntil: 'networkidle' })
