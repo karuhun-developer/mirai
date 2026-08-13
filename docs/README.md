@@ -14,6 +14,7 @@ jadi APK.
 | [roadmap.md](roadmap.md)           | Fase 0–9, status, kriteria selesai                         |
 | [extensions/](extensions/)         | Cara menulis extension + API reference                     |
 | [features/](features/)             | Satu dokumen per fitur — ditulis bersamaan dengan fiturnya |
+| [en/](en/)                         | Terjemahan Inggris untuk penulis extension                 |
 
 ## Dokumen fitur
 

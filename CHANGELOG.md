@@ -11,6 +11,84 @@ menautkan ke sana supaya changelog ini tetap ringkas.
 
 ## [Unreleased]
 
+### Fase 9 — Backup, dwibahasa, polish
+
+#### Added
+
+- **Ekspor & restore backup JSON** berisi library, kategori, keadaan tiap
+  chapter/episode, riwayat, setelan, dan daftar repo + extension terpasang.
+  Berkasnya berversi dan divalidasi ulang saat dibaca — berkas dari perangkat
+  lain adalah masukan pihak luar, bukan data sendiri. Restore memakai mode
+  gabung (bawaan) atau ganti, dan mencocokkan entri dengan
+  `source_id` + `url`, bukan id lokal yang tidak berarti apa-apa di perangkat
+  tujuan. Lihat [docs/features/backup.md](docs/features/backup.md).
+- **Dua bahasa antarmuka** lewat `vue-i18n` mode Composition: Indonesia sebagai
+  bawaan, Inggris sebagai bahasa kedua, dipilih di Setelan dan berpindah tanpa
+  memuat ulang halaman. Tanpa setelan tersimpan, bahasanya mengikuti bahasa
+  perangkat. Katalognya diketik `en: typeof id`, jadi kunci yang tertinggal
+  ketahuan waktu `typecheck`, bukan waktu dipakai. Lihat
+  [docs/features/i18n.md](docs/features/i18n.md).
+- **Mode incognito**: selama menyala, riwayat dan progres baca/tonton tidak
+  dicatat. Gerbangnya tunggal di `recordHistory()` supaya tidak ada jalur yang
+  lupa memeriksanya. Lihat [docs/features/privasi.md](docs/features/privasi.md).
+- **Migrasi entri antar-source** untuk judul yang sumbernya mati atau pindah
+  domain: kandidat dicari otomatis, tapi **manusia yang memilih** — pencocokan
+  judul otomatis meleset di sekuel dan judul alternatif, dan salah pilih berarti
+  progres ratusan chapter menempel di judul yang salah. Keadaan item dan riwayat
+  ikut pindah dengan mencocokkan nomor chapter/episode. Lihat
+  [docs/features/migrasi.md](docs/features/migrasi.md).
+- **Windowing daftar besar.** Grid library dan daftar chapter cuma merender
+  baris yang terlihat: 400 judul jadi 56 kartu, 1.000 chapter jadi 20 baris,
+  sementara tinggi dokumennya tidak berubah sedikit pun sehingga scrollbar tetap
+  jujur. Tinggi baris dan jumlah kolom **diukur** dari elemen yang benar-benar
+  ter-render, bukan ditebak — galat per baris menumpuk ribuan kali. Daftar di
+  bawah 60 item dibiarkan utuh di DOM supaya Ctrl+F masih menemukannya. Lihat
+  [docs/features/performa-a11y.md](docs/features/performa-a11y.md).
+- **Audit aksesibilitas**: tautan lompat ke konten, `<main>` yang bisa difokus,
+  pesan error yang diumumkan pembaca layar (`role="alert"`), dan penghormatan
+  `prefers-reduced-motion` — durasinya dipangkas ke 0.01ms, bukan dihapus,
+  supaya penunggu `transitionend` tidak menggantung selamanya.
+- **Dokumentasi berbahasa Inggris** untuk penulis extension: `README_EN.md` dan
+  `docs/en/` (arsitektur, konvensi, panduan menulis extension, API reference).
+  Bahasa Indonesia tetap sumber kebenarannya, dan tiap berkas menyatakan itu di
+  paling atas supaya terjemahan yang usang tidak diam-diam jadi rujukan.
+
+#### Changed
+
+- Seluruh string antarmuka dan pesan error pindah dari komponen ke katalog
+  pesan. Yang ikut kena: pesan kesalahan jaringan dan extension, yang sebelumnya
+  dirakit di service dan karenanya tidak bisa diterjemahkan.
+- `scripts/smoke.mjs` memaku `locale: 'id-ID'` di context Playwright. Setelah
+  i18n masuk, antarmuka mengikuti bahasa perangkat, dan Chromium bawaan
+  Playwright berbahasa Inggris — selektor berbahasa Indonesia langsung gagal.
+
+#### Fixed
+
+- `tsconfig.test.json` sekarang membawa tipe `vite/client` dan alias `@/*`.
+  Tanpa keduanya `@/i18n` tidak pernah ter-resolve dari proyek test, dan seluruh
+  berkas yang menyeretnya diam-diam lolos dari pemeriksaan tipe — persis kelas
+  kesalahan yang berkas itu ada untuk mencegahnya.
+- Tipe `t` di `i18n/index.ts` ditulis eksplisit. Hasil simpulannya menyebut tipe
+  internal `@intlify/core-base` yang tidak bisa dinamai dari luar paketnya, dan
+  `tsc` menolaknya (TS2883).
+
+#### Notes
+
+- **Tracker MAL/AniList sengaja tidak dikerjakan.** Ketiga hambatan terbesarnya
+  bukan soal kode (client ID OAuth, redirect URI terdaftar, dan akun sungguhan
+  di kedua layanan), jadi apa pun yang ditulis tidak bisa diverifikasi sekali
+  pun di mesin pengembangan. Alasan lengkap dan titik pengait yang sudah siap
+  menerimanya ada di [docs/features/tracker.md](docs/features/tracker.md).
+- Terjemahan Inggris terbatas pada dokumen yang dibutuhkan penulis extension.
+  Dokumen fitur tetap Indonesia saja: isinya berubah tiap fase, dan terjemahan
+  basi lebih menyesatkan daripada tidak ada terjemahan sama sekali.
+
+Fase 9 terverifikasi 2026-08-13: `pnpm build`, `pnpm typecheck`, `pnpm lint`,
+`pnpm format:check` bersih, `pnpm test` 164 test di 18 berkas, dan
+`node scripts/smoke.mjs` hijau di dua lebar layar. Backup diekspor lalu
+di-restore di profil peramban kosong dan menghasilkan library yang identik;
+bahasa berpindah id ⇄ en tanpa memuat ulang halaman.
+
 ### Fase 8 — Build Android
 
 #### Added

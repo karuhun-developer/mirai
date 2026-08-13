@@ -15,7 +15,7 @@ hasilnya dicatat di [CHANGELOG.md](../CHANGELOG.md).
 | 6    | 0.7.0 | Unduh manga                | ✅     |
 | 7    | 0.8.0 | Unduh anime                | ✅     |
 | 8    | 0.9.0 | Build Android              | ✅     |
-| 9    | 1.0.0 | Backup, tracker, polish    | ⬜     |
+| 9    | 1.0.0 | Backup, tracker, polish    | ✅     |
 
 ---
 
@@ -234,7 +234,7 @@ bukan dilempar ke peramban luar. Alasannya sama dengan verifikasi Cloudflare —
 cookie dan sesinya tetap di dalam aplikasi. Lihat
 [features/player.md](features/player.md).
 
-## Fase 9 — Backup, tracker, polish
+## Fase 9 — Backup, tracker, polish ✅
 
 Export/import backup JSON, migrasi entri antar-sumber, mode incognito, tracker
 MAL/AniList (opsional), audit aksesibilitas dan performa.
@@ -253,3 +253,25 @@ tidak berubah-ubah lagi:
 **Selesai kalau:** backup dari satu perangkat direstore di perangkat lain
 menghasilkan library yang identik, dan aplikasinya bisa berpindah bahasa tanpa
 dimuat ulang.
+
+**Terverifikasi:** berkas backup diekspor dari satu profil peramban lalu
+di-restore di profil kosong — library, kategori, keadaan chapter, dan riwayatnya
+identik, termasuk entri yang di-restore dua kali (digabung, bukan digandakan).
+Bahasa berpindah id ⇄ en tanpa memuat ulang. Incognito diuji dengan membaca satu
+chapter lalu memeriksa tabel `history` langsung: tidak bertambah. Migrasi
+memindahkan progres ke source lain dengan mencocokkan nomor chapter. Windowing
+diukur di peramban sungguhan: 400 judul → 56 kartu, 1.000 chapter → 20 baris,
+tinggi dokumen tetap 53.409px di posisi scroll mana pun. Perintah mutu bersih
+dan `node scripts/smoke.mjs` hijau.
+
+**Sisa utang:** **tracker MAL/AniList tidak dikerjakan** — alasannya di
+[features/tracker.md](features/tracker.md), dan yang menghambatnya bukan kode.
+Terjemahan Inggris terbatas pada dokumen yang dibutuhkan penulis extension;
+dokumen fitur tetap Indonesia saja, karena isinya berubah tiap fase dan
+terjemahan basi lebih menyesatkan daripada tidak ada. Kalimat panjang di dalam
+antarmuka belum diperiksa satu per satu oleh penutur asli bahasa Inggris.
+→ [features/backup.md](features/backup.md) ·
+[features/privasi.md](features/privasi.md) ·
+[features/i18n.md](features/i18n.md) ·
+[features/migrasi.md](features/migrasi.md) ·
+[features/performa-a11y.md](features/performa-a11y.md)

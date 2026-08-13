@@ -1,5 +1,8 @@
 # Mirai
 
+> Versi Inggris: [README_EN.md](README_EN.md) · dokumentasi Inggris untuk penulis
+> extension: [docs/en/](docs/en/)
+
 Pembaca manga dan pemutar anime dengan sistem **extension** — Mirai tidak
 membawa satu pun sumber konten. Katalog datang dari extension yang kamu pasang
 sendiri dari repo pilihanmu, mengikuti pola
@@ -85,22 +88,23 @@ ada di [docs/features/android.md](docs/features/android.md).
 | 6    | Unduh manga                                      | ✅     |
 | 7    | Unduh anime (mp4 + HLS)                          | ✅     |
 | 8    | Build Android (APK)                              | ✅     |
-| 9    | Backup, tracker, polish                          | ⬜     |
+| 9    | Backup, dwibahasa, polish                        | ✅     |
 
 Rincian tiap fase: [docs/roadmap.md](docs/roadmap.md).
 
 ## Dokumentasi
 
-| Dokumen                                      | Isi                                       |
-| -------------------------------------------- | ----------------------------------------- |
-| [docs/PRD.md](docs/PRD.md)                   | Masalah, tujuan, scope, non-goals         |
-| [docs/DESIGN.md](docs/DESIGN.md)             | Token warna, tipografi, pola komponen     |
-| [docs/architecture.md](docs/architecture.md) | Lapisan, alur data, jaringan, penyimpanan |
-| [docs/conventions.md](docs/conventions.md)   | Aturan koding yang wajib diikuti          |
-| [docs/roadmap.md](docs/roadmap.md)           | Fase 0–9 dan kriteria selesainya          |
-| [docs/features/](docs/features/)             | Satu dokumen per fitur                    |
-| [docs/extensions/](docs/extensions/)         | Cara menulis extension + API reference    |
-| [CHANGELOG.md](CHANGELOG.md)                 | Riwayat rilis                             |
+| Dokumen                                      | Isi                                        |
+| -------------------------------------------- | ------------------------------------------ |
+| [docs/PRD.md](docs/PRD.md)                   | Masalah, tujuan, scope, non-goals          |
+| [docs/DESIGN.md](docs/DESIGN.md)             | Token warna, tipografi, pola komponen      |
+| [docs/architecture.md](docs/architecture.md) | Lapisan, alur data, jaringan, penyimpanan  |
+| [docs/conventions.md](docs/conventions.md)   | Aturan koding yang wajib diikuti           |
+| [docs/roadmap.md](docs/roadmap.md)           | Fase 0–9 dan kriteria selesainya           |
+| [docs/features/](docs/features/)             | Satu dokumen per fitur                     |
+| [docs/extensions/](docs/extensions/)         | Cara menulis extension + API reference     |
+| [docs/en/](docs/en/)                         | Terjemahan Inggris untuk penulis extension |
+| [CHANGELOG.md](CHANGELOG.md)                 | Riwayat rilis                              |
 
 ## Menulis extension
 
