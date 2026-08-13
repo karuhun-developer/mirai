@@ -24,6 +24,7 @@ import ItemRow from '@/components/entry/ItemRow.vue'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { useCover } from '@/composables/useCover'
+import { useVirtualWindow } from '@/composables/useVirtualWindow'
 import { playerLocation, readerLocation } from '@/router/links'
 import { useDownloadsStore } from '@/stores/downloads'
 import { useEntryStore } from '@/stores/entry'
@@ -73,6 +74,15 @@ const itemLabel = computed(() => (kind.value === 'anime' ? t('entry.episode') : 
 const itemWord = computed(() =>
   kind.value === 'anime' ? t('entry.unitEpisode') : t('entry.unitChapter'),
 )
+
+/**
+ * Daftar chapter judul yang panjang umurnya bisa lewat seribu baris, dan tiap
+ * baris punya empat tombol beserta pengamat unduhannya. Yang dirender cuma
+ * yang terlihat; tinggi 44px adalah tebakan awal sampai baris pertama terukur.
+ */
+const itemList = ref<HTMLElement | null>(null)
+const { from, to, spacer } = useVirtualWindow(itemList, () => store.sorted.length, { estimate: 44 })
+const visibleItems = computed(() => store.sorted.slice(from.value, to.value))
 
 const pendingItems = computed(() =>
   store.items.filter((item) => item.seen === 0 && item.downloaded === 0),
@@ -143,6 +153,7 @@ watch(
        baris merah ini khusus kegagalan menyegarkan entri yang sudah tampil. -->
   <p
     v-if="store.error && store.entry"
+    role="alert"
     class="mx-4 mt-4 rounded-md bg-destructive/10 p-3 text-sm text-destructive"
   >
     {{ store.error }}
@@ -338,22 +349,28 @@ watch(
       </Button>
     </div>
 
-    <ul v-if="store.sorted.length > 0" class="divide-y divide-border pb-24 md:pb-8">
-      <ItemRow
-        v-for="item in store.sorted"
-        :key="item.id"
-        :item="item"
-        openable
-        :unit="itemWord"
-        :job="downloads.byItem.get(item.id)"
-        @open="open(item)"
-        @toggle-seen="store.toggleSeen(item)"
-        @toggle-bookmark="store.toggleBookmark(item)"
-        @mark-up-to="store.markUpTo(item)"
-        @download="downloads.download([item])"
-        @remove-download="removeOne(item)"
-      />
-    </ul>
+    <!--
+      Daftar chapter judul lama bisa lewat seribu baris, masing-masing dengan
+      empat tombol; yang dirender cuma yang terlihat. Lihat `useVirtualWindow`.
+    -->
+    <div v-if="store.sorted.length > 0" class="pb-24 md:pb-8">
+      <ul ref="itemList" class="divide-y divide-border" :style="spacer">
+        <ItemRow
+          v-for="item in visibleItems"
+          :key="item.id"
+          :item="item"
+          openable
+          :unit="itemWord"
+          :job="downloads.byItem.get(item.id)"
+          @open="open(item)"
+          @toggle-seen="store.toggleSeen(item)"
+          @toggle-bookmark="store.toggleBookmark(item)"
+          @mark-up-to="store.markUpTo(item)"
+          @download="downloads.download([item])"
+          @remove-download="removeOne(item)"
+        />
+      </ul>
+    </div>
 
     <p v-else-if="!store.refreshing" class="px-4 py-10 text-center text-sm text-muted-foreground">
       {{ t('entry.emptyItems', { unit: itemWord }) }}
